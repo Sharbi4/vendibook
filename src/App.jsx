@@ -45,7 +45,7 @@ function App() {
     ],
     sale: [
       { id: 'all', name: 'All', icon: Store, color: '#FF6B35', emoji: '🏪' },
-      { id: 'for-sale', name: 'Food Trucks', icon: ShoppingCart, color: '#FFD700', emoji: '🚚' },
+      { id: 'for-sale', name: 'Food Trucks', icon: ShoppingCart, color: '#FF6B35', emoji: '🚚' },
       { id: 'trailers-sale', name: 'Trailers', icon: ShoppingCart, color: '#FFA500', emoji: '🚐' },
       { id: 'equipment', name: 'Equipment', icon: ShoppingCart, color: '#FF8C42', emoji: '⚙️' }
     ],
@@ -422,7 +422,7 @@ function App() {
               <div style={{
                 width: '32px',
                 height: '32px',
-                background: 'linear-gradient(135deg, #FF6B35, #FF8C42)',
+                background: '#FF6B35',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
@@ -467,7 +467,7 @@ function App() {
                 Sign In
               </button>
               <button style={{
-                background: 'linear-gradient(135deg, #FF6B35, #FF5722)',
+                background: '#FF6B35',
                 color: 'white',
                 border: 'none',
                 padding: '12px 24px',
@@ -508,7 +508,7 @@ function App() {
             lineHeight: '1.1',
             letterSpacing: '-2px'
           }}>
-            Not sure? You can now <span style={{ color: '#FFD700' }}>try it</span>.
+            Not sure? You can now <span style={{ color: '#FF6B35' }}>try it</span>.
           </h1>
           <p style={{
             fontSize: '20px',
@@ -546,7 +546,7 @@ function App() {
               </div>
             </div>
             <div style={{
-              background: 'linear-gradient(135deg, #FF6B35, #FF5722)',
+              background: '#FF6B35',
               color: 'white',
               padding: '12px 24px',
               borderRadius: '12px',
@@ -858,7 +858,7 @@ function App() {
                 onClick={handleSearch}
                 style={{
                   width: '100%',
-                  background: 'linear-gradient(135deg, #FF6B35, #FF5722)',
+                  background: '#FF6B35',
                   color: 'white',
                   border: 'none',
                   padding: '16px',
@@ -1095,7 +1095,7 @@ function App() {
                   width: '80px',
                   height: '80px',
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #FF6B35, #FF8C42)',
+                  background: '#FF6B35',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1164,7 +1164,7 @@ function App() {
               }}>
                 <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
                   {Array.from({ length: review.rating }).map((_, i) => (
-                    <Star key={i} style={{ width: '16px', height: '16px', fill: '#FFD700', color: '#FFD700' }} />
+                    <Star key={i} style={{ width: '16px', height: '16px', fill: '#FF6B35', color: '#FF6B35' }} />
                   ))}
                 </div>
                 <p style={{ fontSize: '15px', color: '#222', lineHeight: '1.6', marginBottom: '20px', fontStyle: 'italic' }}>
@@ -1182,7 +1182,7 @@ function App() {
 
       {/* CTA Section */}
       <section style={{
-        background: 'linear-gradient(135deg, #FF6B35 0%, #FF5722 100%)',
+        background: '#FF6B35',
         padding: '80px 40px',
         marginTop: '0'
       }}>
