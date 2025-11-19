@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
-import SectionHeader from '../components/SectionHeader';
 import EmptyState from '../components/EmptyState';
+import PageShell from '../components/PageShell';
 
 /**
  * NotificationsPage - Full notifications center
@@ -160,21 +160,20 @@ export function NotificationsPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <SectionHeader title="Notifications" subtitle="Stay updated on bookings, messages, and more" />
-        {notifications.some(n => !n.read) && (
-          <button
-            onClick={handleMarkAllAsRead}
-            className="px-4 py-2 text-blue-500 hover:text-blue-700 font-medium text-sm"
-          >
-            Mark all as read
-          </button>
-        )}
-      </div>
-
+    <PageShell
+      title="Notifications"
+      subtitle="Stay updated on bookings, messages, and more"
+      action={
+        notifications.some(n => !n.read)
+          ? {
+              label: 'Mark all as read',
+              onClick: handleMarkAllAsRead
+            }
+          : undefined
+      }
+    >
       {/* Filter */}
-      <div className="mb-6 flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setFilterUnread(false)}
           className={`px-4 py-2 rounded-full font-medium transition ${
@@ -249,6 +248,6 @@ export function NotificationsPage() {
           }}
         />
       )}
-    </div>
+    </PageShell>
   );
 }
