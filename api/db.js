@@ -532,11 +532,25 @@ const imageAssets = {
 // ============================================================================
 
 const notifications = {
-  async create(userId, notificationData) {
+  async create(userId, typeOrData, message = null, relatedId = null) {
+    // Support both old and new signature
+    if (typeof typeOrData === 'object') {
+      return prisma.notification.create({
+        data: {
+          ...typeOrData,
+          userId
+        }
+      });
+    }
+
+    // New signature: create(userId, type, message, relatedId)
     return prisma.notification.create({
       data: {
-        ...notificationData,
-        userId
+        userId,
+        type: typeOrData,
+        title: typeOrData,
+        message,
+        relatedId
       }
     });
   },
@@ -560,6 +574,107 @@ const notifications = {
 };
 
 // ============================================================================
+// MESSAGING OPERATIONS
+// ============================================================================
+
+const messages = {
+  async createThread(participantIds, listingId = null, subject = null) {
+    return prisma.messageThread.create({
+      data: {
+        participantIds,
+        listingId,
+        subject,
+        previewMessage: ''
+      }
+    });
+  },
+
+  async getThreads(userId) {
+    return prisma.messageThread.findMany({
+      where: {
+        participantIds: {
+          has: userId
+        }
+      },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        }
+      },
+      orderBy: { lastUpdated: 'desc' }
+    });
+  },
+
+  async getThread(threadId) {
+    return prisma.messageThread.findUnique({
+      where: { id: threadId },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' }
+        }
+      }
+    });
+  },
+
+  async createMessage(threadId, senderId, recipientId, content) {
+    // Create message
+    const message = await prisma.message.create({
+      data: {
+        threadId,
+        senderId,
+        recipientId,
+        content
+      }
+    });
+
+    // Update thread preview and lastUpdated
+    await prisma.messageThread.update({
+      where: { id: threadId },
+      data: {
+        previewMessage: content.substring(0, 100),
+        lastUpdated: new Date()
+      }
+    });
+
+    return message;
+  },
+
+  async markMessageAsRead(messageId) {
+    return prisma.message.update({
+      where: { id: messageId },
+      data: {
+        readStatus: true,
+        readAt: new Date()
+      }
+    });
+  },
+
+  async markThreadAsRead(threadId, userId) {
+    return prisma.message.updateMany({
+      where: {
+        threadId,
+        recipientId: userId,
+        readStatus: false
+      },
+      data: {
+        readStatus: true,
+        readAt: new Date()
+      }
+    });
+  },
+
+  async getUnreadCount(userId) {
+    return prisma.message.count({
+      where: {
+        recipientId: userId,
+        readStatus: false
+      }
+    });
+  }
+};
+
+// ============================================================================
 // MAIN EXPORT
 // ============================================================================
 
@@ -578,6 +693,110 @@ module.exports = {
   auditLogs,
   imageAssets,
   notifications,
+  messages,
+  wishlist,
+  recentlyViewed,
+
+  // Helper functions
+  async disconnect() {
+    await prisma.$disconnect();
+  }
+};
+
+// ============================================================================
+// WISHLIST OPERATIONS
+// ============================================================================
+
+const wishlist = {
+  async add(userId, listingId) {
+    return prisma.wishlist.create({
+      data: { userId, listingId }
+    });
+  },
+
+  async remove(userId, listingId) {
+    return prisma.wishlist.delete({
+      where: {
+        userId_listingId: { userId, listingId }
+      }
+    });
+  },
+
+  async getByUserId(userId) {
+    return prisma.wishlist.findMany({
+      where: { userId },
+      include: { listing: true },
+      orderBy: { createdAt: 'desc' }
+    });
+  },
+
+  async isInWishlist(userId, listingId) {
+    const item = await prisma.wishlist.findUnique({
+      where: {
+        userId_listingId: { userId, listingId }
+      }
+    });
+    return !!item;
+  }
+};
+
+// ============================================================================
+// RECENTLY VIEWED OPERATIONS
+// ============================================================================
+
+const recentlyViewed = {
+  async addView(userId, listingId) {
+    // Delete old view if exists
+    await prisma.recentlyViewed.deleteMany({
+      where: { userId, listingId }
+    });
+
+    // Add new view
+    return prisma.recentlyViewed.create({
+      data: { userId, listingId, viewedAt: new Date() }
+    });
+  },
+
+  async getByUserId(userId, limit = 10) {
+    return prisma.recentlyViewed.findMany({
+      where: { userId },
+      include: { listing: true },
+      orderBy: { viewedAt: 'desc' },
+      take: limit
+    });
+  },
+
+  async clearOldViews(userId, daysOld = 30) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+
+    return prisma.recentlyViewed.deleteMany({
+      where: {
+        userId,
+        viewedAt: { lt: cutoffDate }
+      }
+    });
+  }
+};
+
+module.exports = {
+  // Prisma client for raw queries if needed
+  prisma,
+
+  // Collections
+  users,
+  listings,
+  host,
+  bookings,
+  inquiries,
+  events,
+  reviews,
+  auditLogs,
+  imageAssets,
+  notifications,
+  messages,
+  wishlist,
+  recentlyViewed,
 
   // Helper functions
   async disconnect() {

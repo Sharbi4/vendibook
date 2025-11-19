@@ -33,6 +33,11 @@ model User {
   events        EventRequest[]
   reviews       Review[]
   auditLogs     AuditLog[]
+  sentMessages  Message[] @relation("sender")
+  receivedMessages Message[] @relation("recipient")
+  messageThreads MessageThread[]
+  wishlist      Wishlist[]
+  recentlyViewed RecentlyViewed[]
   
   // Metadata
   createdAt     DateTime  @default(now())
@@ -156,6 +161,8 @@ model HostListing {
   reviews         Review[]
   auditLogs       AuditLog[]
   statusLogs      StatusLog[]
+  wishlistItems   Wishlist[]
+  recentViews     RecentlyViewed[]
   
   @@index([ownerId])
   @@index([listingType])
@@ -423,6 +430,7 @@ enum NotificationType {
   REVIEW_RECEIVED
   LISTING_PUBLISHED
   LISTING_FLAGGED
+  MESSAGE_RECEIVED
 }
 
 // ============================================================================
@@ -443,3 +451,97 @@ model StatusLog {
   @@index([listingId])
   @@index([createdAt])
 }
+
+// ============================================================================
+// MESSAGING SYSTEM
+// ============================================================================
+
+model MessageThread {
+  id              String    @id @default(cuid())
+  
+  // Participants
+  participantIds  String[]  // Array of user IDs
+  participants    User[]
+  
+  // Related listing
+  listingId       String?
+  
+  // Thread info
+  subject         String?
+  previewMessage  String?   @db.Text
+  lastUpdated     DateTime  @updatedAt
+  
+  // Messages in this thread
+  messages        Message[]
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([participantIds])
+  @@index([lastUpdated])
+  @@index([createdAt])
+}
+
+model Message {
+  id              String    @id @default(cuid())
+  
+  threadId        String
+  thread          MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  
+  senderId        String
+  sender          User      @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
+  
+  recipientId     String
+  recipient       User      @relation("recipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  
+  content         String    @db.Text
+  readStatus      Boolean   @default(false)
+  readAt          DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([threadId])
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([readStatus])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// WISHLIST & FAVORITES
+// ============================================================================
+
+model Wishlist {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  listingId       String
+  listing         HostListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime  @default(now())
+  
+  @@unique([userId, listingId])
+  @@index([userId])
+  @@index([listingId])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// RECENTLY VIEWED
+// ============================================================================
+
+model RecentlyViewed {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  listingId       String
+  listing         HostListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  viewedAt        DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([viewedAt])
+}
+

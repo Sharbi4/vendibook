@@ -219,3 +219,56 @@ export async function uploadImage(file) {
   const data = await response.json();
   return data.imageUrl;
 }
+
+// Unified API client object for convenience
+export const apiClient = {
+  async get(endpoint) {
+    const response = await fetch(API_BASE + endpoint, {
+      method: 'GET',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+    return response.json();
+  },
+
+  async post(endpoint, data = {}) {
+    const response = await fetch(API_BASE + endpoint, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+    return response.json();
+  },
+
+  async put(endpoint, data = {}) {
+    const response = await fetch(API_BASE + endpoint, {
+      method: 'PUT',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+    return response.json();
+  },
+
+  async delete(endpoint) {
+    const response = await fetch(API_BASE + endpoint, {
+      method: 'DELETE',
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+    return response.json();
+  }
+};

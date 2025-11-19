@@ -194,6 +194,24 @@ const changePasswordSchema = z.object({
 });
 
 // ============================================================================
+// MESSAGING SCHEMAS
+// ============================================================================
+
+const createMessageThreadSchema = z.object({
+  recipientId: stringId,
+  listingId: stringId.optional(),
+  subject: z.string().max(200).optional()
+});
+
+const createMessageSchema = z.object({
+  threadId: stringId,
+  recipientId: stringId,
+  content: z.string()
+    .min(1, 'Message cannot be empty')
+    .max(5000, 'Message too long')
+});
+
+// ============================================================================
 // VALIDATION HELPER
 // ============================================================================
 
@@ -252,6 +270,10 @@ module.exports = {
   // User schemas
   updateUserProfileSchema,
   changePasswordSchema,
+
+  // Messaging schemas
+  createMessageThreadSchema,
+  createMessageSchema,
 
   // Common
   paginationSchema,
