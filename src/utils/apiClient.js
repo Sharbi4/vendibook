@@ -1,96 +1,171 @@
 /**
- * API Client - Frontend integration with backend APIs
+ * API Client - Connected to Real Backend (PHASE 2)
  *
- * All endpoints are now connected to the real backend API
- * Using helper functions from auth.js for token management and authenticated requests
+ * All functions now use real API calls to Vercel serverless backend.
+ * - Authenticated requests use Bearer tokens from src/utils/auth.js
+ * - Error handling with proper HTTP status checking
+ * - User-facing error messages
  */
 
-import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from './auth';
+import * as authUtil from './auth';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
 
 // ============================================================================
-// AUTH API
+// HELPER: Make authenticated API requests
+// ============================================================================
+
+/**
+ * Make an authenticated API request with error handling
+ * @param {string} path - API path (e.g., '/api/listings')
+ * @param {object} options - Fetch options
+ * @returns {Promise<object>} - Response data
+ * @throws {Error} - With error message and status
+ */
+async function apiRequest(path, options = {}) {
+  const url = `${API_BASE}${path}`;
+  const headers = authUtil.getAuthHeaders();
+  
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...headers,
+      ...options.headers
+    }
+  });
+  
+  // Handle 401 - unauthorized (token invalid/expired)
+  if (response.status === 401) {
+    authUtil.clearAuthToken();
+    window.location.href = '/login';
+    throw new Error('Session expired. Please log in again.');
+  }
+  
+  // Parse response body
+  let data;
+  try {
+    data = await response.json();
+  } catch (e) {
+    data = { error: 'Invalid server response' };
+  }
+  
+  // Handle error responses
+  if (!response.ok) {
+    const message = data.message || data.error || `API error: ${response.status}`;
+    const error = new Error(message);
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+  
+  return data;
+}
+
+// ============================================================================
+// AUTHENTICATION API (POST /api/auth/*)
 // ============================================================================
 
 /**
  * Register a new user account
  * POST /api/auth/register
- *
- * @param {Object} userData - { email, password, name }
- * @returns {Promise<Object>} { token, user }
  */
-export async function registerUser(userData) {
-  return apiPost('/api/auth/register', userData);
+export async function registerUser(email, password, name) {
+  const data = await apiRequest('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, name })
+  });
+  
+  // Store token and user
+  if (data.token) {
+    authUtil.setAuthToken(data.token);
+    authUtil.setStoredUser(data.user);
+  }
+  
+  return data;
 }
 
 /**
  * Login with email and password
  * POST /api/auth/login
- *
- * @param {string} email - User email
- * @param {string} password - User password
- * @returns {Promise<Object>} { token, user }
  */
 export async function loginUser(email, password) {
-  return apiPost('/api/auth/login', { email, password });
+  const data = await apiRequest('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password })
+  });
+  
+  // Store token and user
+  if (data.token) {
+    authUtil.setAuthToken(data.token);
+    authUtil.setStoredUser(data.user);
+  }
+  
+  return data;
 }
 
 /**
- * Get current logged-in user info
+ * Get current authenticated user
  * GET /api/auth/me
- *
- * @returns {Promise<Object>} { user } - Current user object
  */
 export async function getCurrentUser() {
   try {
-    return await apiGet('/api/auth/me');
+    const data = await apiRequest('/api/auth/me', {
+      method: 'GET'
+    });
+    
+    if (data.user) {
+      authUtil.setStoredUser(data.user);
+      return data.user;
+    }
+    
+    return null;
   } catch (error) {
     if (error.status === 401) {
-      return null; // Not authenticated
+      authUtil.clearAuthToken();
+      return null;
     }
     throw error;
   }
 }
 
 /**
- * Logout and clear session
- * (Client-side only - clears token from localStorage)
+ * Logout user
+ * POST /api/auth/logout (optional endpoint)
  */
 export async function logoutUser() {
-  // Could call POST /api/auth/logout here if backend tracks sessions
-  // For now, just clear client-side auth
+  // Clear local auth
+  authUtil.clearAuthToken();
   return { success: true };
 }
 
 // ============================================================================
-// PUBLIC LISTINGS API
+// PUBLIC LISTINGS API (GET /api/listings/*)
 // ============================================================================
 
 /**
  * Fetch all listings with optional filters
- * GET /api/listings?listingType=RENT&location=Phoenix...
+ * GET /api/listings?listingType=RENT&category=food-trucks&location=Phoenix...
  *
- * @param {Object} filters - { listingType, category, location, priceMin, priceMax, etc }
- * @returns {Promise<Object>} { count, listings }
+ * @param {object} filters - { listingType, category, location, priceMin, priceMax, verifiedOnly, deliveryOnly }
+ * @returns {Promise<object>} - { count, total, listings }
  */
 export async function fetchListings(filters = {}) {
-  // Build query string from filters
   const params = new URLSearchParams();
   
   if (filters.listingType) params.append('listingType', filters.listingType);
-  if (filters.category && filters.category !== 'all') params.append('category', filters.category);
+  if (filters.category) params.append('category', filters.category);
   if (filters.location) params.append('location', filters.location);
   if (filters.priceMin) params.append('priceMin', filters.priceMin);
   if (filters.priceMax) params.append('priceMax', filters.priceMax);
-  if (filters.deliveryOnly) params.append('deliveryOnly', 'true');
   if (filters.verifiedOnly) params.append('verifiedOnly', 'true');
+  if (filters.deliveryOnly) params.append('deliveryOnly', 'true');
   if (filters.search) params.append('search', filters.search);
+  if (filters.limit) params.append('limit', filters.limit);
   
   const queryString = params.toString();
   const path = `/api/listings${queryString ? '?' + queryString : ''}`;
   
-  return apiGet(path);
+  return apiRequest(path, { method: 'GET' });
 }
 
 /**
@@ -98,164 +173,200 @@ export async function fetchListings(filters = {}) {
  * GET /api/listings/:id
  *
  * @param {string} id - Listing ID
- * @returns {Promise<Object>} Listing object
+ * @returns {Promise<object>} - Listing object
  */
 export async function fetchListingById(id) {
-  return apiGet(`/api/listings/${id}`);
+  return apiRequest(`/api/listings/${id}`, { method: 'GET' });
 }
 
 /**
  * Search listings with advanced filters
  * POST /api/listings/search
  *
- * @param {Object} filters - Complex filter object
- * @returns {Promise<Object>} { count, total, listings }
+ * @param {object} filters - Complex filter object
+ * @returns {Promise<object>} - { count, total, listings }
  */
 export async function searchListings(filters = {}) {
-  return apiPost('/api/listings/search', filters);
+  return apiRequest('/api/listings/search', {
+    method: 'POST',
+    body: JSON.stringify({
+      listingType: filters.listingType,
+      category: filters.category,
+      location: filters.location,
+      priceMin: filters.priceMin,
+      priceMax: filters.priceMax,
+      verifiedOnly: filters.verifiedOnly,
+      deliveryOnly: filters.deliveryOnly,
+      amenities: filters.amenities,
+      search: filters.search,
+      limit: filters.limit
+    })
+  });
 }
 
 // ============================================================================
-// HOST LISTINGS API (Authenticated)
+// HOST LISTINGS API (GET|POST /api/host/listings, PATCH /api/host/listings/:id/status)
 // ============================================================================
 
 /**
  * Fetch all listings created by current host
- * GET /api/host/listings
- * Requires authentication
+ * GET /api/host/listings (requires authentication)
  *
- * @returns {Promise<Object>} { count, listings }
+ * @returns {Promise<object>} - { count, listings }
  */
 export async function fetchHostListings() {
-  return apiGet('/api/host/listings');
+  return apiRequest('/api/host/listings', { method: 'GET' });
 }
 
 /**
  * Create a new listing as a host
- * POST /api/host/listings
- * Requires authentication
+ * POST /api/host/listings (requires authentication)
  *
- * @param {Object} listingData - New listing object
- * @returns {Promise<Object>} { success, listing, message }
+ * @param {object} listingData - Listing details
+ * @returns {Promise<object>} - { listing }
  */
 export async function createHostListing(listingData) {
-  return apiPost('/api/host/listings', listingData);
+  return apiRequest('/api/host/listings', {
+    method: 'POST',
+    body: JSON.stringify(listingData)
+  });
 }
 
 /**
  * Get a specific host listing
- * GET /api/host/listings/:id
- * Requires authentication (owner only)
+ * GET /api/host/listings/:id (requires authentication & ownership)
  *
  * @param {string} id - Listing ID
- * @returns {Promise<Object>} Listing object
+ * @returns {Promise<object>} - { listing }
  */
 export async function getHostListing(id) {
-  return apiGet(`/api/host/listings/${id}`);
+  return apiRequest(`/api/host/listings/${id}`, { method: 'GET' });
 }
 
 /**
- * Update a host listing
- * PUT /api/host/listings/:id
- * Requires authentication (owner only)
+ * Update a host listing (full update)
+ * PUT /api/host/listings/:id (requires authentication & ownership)
  *
  * @param {string} id - Listing ID
- * @param {Object} updates - Updated listing data
- * @returns {Promise<Object>} { success, listing, message }
+ * @param {object} updates - Updated listing data
+ * @returns {Promise<object>} - { listing }
  */
 export async function updateHostListing(id, updates) {
-  return apiPut(`/api/host/listings/${id}`, updates);
+  return apiRequest(`/api/host/listings/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates)
+  });
 }
 
 /**
  * Partially update a host listing
- * PATCH /api/host/listings/:id
- * Requires authentication (owner only)
+ * PATCH /api/host/listings/:id (requires authentication & ownership)
  *
  * @param {string} id - Listing ID
- * @param {Object} updates - Partial updates
- * @returns {Promise<Object>} { success, listing, message }
+ * @param {object} updates - Partial updates
+ * @returns {Promise<object>} - { listing }
  */
 export async function patchHostListing(id, updates) {
-  return apiPatch(`/api/host/listings/${id}`, updates);
+  return apiRequest(`/api/host/listings/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates)
+  });
 }
 
 /**
- * Update listing status (live, paused, archived, sold)
- * PATCH /api/host/listings/:id/status
- * Requires authentication (owner only)
+ * Update listing status
+ * PATCH /api/host/listings/:id/status (requires authentication & ownership)
  *
  * @param {string} id - Listing ID
- * @param {string} status - New status
- * @returns {Promise<Object>} { success, listing, message }
+ * @param {string} status - New status: draft|live|paused|sold|archived
+ * @returns {Promise<object>} - { listing }
  */
 export async function updateListingStatus(id, status) {
-  return apiPatch(`/api/host/listings/${id}/status`, { status });
+  return apiRequest(`/api/host/listings/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status })
+  });
 }
 
 /**
- * Delete a host's listing
- * DELETE /api/host/listings/:id
- * Requires authentication (owner only)
+ * Delete a host listing
+ * DELETE /api/host/listings/:id (requires authentication & ownership)
  *
  * @param {string} id - Listing ID
- * @returns {Promise<Object>} { success, message }
+ * @returns {Promise<object>} - { success: true }
  */
 export async function deleteHostListing(id) {
-  return apiDelete(`/api/host/listings/${id}`);
-}
-
-// ============================================================================
-// LISTING REQUESTS API (Authenticated)
-// ============================================================================
-
-/**
- * Create a booking request or inquiry for a listing
- * POST /api/listings/:id
- * Requires authentication
- *
- * @param {string} listingId - Listing ID
- * @param {Object} requestData - { type, startDate, endDate, eventDate, message, etc }
- * @returns {Promise<Object>} { success, requestId, request, message }
- */
-export async function createListingRequest(listingId, requestData) {
-  return apiPost(`/api/listings/${listingId}`, requestData);
-}
-
-// ============================================================================
-// IMAGE UPLOAD API (Authenticated)
-// ============================================================================
-
-/**
- * Upload image for listing
- * POST /api/host/upload
- * Requires authentication
- *
- * @param {File} file - Image file to upload
- * @returns {Promise<Object>} { success, imageUrl, fileName, uploadedAt }
- */
-export async function uploadListingImage(file) {
-  // Use FormData for file uploads
-  const formData = new FormData();
-  formData.append('file', file);
-  
-  const token = localStorage.getItem('authToken');
-  const headers = {};
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  
-  // Don't set Content-Type - browser will set it with boundary
-  const response = await fetch(`${API_BASE}/api/host/upload`, {
-    method: 'POST',
-    headers,
-    body: formData
+  return apiRequest(`/api/host/listings/${id}`, {
+    method: 'DELETE'
   });
-  
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Upload failed');
-  }
-  
-  return response.json();
 }
+
+// ============================================================================
+// BOOKING & INQUIRY API (POST /api/listings/:id)
+// ============================================================================
+
+/**
+ * Create a booking, inquiry, or event request for a listing
+ * POST /api/listings/:id (requires authentication)
+ *
+ * For RENT listings: Creates a booking
+ * For SALE listings: Creates an inquiry
+ * For EVENT_PRO listings: Creates an event request
+ *
+ * @param {string} id - Listing ID
+ * @param {object} data - Request data (varies by type)
+ * @returns {Promise<object>} - { requestId, message }
+ */
+export async function createListingRequest(id, data) {
+  return apiRequest(`/api/listings/${id}`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
+
+// ============================================================================
+// IMAGE UPLOAD API (POST /api/host/upload)
+// ============================================================================
+
+/**
+ * Upload an image for a listing
+ * POST /api/host/upload (requires authentication)
+ *
+ * Note: This is a stub implementation for Phase 2.
+ * Phase 3 will implement real S3 upload with multipart form data.
+ *
+ * @returns {Promise<object>} - { imageUrl, fileName, message }
+ */
+export async function uploadListingImage() {
+  // Phase 2: Placeholder - returns placeholder URL
+  // Phase 3: Implement real multipart/form-data upload
+  return apiRequest('/api/host/upload', {
+    method: 'POST'
+  });
+}
+
+// ============================================================================
+// BACKWARD COMPATIBILITY EXPORTS
+// ============================================================================
+
+/**
+ * @deprecated Use authUtil.setAuthToken() instead
+ */
+export function setAuthToken(token) {
+  authUtil.setAuthToken(token);
+}
+
+/**
+ * @deprecated Use authUtil.getAuthToken() instead
+ */
+export function getAuthToken() {
+  return authUtil.getAuthToken();
+}
+
+/**
+ * @deprecated Use authUtil.clearAuthToken() instead
+ */
+export function clearAuth() {
+  authUtil.clearAuthToken();
+}
+

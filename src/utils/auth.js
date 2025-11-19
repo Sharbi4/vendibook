@@ -1,175 +1,282 @@
 /**
- * Authentication utilities for token management
- *
- * Handles storing, retrieving, and clearing authentication tokens
- * Provides helper functions for API requests with automatic token injection
+ * Authentication utilities for frontend
+ * Manages token storage, API calls with auth headers, and user context
  */
 
-const TOKEN_KEY = 'authToken';
-const USER_KEY = 'authUser';
+// Token storage key
+const TOKEN_KEY = 'vendibook_auth_token';
+const USER_KEY = 'vendibook_auth_user';
 
-/**
- * Store authentication token in localStorage
- * @param {string} token - Auth token from API response
- */
-export function setToken(token) {
-  if (token) {
-    localStorage.setItem(TOKEN_KEY, token);
-  }
-}
-
-/**
- * Store user data in localStorage
- * @param {object} user - User object from API response
- */
-export function setUser(user) {
-  if (user) {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
-  }
-}
+// ============================================================================
+// TOKEN MANAGEMENT
+// ============================================================================
 
 /**
  * Get stored authentication token
- * @returns {string|null} - Token if available, null otherwise
+ * @returns {string|null} - Auth token or null if not logged in
  */
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-/**
- * Get stored user data
- * @returns {object|null} - User object if available, null otherwise
- */
-export function getUser() {
-  const userStr = localStorage.getItem(USER_KEY);
-  if (!userStr) return null;
+export function getAuthToken() {
   try {
-    return JSON.parse(userStr);
-  } catch {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch (error) {
+    console.error('Error reading auth token:', error);
     return null;
   }
 }
 
 /**
- * Check if user is authenticated (has valid token)
- * @returns {boolean} - True if authenticated
+ * Store authentication token
+ * @param {string} token - Auth token to store
  */
-export function isAuthenticated() {
-  return !!getToken();
+export function setAuthToken(token) {
+  try {
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+  } catch (error) {
+    console.error('Error saving auth token:', error);
+  }
 }
 
 /**
- * Clear authentication (logout)
+ * Clear authentication token
  */
-export function clearAuth() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
+export function clearAuthToken() {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+  } catch (error) {
+    console.error('Error clearing auth token:', error);
+  }
 }
+
+/**
+ * Check if user is authenticated
+ * @returns {boolean} - True if auth token exists
+ */
+export function isAuthenticated() {
+  return !!getAuthToken();
+}
+
+// ============================================================================
+// USER STORAGE
+// ============================================================================
+
+/**
+ * Get stored user data
+ * @returns {object|null} - User object or null
+ */
+export function getStoredUser() {
+  try {
+    const userJson = localStorage.getItem(USER_KEY);
+    return userJson ? JSON.parse(userJson) : null;
+  } catch (error) {
+    console.error('Error reading stored user:', error);
+    return null;
+  }
+}
+
+/**
+ * Store user data
+ * @param {object} user - User object to store
+ */
+export function setStoredUser(user) {
+  try {
+    if (user) {
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(USER_KEY);
+    }
+  } catch (error) {
+    console.error('Error saving user:', error);
+  }
+}
+
+// ============================================================================
+// API REQUEST HELPERS
+// ============================================================================
 
 /**
  * Get Authorization header for API requests
- * @returns {object|null} - Headers object with Authorization, or null if not authenticated
+ * @returns {object} - Headers object with Authorization header if authenticated
  */
 export function getAuthHeaders() {
-  const token = getToken();
-  if (!token) return null;
-  
-  return {
-    'Authorization': `Bearer ${token}`,
+  const token = getAuthToken();
+  const headers = {
     'Content-Type': 'application/json'
   };
+  
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  
+  return headers;
 }
 
 /**
  * Make an authenticated API request
- * @param {string} path - API endpoint path (e.g., '/api/listings')
+ * @param {string} url - API endpoint URL
  * @param {object} options - Fetch options (method, body, etc.)
  * @returns {Promise<object>} - Response JSON
  */
-export async function apiRequest(path, options = {}) {
-  const baseURL = process.env.REACT_APP_API_URL || '';
-  const url = baseURL + path;
-  
-  const headers = getAuthHeaders() || { 'Content-Type': 'application/json' };
-  
+export async function authenticatedFetch(url, options = {}) {
   const response = await fetch(url, {
     ...options,
     headers: {
-      ...headers,
-      ...(options.headers || {})
+      ...getAuthHeaders(),
+      ...options.headers
     }
   });
   
-  // Handle 401 Unauthorized
+  // Handle 401 Unauthorized - clear auth and redirect to login
   if (response.status === 401) {
-    clearAuth();
-    // Could emit a logout event here or trigger a redirect to login
+    clearAuthToken();
+    window.location.href = '/login';
   }
+  
+  // Parse response
+  const data = await response.json();
+  
+  // Throw error if response not OK
+  if (!response.ok) {
+    const error = new Error(data.message || data.error || 'API request failed');
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
+  
+  return data;
+}
+
+// ============================================================================
+// AUTHENTICATION FLOW
+// ============================================================================
+
+/**
+ * Register a new user account
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @param {string} name - User full name
+ * @returns {Promise<object>} - {user, token}
+ */
+export async function registerUser(email, password, name) {
+  const response = await fetch('/api/auth/register', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ email, password, name })
+  });
+  
+  const data = await response.json();
   
   if (!response.ok) {
-    const error = await response.json();
-    const err = new Error(error.message || error.error || 'API Error');
-    err.status = response.status;
-    err.data = error;
-    throw err;
+    throw new Error(data.message || data.error || 'Registration failed');
   }
   
-  return response.json();
+  // Store token and user
+  if (data.token) {
+    setAuthToken(data.token);
+    setStoredUser(data.user);
+  }
+  
+  return data;
 }
 
 /**
- * Make a GET request
- * @param {string} path - API endpoint
- * @returns {Promise<object>} - Response JSON
+ * Login with email and password
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @returns {Promise<object>} - {user, token}
  */
-export function apiGet(path) {
-  return apiRequest(path, { method: 'GET' });
-}
-
-/**
- * Make a POST request
- * @param {string} path - API endpoint
- * @param {object} data - Request body
- * @returns {Promise<object>} - Response JSON
- */
-export function apiPost(path, data) {
-  return apiRequest(path, {
+export async function loginUser(email, password) {
+  const response = await fetch('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify(data)
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ email, password })
   });
+  
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.message || data.error || 'Login failed');
+  }
+  
+  // Store token and user
+  if (data.token) {
+    setAuthToken(data.token);
+    setStoredUser(data.user);
+  }
+  
+  return data;
 }
 
 /**
- * Make a PUT request
- * @param {string} path - API endpoint
- * @param {object} data - Request body
- * @returns {Promise<object>} - Response JSON
+ * Get current authenticated user
+ * @returns {Promise<object>} - Current user object
  */
-export function apiPut(path, data) {
-  return apiRequest(path, {
-    method: 'PUT',
-    body: JSON.stringify(data)
-  });
+export async function getCurrentUser() {
+  try {
+    const response = await fetch('/api/auth/me', {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        clearAuthToken();
+        return null;
+      }
+      throw new Error('Failed to fetch current user');
+    }
+    
+    const data = await response.json();
+    if (data.user) {
+      setStoredUser(data.user);
+      return data.user;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    return null;
+  }
 }
 
 /**
- * Make a PATCH request
- * @param {string} path - API endpoint
- * @param {object} data - Request body
- * @returns {Promise<object>} - Response JSON
+ * Logout user and clear session
  */
-export function apiPatch(path, data) {
-  return apiRequest(path, {
-    method: 'PATCH',
-    body: JSON.stringify(data)
-  });
+export async function logoutUser() {
+  try {
+    // Optional: Call logout endpoint if it exists
+    // await authenticatedFetch('/api/auth/logout', { method: 'POST' });
+  } catch (error) {
+    console.error('Error during logout:', error);
+  }
+  
+  // Always clear local auth
+  clearAuthToken();
 }
 
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
 /**
- * Make a DELETE request
- * @param {string} path - API endpoint
- * @returns {Promise<object>} - Response JSON
+ * Initialize auth state on app startup
+ * Validates stored token and loads current user
+ * @returns {Promise<object|null>} - Current user or null
  */
-export function apiDelete(path) {
-  return apiRequest(path, { method: 'DELETE' });
+export async function initializeAuth() {
+  const token = getAuthToken();
+  if (!token) {
+    return null;
+  }
+  
+  // Verify token is still valid
+  return getCurrentUser();
 }

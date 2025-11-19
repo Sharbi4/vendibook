@@ -1,23 +1,24 @@
 /**
  * PATCH /api/host/listings/:id/status - Update listing status
  * 
+ * Valid statuses: draft, live, paused, sold, archived
+ * 
  * Request body:
  * {
- *   status: 'draft' | 'live' | 'paused' | 'archived' | 'sold'
+ *   status: "draft" | "live" | "paused" | "sold" | "archived"
  * }
  * 
  * Response: 200 OK
  * {
- *   success: boolean
- *   listing: { ... (updated listing object) ... }
- *   message: string
+ *   success: true
+ *   listing: { ... }
  * }
  */
 
 const db = require('../../../../_db');
 const auth = require('../../../../_auth');
 
-const VALID_STATUSES = ['draft', 'live', 'paused', 'archived', 'sold'];
+const VALID_STATUSES = ['draft', 'live', 'paused', 'sold', 'archived'];
 
 export default function handler(req, res) {
   const { id } = req.query;
@@ -26,10 +27,10 @@ export default function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
+  const user = auth.requireAuth(req, res);
+  if (!user) return;
+  
   try {
-    const user = auth.requireAuth(req, res);
-    if (!user) return;
-    
     if (!id) {
       return res.status(400).json({
         error: 'Validation failed',
@@ -38,6 +39,7 @@ export default function handler(req, res) {
     }
     
     const listing = db.host.getById(id);
+    
     if (!listing) {
       return res.status(404).json({
         error: 'Not found',
@@ -45,6 +47,7 @@ export default function handler(req, res) {
       });
     }
     
+    // Check ownership
     if (listing.ownerId !== user.id) {
       return res.status(403).json({
         error: 'Forbidden',
@@ -52,27 +55,30 @@ export default function handler(req, res) {
       });
     }
     
+    // Validate status
     const { status } = req.body;
+    
     if (!status) {
       return res.status(400).json({
         error: 'Validation failed',
-        message: 'Status field is required'
+        message: 'Status is required'
       });
     }
     
     if (!VALID_STATUSES.includes(status)) {
       return res.status(400).json({
         error: 'Validation failed',
-        message: `Status must be one of: ${VALID_STATUSES.join(', ')}`
+        message: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`
       });
     }
     
+    // Update listing status
     const updated = db.host.updateStatus(id, status);
     
     return res.status(200).json({
       success: true,
-      listing: updated,
-      message: `Listing status changed to "${status}"`
+      message: `Listing status updated to "${status}"`,
+      listing: updated
     });
     
   } catch (error) {
