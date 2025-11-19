@@ -15,30 +15,21 @@ function ListingDetailPage() {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p>Loading listing...</p>
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-500">Loading listing...</p>
       </div>
     );
   }
 
   if (error || !listing) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <h1 style={{ fontSize: '32px', fontWeight: '600', marginBottom: '16px' }}>Listing not found</h1>
-          {error && <p style={{ color: '#D84D42', marginBottom: '16px' }}>{error}</p>}
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-3xl font-semibold mb-4">Listing not found</h1>
+          {error && <p className="text-red-600 mb-4">{error}</p>}
           <button
             onClick={() => navigate('/listings')}
-            style={{
-              background: '#FF5124',
-              color: 'white',
-              border: 'none',
-              padding: '12px 24px',
-              borderRadius: '8px',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
+            className="bg-orange-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-orange-600 transition"
           >
             Browse Listings
           </button>
@@ -82,127 +73,85 @@ function ListingDetailPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'white' }}>
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        background: 'white',
-        borderBottom: '1px solid #EBEBEB',
-        boxShadow: '0 1px 0 rgba(0,0,0,0.05)'
-      }}>
-        <div style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '80px' }}>
-            <div
-              onClick={() => navigate('/')}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-            >
-              <div style={{
-                width: '32px',
-                height: '32px',
-                background: '#FF5124',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Truck style={{ width: '18px', height: '18px', color: 'white' }} />
-              </div>
-              <span style={{ fontSize: '20px', fontWeight: '700', color: '#FF5124' }}>
-                vendibook
-              </span>
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+          <div
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition"
+          >
+            <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+              <Truck className="w-4 h-4 text-white" />
             </div>
+            <span className="text-xl font-bold text-orange-500">
+              vendibook
+            </span>
           </div>
         </div>
       </header>
 
       {/* Hero Image */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 40px' }}>
-        <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', marginBottom: '32px' }}>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="relative rounded-xl overflow-hidden mb-8 bg-gray-100">
           <img
             src={listing.imageUrl}
             alt={listing.title}
-            style={{ width: '100%', height: '500px', objectFit: 'cover' }}
+            className="w-full h-96 object-cover"
           />
-          <div style={{
-            position: 'absolute',
-            top: '24px',
-            left: '24px',
-            padding: '8px 16px',
-            background: typeInfo.bgColor,
-            color: typeInfo.color,
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '600'
-          }}>
+          <div className={`absolute top-6 left-6 px-3 py-1 rounded-lg text-sm font-semibold ${typeInfo.bgColor} ${typeInfo.color}`}>
             {typeInfo.label}
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '48px' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
-          <div>
-            <h1 style={{ fontSize: '36px', fontWeight: '700', marginBottom: '16px', color: '#343434' }}>
+          <div className="lg:col-span-2">
+            <h1 className="text-4xl font-bold mb-4 text-gray-900">
               {listing.title}
             </h1>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Star style={{ width: '16px', height: '16px', fill: '#FF5124', color: '#FF5124' }} />
-                <span style={{ fontSize: '16px', fontWeight: '600' }}>{listing.rating}</span>
-                <span style={{ fontSize: '16px', color: '#717171' }}>({listing.reviewCount} reviews)</span>
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="flex items-center gap-1">
+                <Star className="w-5 h-5 fill-orange-500 text-orange-500" />
+                <span className="font-semibold text-gray-900">{listing.rating}</span>
+                <span className="text-gray-600">({listing.reviewCount} reviews)</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MapPin style={{ width: '16px', height: '16px', color: '#717171' }} />
-                <span style={{ fontSize: '16px', color: '#717171' }}>{listing.city}, {listing.state}</span>
+              <div className="flex items-center gap-2 text-gray-600">
+                <MapPin className="w-5 h-5" />
+                <span>{listing.city}, {listing.state}</span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '32px' }}>
+            <div className="flex flex-wrap gap-2 mb-8">
               {listing.tags.map((tag, idx) => (
                 <span
                   key={idx}
-                  style={{
-                    padding: '8px 16px',
-                    background: '#F7F7F7',
-                    borderRadius: '20px',
-                    fontSize: '14px',
-                    color: '#343434'
-                  }}
+                  className="px-4 py-2 bg-gray-100 rounded-full text-sm text-gray-900"
                 >
                   {tag}
                 </span>
               ))}
             </div>
 
-            <div style={{ borderTop: '1px solid #EBEBEB', paddingTop: '32px', marginBottom: '32px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '16px', color: '#343434' }}>
+            <div className="border-t border-gray-200 pt-8 mb-8">
+              <h2 className="text-2xl font-semibold mb-4 text-gray-900">
                 {listing.listingType === LISTING_TYPES.EVENT_PRO ? 'About this event pro' : 'Description'}
               </h2>
-              <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#717171', marginBottom: '24px' }}>
+              <p className="text-base leading-relaxed text-gray-700 mb-6">
                 {listing.description}
               </p>
             </div>
 
-            <div style={{ borderTop: '1px solid #EBEBEB', paddingTop: '32px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '16px', color: '#343434' }}>
+            <div className="border-t border-gray-200 pt-8">
+              <h2 className="text-2xl font-semibold mb-4 text-gray-900">
                 {listing.listingType === LISTING_TYPES.EVENT_PRO ? 'Services & Expertise' : 'Highlights'}
               </h2>
-              <ul style={{ listStyle: 'none', padding: 0 }}>
+              <ul className="space-y-4">
                 {listing.highlights.map((highlight, idx) => (
-                  <li
-                    key={idx}
-                    style={{
-                      display: 'flex',
-                      gap: '12px',
-                      marginBottom: '16px',
-                      fontSize: '16px',
-                      color: '#343434'
-                    }}
-                  >
-                    <Check style={{ width: '20px', height: '20px', color: '#FF5124', flexShrink: 0 }} />
-                    <span>{highlight}</span>
+                  <li key={idx} className="flex gap-3">
+                    <Check className="w-6 h-6 text-orange-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-gray-900">{highlight}</span>
                   </li>
                 ))}
               </ul>
@@ -211,30 +160,23 @@ function ListingDetailPage() {
 
           {/* Booking Card */}
           <div>
-            <div style={{
-              position: 'sticky',
-              top: '100px',
-              padding: '24px',
-              border: '1px solid #EBEBEB',
-              borderRadius: '16px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-            }}>
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ fontSize: '14px', color: '#717171', marginBottom: '4px' }}>
+            <div className="sticky top-24 p-6 border border-gray-200 rounded-lg shadow-sm">
+              <div className="mb-6">
+                <div className="text-sm text-gray-600 mb-2">
                   {typeInfo.pricePrefix}
                 </div>
-                <div style={{ fontSize: '32px', fontWeight: '700', color: '#343434' }}>
+                <div className="text-4xl font-bold text-gray-900">
                   {formatPrice(listing.price, listing.priceUnit)}
                 </div>
               </div>
 
-              <div style={{ marginBottom: '24px', padding: '16px', background: '#F7F7F7', borderRadius: '8px' }}>
-                <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#343434' }}>
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <div className="font-semibold mb-2 text-gray-900">
                   Host: {listing.hostName}
                 </div>
                 {listing.isVerified && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: '#FF5124' }}>
-                    <Check style={{ width: '14px', height: '14px' }} />
+                  <div className="flex items-center gap-1 text-sm text-orange-500">
+                    <Check className="w-4 h-4" />
                     Verified {listing.listingType === LISTING_TYPES.SALE ? 'Seller' : 'Host'}
                   </div>
                 )}
@@ -243,56 +185,26 @@ function ListingDetailPage() {
               <button
                 onClick={handleCTA}
                 disabled={isCTALoading}
-                style={{
-                  width: '100%',
-                  background: '#FF5124',
-                  color: 'white',
-                  border: 'none',
-                  padding: '16px',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: isCTALoading ? 'not-allowed' : 'pointer',
-                  marginBottom: '12px',
-                  opacity: isCTALoading ? 0.6 : 1
-                }}
+                className="w-full bg-orange-500 text-white px-4 py-3 rounded-lg font-semibold hover:bg-orange-600 disabled:opacity-60 transition mb-3"
               >
                 {isCTALoading ? 'Submitting...' : typeInfo.actionLabel}
               </button>
 
               <button
                 onClick={handleMessageHost}
-                style={{
-                  width: '100%',
-                  background: 'white',
-                  color: '#FF5124',
-                  border: '2px solid #FF5124',
-                  padding: '14px',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  marginBottom: '12px',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = '#FFF5F1';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = 'white';
-                }}
+                className="w-full bg-white text-orange-500 border-2 border-orange-500 px-4 py-2 rounded-lg font-semibold hover:bg-orange-50 transition mb-3"
               >
                 Message {listing.listingType === LISTING_TYPES.EVENT_PRO ? 'Professional' : 'Host'}
               </button>
 
               {listing.listingType === LISTING_TYPES.RENT && listing.deliveryAvailable && (
-                <p style={{ fontSize: '13px', color: '#717171', textAlign: 'center' }}>
+                <p className="text-xs text-gray-600 text-center">
                   ✓ Delivery available
                 </p>
               )}
 
               {listing.listingType === LISTING_TYPES.SALE && (
-                <p style={{ fontSize: '13px', color: '#717171', textAlign: 'center' }}>
+                <p className="text-xs text-gray-600 text-center">
                   Financing options available
                 </p>
               )}
