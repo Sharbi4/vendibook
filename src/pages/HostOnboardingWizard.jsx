@@ -2,20 +2,21 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, ChevronLeft, ChevronRight, Check, MapPin, Star } from 'lucide-react';
 import { LISTING_TYPES, PRICE_UNITS, getCategoriesByType, getListingTypeInfo, formatPrice } from '../data/listings';
+import { createHostListing } from '../api/client';
 
 function HostOnboardingWizard() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [listingData, setListingData] = useState({
     listingType: '',
     title: '',
     category: '',
-    city: '',
-    state: 'AZ',
+    location: '',
     price: '',
     priceUnit: '',
-    tags: [],
-    imageUrl: '',
+    amenities: [],
+    images: [],
     description: ''
   });
 
@@ -26,9 +27,9 @@ function HostOnboardingWizard() {
   const toggleTag = (tag) => {
     setListingData(prev => ({
       ...prev,
-      tags: prev.tags.includes(tag)
-        ? prev.tags.filter(t => t !== tag)
-        : [...prev.tags, tag]
+      amenities: prev.amenities.includes(tag)
+        ? prev.amenities.filter(t => t !== tag)
+        : [...prev.amenities, tag]
     }));
   };
 
@@ -37,11 +38,11 @@ function HostOnboardingWizard() {
       case 1:
         return listingData.listingType !== '';
       case 2:
-        return listingData.title && listingData.category && listingData.city;
+        return listingData.title && listingData.category && listingData.location;
       case 3:
         return listingData.price && listingData.priceUnit;
       case 4:
-        return listingData.tags.length > 0;
+        return listingData.amenities.length > 0;
       case 5:
         return listingData.description;
       default:
@@ -61,25 +62,30 @@ function HostOnboardingWizard() {
     }
   };
 
-  const handleComplete = () => {
-    const newListing = {
-      ...listingData,
-      id: `new-${Date.now()}`,
-      rating: 0,
-      reviewCount: 0,
-      hostName: 'Your Name',
-      isVerified: false,
-      deliveryAvailable: listingData.tags.includes('Delivery Available'),
-      highlights: listingData.tags,
-      imageUrl: listingData.imageUrl || 'https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?w=800&auto=format&fit=crop&q=80'
-    };
+  const handleComplete = async () => {
+    setIsSubmitting(true);
+    try {
+      const newListing = {
+        title: listingData.title,
+        description: listingData.description,
+        listingType: listingData.listingType,
+        category: listingData.category,
+        location: listingData.location,
+        price: parseFloat(listingData.price),
+        priceUnit: listingData.priceUnit,
+        amenities: listingData.amenities,
+        images: listingData.images.length > 0 ? listingData.images : ['https://via.placeholder.com/800x500?text=Vendibook'],
+        deliveryOnly: listingData.amenities.includes('Delivery Available'),
+        verifiedVendor: false
+      };
 
-    // Store in localStorage for demo (in production this would be an API call)
-    const existingListings = JSON.parse(localStorage.getItem('myListings') || '[]');
-    existingListings.push(newListing);
-    localStorage.setItem('myListings', JSON.stringify(existingListings));
-
-    navigate('/host/dashboard');
+      const createdListing = await createHostListing(newListing);
+      console.log('Listing created:', createdListing);
+      navigate('/host/dashboard');
+    } catch (err) {
+      alert('Failed to create listing: ' + err.message);
+      setIsSubmitting(false);
+    }
   };
 
   // Live Preview Component

@@ -1,17 +1,38 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Store, Truck, Users, UtensilsCrossed, MapPin, ShoppingCart, X } from 'lucide-react';
-import { listings, LISTING_TYPES, filterListings, getListingTypeInfo, formatPrice } from '../data/listings';
+import { LISTING_TYPES, getListingTypeInfo, formatPrice } from '../data/listings';
 import { useSearchParams } from '../hooks/useSearchParams';
+import { fetchListings } from '../api/client';
 
 function ListingsPage() {
   const navigate = useNavigate();
   const searchState = useSearchParams();
   const [filteredData, setFilteredData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const filtered = filterListings(listings, searchState);
-    setFilteredData(filtered);
+    const loadListings = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const filters = {
+          listingType: searchState.listingType,
+          category: searchState.category !== 'all' ? searchState.category : undefined,
+          location: searchState.location
+        };
+        const data = await fetchListings(filters);
+        setFilteredData(data);
+      } catch (err) {
+        setError(err.message);
+        console.error('Failed to load listings:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadListings();
   }, [searchState]);
 
   const ListingTypeTab = ({ type, label }) => {
@@ -261,7 +282,15 @@ function ListingsPage() {
 
       {/* Listings Grid */}
       <section style={{ maxWidth: '1760px', margin: '0 auto', padding: '32px 40px 80px' }}>
-        {filteredData.length > 0 ? (
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+            <p style={{ fontSize: '16px', color: '#717171' }}>Loading listings...</p>
+          </div>
+        ) : error ? (
+          <div style={{ textAlign: 'center', padding: '80px 20px', background: '#FEF0ED', borderRadius: '16px' }}>
+            <p style={{ fontSize: '16px', color: '#D84D42' }}>Error: {error}</p>
+          </div>
+        ) : filteredData.length > 0 ? (
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',

@@ -2,24 +2,44 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, Plus, Edit, Eye, Pause, Play } from 'lucide-react';
 import { getListingTypeInfo, formatPrice } from '../data/listings';
+import { fetchHostListings, updateHostListingStatus } from '../api/client';
 
 function HostDashboard() {
   const navigate = useNavigate();
   const [myListings, setMyListings] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('myListings') || '[]');
-    setMyListings(stored);
+    const loadListings = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const listings = await fetchHostListings();
+        setMyListings(listings);
+      } catch (err) {
+        setError(err.message);
+        console.error('Failed to load host listings:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadListings();
   }, []);
 
-  const toggleStatus = (listingId) => {
-    const updated = myListings.map(listing =>
-      listing.id === listingId
-        ? { ...listing, status: listing.status === 'live' ? 'paused' : 'live' }
-        : listing
-    );
-    setMyListings(updated);
-    localStorage.setItem('myListings', JSON.stringify(updated));
+  const toggleStatus = async (listingId) => {
+    const listing = myListings.find(l => l.id === listingId);
+    if (!listing) return;
+    
+    const newStatus = listing.status === 'live' ? 'paused' : 'live';
+    
+    try {
+      const updated = await updateHostListingStatus(listingId, newStatus);
+      setMyListings(myListings.map(l => l.id === listingId ? updated : l));
+    } catch (err) {
+      alert('Failed to update listing status: ' + err.message);
+    }
   };
 
   return (
@@ -79,7 +99,15 @@ function HostDashboard() {
           Your Listings
         </h1>
 
-        {myListings.length === 0 ? (
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: '80px 40px' }}>
+            <p style={{ fontSize: '16px', color: '#717171' }}>Loading your listings...</p>
+          </div>
+        ) : error ? (
+          <div style={{ textAlign: 'center', padding: '80px 40px', background: '#FEF0ED', borderRadius: '16px' }}>
+            <p style={{ fontSize: '16px', color: '#D84D42' }}>Error: {error}</p>
+          </div>
+        ) : myListings.length === 0 ? (
           <div style={{
             textAlign: 'center',
             padding: '80px 40px',

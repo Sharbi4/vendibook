@@ -1,17 +1,49 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { Truck, MapPin, Star, Check } from 'lucide-react';
-import { listings, getListingTypeInfo, formatPrice, LISTING_TYPES } from '../data/listings';
+import { getListingTypeInfo, formatPrice, LISTING_TYPES } from '../data/listings';
+import { fetchListingById, createListingRequest } from '../api/client';
 
 function ListingDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const listing = listings.find(l => l.id === id);
+  const [listing, setListing] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isCTALoading, setIsCTALoading] = useState(false);
 
-  if (!listing) {
+  useEffect(() => {
+    const loadListing = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const data = await fetchListingById(id);
+        setListing(data);
+      } catch (err) {
+        setError(err.message);
+        console.error('Failed to load listing:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadListing();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p>Loading listing...</p>
+      </div>
+    );
+  }
+
+  if (error || !listing) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ fontSize: '32px', fontWeight: '600', marginBottom: '16px' }}>Listing not found</h1>
+          {error && <p style={{ color: '#D84D42', marginBottom: '16px' }}>{error}</p>}
           <button
             onClick={() => navigate('/listings')}
             style={{
@@ -34,13 +66,38 @@ function ListingDetailPage() {
 
   const typeInfo = getListingTypeInfo(listing.listingType);
 
-  const handleCTA = () => {
-    if (listing.listingType === LISTING_TYPES.RENT) {
-      alert(`Request rental for: ${listing.title}\nPrice: ${formatPrice(listing.price, listing.priceUnit)}\n\nNext steps:\n- Select dates\n- Confirm booking\n- Complete payment`);
-    } else if (listing.listingType === LISTING_TYPES.SALE) {
-      alert(`Contact seller about: ${listing.title}\nPrice: ${formatPrice(listing.price, listing.priceUnit)}\n\nNext steps:\n- Schedule inspection\n- Discuss financing\n- Complete purchase`);
-    } else {
-      alert(`Check availability for: ${listing.hostName}\nRate: ${formatPrice(listing.price, listing.priceUnit)}\n\nNext steps:\n- Share event details\n- Get custom quote\n- Confirm booking`);
+  const handleCTA = async () => {
+    setIsCTALoading(true);
+    try {
+      let requestData = {};
+      
+      if (listing.listingType === LISTING_TYPES.RENT) {
+        requestData = {
+          type: 'BOOKING',
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          message: 'I am interested in renting this item.'
+        };
+      } else if (listing.listingType === LISTING_TYPES.SALE) {
+        requestData = {
+          type: 'INQUIRY',
+          message: 'I am interested in this listing for sale.'
+        };
+      } else {
+        requestData = {
+          type: 'EVENT_REQUEST',
+          eventDate: new Date().toISOString().split('T')[0],
+          guestCount: 50,
+          message: 'I am interested in booking this event professional.'
+        };
+      }
+      
+      await createListingRequest(listing.id, requestData);
+      alert('Request submitted successfully! We will contact you soon.');
+    } catch (err) {
+      alert('Failed to submit request: ' + err.message);
+    } finally {
+      setIsCTALoading(false);
     }
   };
 
@@ -205,6 +262,7 @@ function ListingDetailPage() {
 
               <button
                 onClick={handleCTA}
+                disabled={isCTALoading}
                 style={{
                   width: '100%',
                   background: '#FF5124',
@@ -214,11 +272,12 @@ function ListingDetailPage() {
                   borderRadius: '8px',
                   fontSize: '16px',
                   fontWeight: '600',
-                  cursor: 'pointer',
-                  marginBottom: '12px'
+                  cursor: isCTALoading ? 'not-allowed' : 'pointer',
+                  marginBottom: '12px',
+                  opacity: isCTALoading ? 0.6 : 1
                 }}
               >
-                {typeInfo.actionLabel}
+                {isCTALoading ? 'Submitting...' : typeInfo.actionLabel}
               </button>
 
               {listing.listingType === LISTING_TYPES.RENT && listing.deliveryAvailable && (
