@@ -1,0 +1,445 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER & AUTHENTICATION
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  role          UserRole  @default(USER)
+  
+  // Profile
+  phoneNumber   String?
+  avatarUrl     String?
+  bio           String?
+  
+  // Relationships
+  hostListings  HostListing[]
+  bookings      Booking[]
+  inquiries     Inquiry[]
+  events        EventRequest[]
+  reviews       Review[]
+  auditLogs     AuditLog[]
+  
+  // Metadata
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+  
+  @@index([email])
+  @@index([createdAt])
+}
+
+enum UserRole {
+  USER
+  HOST
+  ADMIN
+}
+
+// ============================================================================
+// PUBLIC LISTINGS (Marketplace)
+// ============================================================================
+
+model Listing {
+  id              String    @id @default(cuid())
+  title           String
+  description     String    @db.Text
+  listingType     ListingType
+  category        String
+  
+  // Location
+  city            String
+  state           String
+  location        String
+  
+  // Pricing
+  price           Float
+  priceUnit       String    // "per day", "per hour", "one-time"
+  
+  // Details
+  imageUrl        String?
+  tags            String[]  // Array of amenities/features
+  highlights      String[]  // Array of highlights
+  
+  // Verification & Status
+  isVerified      Boolean   @default(false)
+  deliveryAvailable Boolean @default(false)
+  
+  // Host info (denormalized for search)
+  hostName        String
+  
+  // Ratings
+  rating          Float     @default(0)
+  reviewCount     Int       @default(0)
+  
+  // Metadata
+  views           Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relationships (for search)
+  reviews         Review[]
+  
+  @@index([listingType])
+  @@index([category])
+  @@index([city])
+  @@index([isVerified])
+  @@fulltext([title, description])
+}
+
+enum ListingType {
+  RENT
+  SALE
+  EVENT_PRO
+}
+
+// ============================================================================
+// HOST LISTINGS (User-created listings)
+// ============================================================================
+
+model HostListing {
+  id              String    @id @default(cuid())
+  ownerId         String
+  owner           User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  title           String
+  description     String    @db.Text
+  listingType     ListingType
+  category        String
+  
+  // Location
+  city            String
+  state           String
+  location        String
+  
+  // Pricing
+  price           Float
+  priceUnit       String    // "per day", "per hour", "one-time"
+  
+  // Details
+  imageUrl        String?
+  imageUrls       String[]  // Array of image URLs
+  tags            String[]  // Array of amenities/features
+  highlights      String[]  // Array of highlights
+  
+  // Availability
+  status          ListingStatus @default(DRAFT)
+  
+  // Verification
+  isVerified      Boolean   @default(false)
+  deliveryAvailable Boolean @default(false)
+  
+  // Metadata
+  views           Int       @default(0)
+  inquiries       Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  publishedAt     DateTime?
+  
+  // Relationships
+  bookings        Booking[]
+  inquiries       Inquiry[]
+  events          EventRequest[]
+  reviews         Review[]
+  auditLogs       AuditLog[]
+  statusLogs      StatusLog[]
+  
+  @@index([ownerId])
+  @@index([listingType])
+  @@index([category])
+  @@index([city])
+  @@index([status])
+  @@index([createdAt])
+  @@fulltext([title, description])
+}
+
+enum ListingStatus {
+  DRAFT
+  LIVE
+  PAUSED
+  SOLD
+  ARCHIVED
+}
+
+// ============================================================================
+// BOOKINGS (Rental requests)
+// ============================================================================
+
+model Booking {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  listingId       String
+  listing         HostListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  bookingType     BookingType
+  status          BookingStatus @default(PENDING)
+  
+  // For RENT bookings
+  startDate       DateTime?
+  endDate         DateTime?
+  
+  // For EVENT_PRO bookings
+  eventDate       DateTime?
+  guestCount      Int?
+  
+  // Details
+  message         String?   @db.Text
+  price           Float?
+  priceUnit       String?
+  
+  // Metadata
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  respondedAt     DateTime?
+  completedAt     DateTime?
+  
+  @@index([userId])
+  @@index([listingId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum BookingType {
+  RENTAL_REQUEST
+  EVENT_REQUEST
+  PURCHASE_INQUIRY
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================================================
+// INQUIRIES (General messages for SALE listings)
+// ============================================================================
+
+model Inquiry {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  listingId       String
+  listing         HostListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  inquiryType     InquiryType
+  status          InquiryStatus @default(OPEN)
+  
+  message         String    @db.Text
+  price           Float?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  respondedAt     DateTime?
+  
+  @@index([userId])
+  @@index([listingId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum InquiryType {
+  PRICE_INQUIRY
+  CONDITION_INQUIRY
+  AVAILABILITY_INQUIRY
+  GENERAL_INQUIRY
+}
+
+enum InquiryStatus {
+  OPEN
+  RESPONDED
+  CLOSED
+}
+
+// ============================================================================
+// EVENT REQUESTS (Specific to EVENT_PRO listings)
+// ============================================================================
+
+model EventRequest {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  listingId       String
+  listing         HostListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  eventDate       DateTime
+  eventType       String    // e.g., "wedding", "corporate", "birthday"
+  guestCount      Int
+  budget          Float?
+  message         String?   @db.Text
+  
+  status          EventRequestStatus @default(PENDING)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  approvedAt      DateTime?
+  
+  @@index([userId])
+  @@index([listingId])
+  @@index([status])
+  @@index([eventDate])
+}
+
+enum EventRequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================================================
+// REVIEWS & RATINGS
+// ============================================================================
+
+model Review {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  listingId       String
+  listing         Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  hostListingId   String?
+  hostListing     HostListing? @relation(fields: [hostListingId], references: [id], onDelete: Cascade)
+  
+  rating          Int       // 1-5
+  comment         String?   @db.Text
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([listingId])
+  @@index([rating])
+}
+
+// ============================================================================
+// IMAGE ASSETS
+// ============================================================================
+
+model ImageAsset {
+  id              String    @id @default(cuid())
+  url             String
+  key             String    @unique  // S3 key
+  size            Int       // Bytes
+  mimeType        String
+  width           Int?
+  height          Int?
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([createdAt])
+}
+
+// ============================================================================
+// AUDIT LOGS
+// ============================================================================
+
+model AuditLog {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  action          AuditAction
+  resource        String    // e.g., "listing", "booking"
+  resourceId      String
+  
+  listingId       String?
+  listing         HostListing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  changes         Json?     // Store what changed
+  ipAddress       String?
+  userAgent       String?
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([action])
+  @@index([resourceId])
+  @@index([createdAt])
+}
+
+enum AuditAction {
+  CREATE_LISTING
+  UPDATE_LISTING
+  DELETE_LISTING
+  PUBLISH_LISTING
+  PAUSE_LISTING
+  CREATE_BOOKING
+  UPDATE_BOOKING
+  CANCEL_BOOKING
+  LOGIN
+  LOGOUT
+  PASSWORD_CHANGE
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+model Notification {
+  id              String    @id @default(cuid())
+  userId          String
+  type            NotificationType
+  title           String
+  message         String    @db.Text
+  relatedId       String?   // ID of related resource (booking, listing, etc)
+  read            Boolean   @default(false)
+  
+  createdAt       DateTime  @default(now())
+  readAt          DateTime?
+  
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  BOOKING_REQUEST
+  BOOKING_APPROVED
+  BOOKING_DECLINED
+  INQUIRY_RECEIVED
+  EVENT_REQUEST
+  REVIEW_RECEIVED
+  LISTING_PUBLISHED
+  LISTING_FLAGGED
+}
+
+// ============================================================================
+// STATUS LOG (For tracking listing/booking state changes)
+// ============================================================================
+
+model StatusLog {
+  id              String    @id @default(cuid())
+  listingId       String
+  listing         HostListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  fromStatus      String
+  toStatus        String
+  reason          String?   @db.Text
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([listingId])
+  @@index([createdAt])
+}

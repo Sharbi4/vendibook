@@ -1,8 +1,10 @@
 /**
- * GET /api/host/listings/:id - Get a specific host listing (owner only)
- * PUT /api/host/listings/:id - Full update of a host listing
+ * GET /api/host/listings/:id - Get a specific host listing
+ * PUT /api/host/listings/:id - Update a host listing (full update)
  * PATCH /api/host/listings/:id - Partial update of a host listing
  * DELETE /api/host/listings/:id - Delete a host listing
+ * 
+ * Authentication: Required
  */
 
 const db = require('../../../_db');
@@ -19,7 +21,7 @@ export default function handler(req, res) {
   }
   
   // ========================================================================
-  // GET /api/host/listings/:id - Get my listing
+  // GET /api/host/listings/:id - Get host listing
   // ========================================================================
   if (req.method === 'GET') {
     const user = auth.requireAuth(req, res);
@@ -35,7 +37,7 @@ export default function handler(req, res) {
         });
       }
       
-      // Verify ownership
+      // Only allow host to view their own listing
       if (listing.ownerId !== user.id) {
         return res.status(403).json({
           error: 'Forbidden',
@@ -43,7 +45,11 @@ export default function handler(req, res) {
         });
       }
       
-      return res.status(200).json(listing);
+      return res.status(200).json({
+        success: true,
+        listing
+      });
+      
     } catch (error) {
       return res.status(500).json({
         error: 'Server error',
@@ -72,7 +78,7 @@ export default function handler(req, res) {
       if (listing.ownerId !== user.id) {
         return res.status(403).json({
           error: 'Forbidden',
-          message: 'You do not have permission to update this listing'
+          message: 'You do not have permission to edit this listing'
         });
       }
       
@@ -80,9 +86,10 @@ export default function handler(req, res) {
       
       return res.status(200).json({
         success: true,
-        listing: updated,
-        message: 'Listing updated successfully'
+        message: 'Listing updated successfully',
+        listing: updated
       });
+      
     } catch (error) {
       return res.status(500).json({
         error: 'Server error',
@@ -111,7 +118,7 @@ export default function handler(req, res) {
       if (listing.ownerId !== user.id) {
         return res.status(403).json({
           error: 'Forbidden',
-          message: 'You do not have permission to update this listing'
+          message: 'You do not have permission to edit this listing'
         });
       }
       
@@ -119,9 +126,10 @@ export default function handler(req, res) {
       
       return res.status(200).json({
         success: true,
-        listing: updated,
-        message: 'Listing updated successfully'
+        message: 'Listing updated successfully',
+        listing: updated
       });
+      
     } catch (error) {
       return res.status(500).json({
         error: 'Server error',
@@ -154,12 +162,20 @@ export default function handler(req, res) {
         });
       }
       
-      db.host.delete(id);
+      const deleted = db.host.delete(id);
+      
+      if (!deleted) {
+        return res.status(500).json({
+          error: 'Server error',
+          message: 'Failed to delete listing'
+        });
+      }
       
       return res.status(200).json({
         success: true,
         message: 'Listing deleted successfully'
       });
+      
     } catch (error) {
       return res.status(500).json({
         error: 'Server error',
