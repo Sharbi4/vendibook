@@ -34,7 +34,18 @@ function App() {
     verifiedOnly: false
   });
 
-  // Categories by listing type
+  // All categories for top navigation
+  const allCategories = [
+    { id: 'all', name: 'All', icon: Store, color: '#FF6B35', emoji: '🏪' },
+    { id: 'food-trucks', name: 'Food Trucks', icon: Truck, color: '#FF6B35', emoji: '🚚' },
+    { id: 'trailers', name: 'Trailers', icon: Truck, color: '#FF8C42', emoji: '🚐' },
+    { id: 'ghost-kitchens', name: 'Ghost Kitchens', icon: UtensilsCrossed, color: '#FFA500', emoji: '🍴' },
+    { id: 'vending-lots', name: 'Vending Lots', icon: MapPin, color: '#FFB84D', emoji: '📍' },
+    { id: 'event-pros', name: 'Event Pros', icon: Users, color: '#FFC966', emoji: '👥' },
+    { id: 'for-sale', name: 'For Sale', icon: ShoppingCart, color: '#FF6B35', emoji: '🛒' }
+  ];
+
+  // Categories by listing type (for search modal)
   const categoriesByType = {
     rent: [
       { id: 'all', name: 'All', icon: Store, color: '#FF6B35', emoji: '🏪' },
@@ -542,7 +553,7 @@ function App() {
                 Search for rentals, sales, or event pros
               </div>
               <div style={{ fontSize: '14px', color: '#717171' }}>
-                {appliedSearch.location || 'Any location'} • {appliedSearch.category !== 'all' ? currentCategories.find(c => c.id === appliedSearch.category)?.name : 'All categories'} • {appliedSearch.startDate ? `${appliedSearch.startDate} to ${appliedSearch.endDate || '...'}` : 'Any dates'}
+                {appliedSearch.location || 'Any location'} • {appliedSearch.category !== 'all' ? allCategories.find(c => c.id === appliedSearch.category)?.name : 'All categories'} • {appliedSearch.startDate ? `${appliedSearch.startDate} to ${appliedSearch.endDate || '...'}` : 'Any dates'}
               </div>
             </div>
             <div style={{
@@ -892,7 +903,7 @@ function App() {
       }}>
         <div style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px' }}>
           <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', padding: '24px 0' }}>
-            {currentCategories.map((cat) => {
+            {allCategories.map((cat) => {
               const Icon = cat.icon;
               const isActive = appliedSearch.category === cat.id;
               return (
@@ -943,7 +954,7 @@ function App() {
             {filteredListings.length} {appliedSearch.listingType === 'event-pro' ? 'event pros' : appliedSearch.listingType === 'sale' ? 'listings for sale' : 'rentals'} in Arizona
           </h2>
           <p style={{ fontSize: '15px', color: '#717171' }}>
-            {appliedSearch.category !== 'all' ? currentCategories.find(c => c.id === appliedSearch.category)?.name : 'All categories'}
+            {appliedSearch.category !== 'all' ? allCategories.find(c => c.id === appliedSearch.category)?.name : 'All categories'}
           </p>
         </div>
 
