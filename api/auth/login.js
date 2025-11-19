@@ -1,43 +1,62 @@
 /**
- * POST /api/auth/login - Authenticate a user
+ * POST /api/auth/login - Authenticate and get session token
+ * 
+ * Request body:
+ * {
+ *   email: string (required)
+ *   password: string (required)
+ * }
+ * 
+ * Response: 200 OK
+ * {
+ *   token: string (auth token)
+ *   user: { id, email, name, createdAt, role }
+ * }
  */
 
-const db = require('../../_db');
-const { generateToken, hashPassword } = require('../../_auth');
+const db = require('../_db');
+const auth = require('../_auth');
 
 export default function handler(req, res) {
-  if (req.method === 'POST') {
-    const { email, password } = req.body;
-    
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Missing required fields: email, password' });
-    }
-    
-    const user = db.getUserByEmail(email);
-    
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    
-    const hashedPassword = hashPassword(password);
-    
-    if (user.password !== hashedPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    
-    // Generate token
-    const token = generateToken();
-    db.storeToken(token, user.id);
-    
-    return res.status(200).json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name
-      }
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+  
+  const { email, password } = req.body;
+  
+  // Validate required fields
+  if (!email || !password) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      message: 'Missing required fields: email, password'
     });
   }
   
-  res.status(405).json({ error: 'Method not allowed' });
+  // Find user by email
+  const user = db.users.getUserByEmail(email);
+  if (!user) {
+    return res.status(401).json({
+      error: 'Invalid credentials',
+      message: 'Email or password is incorrect'
+    });
+  }
+  
+  // Verify password
+  if (!auth.verifyPassword(password, user.password)) {
+    return res.status(401).json({
+      error: 'Invalid credentials',
+      message: 'Email or password is incorrect'
+    });
+  }
+  
+  // Generate auth token
+  const token = auth.generateToken();
+  db.auth.storeToken(token, user.id);
+  
+  // Set auth token in response
+  auth.setAuthToken(res, token);
+  
+  return res.status(200).json(
+    auth.getAuthResponse(user, token)
+  );
 }

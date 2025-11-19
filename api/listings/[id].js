@@ -1,73 +1,128 @@
 /**
- * GET /api/listings/[id] - Get a single listing by ID
- * POST /api/listings/[id] - Create a booking, inquiry, or event request
+ * GET /api/listings/:id - Get a single listing by ID
+ * POST /api/listings/:id - Create a booking, inquiry, or event request
  */
 
-const db = require('../../_db');
+const db = require('../_db');
+const auth = require('../_auth');
 
 export default function handler(req, res) {
   const { id } = req.query;
   
+  // ========================================================================
+  // GET /api/listings/:id - Get single listing
+  // ========================================================================
   if (req.method === 'GET') {
-    const listing = db.getListingById(id);
-    
-    if (!listing) {
-      return res.status(404).json({ error: 'Listing not found' });
+    if (!id) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        message: 'Listing ID is required'
+      });
     }
+    
+    const listing = db.listings.getById(id);
+    if (!listing) {
+      return res.status(404).json({
+        error: 'Not found',
+        message: `Listing with ID ${id} not found`
+      });
+    }
+    
+    // Increment view count
+    listing.views = (listing.views || 0) + 1;
     
     return res.status(200).json(listing);
   }
   
+  // ========================================================================
+  // POST /api/listings/:id - Create booking/inquiry/event request
+  // ========================================================================
   if (req.method === 'POST') {
-    // Create a booking, inquiry, or event request for this listing
-    const listing = db.getListingById(id);
+    // Require authentication
+    const user = auth.requireAuth(req, res);
+    if (!user) return;
     
+    if (!id) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        message: 'Listing ID is required'
+      });
+    }
+    
+    const listing = db.listings.getById(id);
     if (!listing) {
-      return res.status(404).json({ error: 'Listing not found' });
+      return res.status(404).json({
+        error: 'Not found',
+        message: `Listing with ID ${id} not found`
+      });
     }
     
     const { type, startDate, endDate, eventDate, guestCount, message } = req.body;
     
     let request;
     
-    if (listing.listingType === 'RENT') {
-      // Create a booking request
-      request = db.addBooking({
-        listingId: id,
-        listingTitle: listing.title,
-        type: 'BOOKING',
-        startDate,
-        endDate,
-        message,
-        status: 'pending'
+    try {
+      if (listing.listingType === 'RENT') {
+        // Create a booking request
+        if (!startDate || !endDate) {
+          return res.status(400).json({
+            error: 'Validation failed',
+            message: 'startDate and endDate are required for rental bookings'
+          });
+        }
+        
+        request = db.bookings.create(id, user.id, {
+          listingTitle: listing.title,
+          listingType: 'BOOKING',
+          startDate,
+          endDate,
+          message,
+          price: listing.price,
+          priceUnit: listing.priceUnit
+        });
+        
+      } else if (listing.listingType === 'SALE') {
+        // Create an inquiry
+        request = db.inquiries.create(id, user.id, {
+          listingTitle: listing.title,
+          inquiryType: 'SALE_INQUIRY',
+          message,
+          price: listing.price
+        });
+        
+      } else if (listing.listingType === 'EVENT_PRO') {
+        // Create an event request
+        if (!eventDate) {
+          return res.status(400).json({
+            error: 'Validation failed',
+            message: 'eventDate is required for event professional bookings'
+          });
+        }
+        
+        request = db.bookings.create(id, user.id, {
+          listingTitle: listing.title,
+          listingType: 'EVENT_REQUEST',
+          eventDate,
+          guestCount: guestCount || 1,
+          message,
+          price: listing.price,
+          priceUnit: listing.priceUnit
+        });
+      }
+      
+      return res.status(201).json({
+        success: true,
+        requestId: request.id,
+        message: 'Request created successfully',
+        request
       });
-    } else if (listing.listingType === 'SALE') {
-      // Create an inquiry
-      request = db.addInquiry({
-        listingId: id,
-        listingTitle: listing.title,
-        type: 'INQUIRY',
-        message,
-        status: 'pending'
-      });
-    } else if (listing.listingType === 'EVENT_PRO') {
-      // Create an event request
-      request = db.addEventRequest({
-        listingId: id,
-        listingTitle: listing.title,
-        type: 'EVENT_REQUEST',
-        eventDate,
-        guestCount,
-        message,
-        status: 'pending'
+      
+    } catch (error) {
+      return res.status(500).json({
+        error: 'Server error',
+        message: error.message
       });
     }
-    
-    return res.status(201).json({
-      ok: true,
-      requestId: request.id,
-      message: 'Request created successfully'
-    });
   }
   
   res.status(405).json({ error: 'Method not allowed' });

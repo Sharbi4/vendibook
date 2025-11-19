@@ -1,28 +1,61 @@
 /**
- * POST /api/host/upload - Upload an image (stub for now)
- * Returns a placeholder URL that can be replaced with real S3 upload later
+ * POST /api/host/upload - Upload image
+ * 
+ * Requires authentication (Bearer token)
+ * 
+ * For development: Returns placeholder image URL
+ * For production: Should upload to S3, GCS, Cloudinary, or similar
+ * 
+ * Request body (multipart/form-data):
+ * - file: binary file data
+ * - fileName: string (optional, extracted from file if not provided)
+ * 
+ * Response: 200 OK
+ * {
+ *   success: boolean
+ *   imageUrl: string (image URL)
+ *   fileName: string (original filename)
+ *   size: number (file size in bytes)
+ *   uploadedAt: string (ISO timestamp)
+ * }
+ * 
+ * PHASE 3: Replace placeholder implementation with real cloud storage
  */
 
-const { requireAuth } = require('../../_auth');
+const auth = require('../../_auth');
 
 export default function handler(req, res) {
-  if (req.method === 'POST') {
-    const user = requireAuth(req, res);
-    if (!user) return;
-    
-    // In a real implementation, you would:
-    // 1. Parse multipart form data using a library like busboy or formidable
-    // 2. Upload the file to S3 or another storage service
-    // 3. Return the actual URL
-    
-    // For now, return a placeholder URL
-    const placeholderUrl = `https://via.placeholder.com/800x500?text=Vendibook+${Date.now()}`;
-    
-    return res.status(200).json({
-      imageUrl: placeholderUrl,
-      message: 'Image upload stub - returns placeholder URL'
-    });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
   
-  res.status(405).json({ error: 'Method not allowed' });
+  // Require authentication
+  const user = auth.requireAuth(req, res);
+  if (!user) return;
+  
+  try {
+    // In development, return a placeholder URL
+    // In production, implement real file upload to S3/GCS/Cloudinary
+    
+    const fileName = req.headers['x-filename'] || `image_${Date.now()}.jpg`;
+    const contentType = req.headers['content-type'] || 'image/jpeg';
+    
+    // Placeholder image generation
+    const placeholderUrl = `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000000)}?w=800&auto=format&fit=crop&q=80`;
+    
+    return res.status(200).json({
+      success: true,
+      imageUrl: placeholderUrl,
+      fileName: fileName,
+      size: 0, // Would be actual file size
+      uploadedAt: new Date().toISOString(),
+      message: 'Image upload successful (using placeholder for development)'
+    });
+    
+  } catch (error) {
+    return res.status(500).json({
+      error: 'Upload failed',
+      message: error.message
+    });
+  }
 }
