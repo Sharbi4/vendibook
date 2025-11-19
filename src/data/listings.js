@@ -465,3 +465,10 @@ export const filterListings = (listings, filters) => {
     return true;
   });
 };
+
+/**
+ * Get a single listing by ID
+ */
+export const getListingById = (id) => {
+  return listings.find(listing => listing.id === id);
+};

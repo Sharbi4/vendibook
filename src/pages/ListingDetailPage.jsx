@@ -1,34 +1,17 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Truck, MapPin, Star, Check } from 'lucide-react';
-import { getListingTypeInfo, formatPrice, LISTING_TYPES } from '../data/listings';
-import { fetchListingById, createListingRequest } from '../api/client';
+import { getListingTypeInfo, formatPrice, LISTING_TYPES, getListingById } from '../data/listings';
 
 function ListingDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [listing, setListing] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [isCTALoading, setIsCTALoading] = useState(false);
 
-  useEffect(() => {
-    const loadListing = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const data = await fetchListingById(id);
-        setListing(data);
-      } catch (err) {
-        setError(err.message);
-        console.error('Failed to load listing:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadListing();
-  }, [id]);
+  // FRONTEND ONLY: Using mock data. Will be replaced with API call in backend integration phase.
+  const listing = getListingById(id);
+  const isLoading = false;
+  const error = listing ? null : 'Listing not found';
 
   if (isLoading) {
     return (
@@ -69,34 +52,19 @@ function ListingDetailPage() {
   const handleCTA = async () => {
     setIsCTALoading(true);
     try {
-      let requestData = {};
+      // FRONTEND ONLY: Mock action. Will be replaced with API call in backend integration phase.
+      const message = listing.listingType === LISTING_TYPES.RENT 
+        ? `Request to rent "${listing.title}" submitted! Host will contact you soon.`
+        : listing.listingType === LISTING_TYPES.SALE
+        ? `Inquiry about "${listing.title}" submitted! Seller will contact you soon.`
+        : `Request to book ${listing.title} for event submitted! Professional will contact you soon.`;
       
-      if (listing.listingType === LISTING_TYPES.RENT) {
-        requestData = {
-          type: 'BOOKING',
-          startDate: new Date().toISOString().split('T')[0],
-          endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          message: 'I am interested in renting this item.'
-        };
-      } else if (listing.listingType === LISTING_TYPES.SALE) {
-        requestData = {
-          type: 'INQUIRY',
-          message: 'I am interested in this listing for sale.'
-        };
-      } else {
-        requestData = {
-          type: 'EVENT_REQUEST',
-          eventDate: new Date().toISOString().split('T')[0],
-          guestCount: 50,
-          message: 'I am interested in booking this event professional.'
-        };
-      }
-      
-      await createListingRequest(listing.id, requestData);
-      alert('Request submitted successfully! We will contact you soon.');
+      setTimeout(() => {
+        alert(message);
+        setIsCTALoading(false);
+      }, 800);
     } catch (err) {
       alert('Failed to submit request: ' + err.message);
-    } finally {
       setIsCTALoading(false);
     }
   };

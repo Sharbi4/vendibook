@@ -2,44 +2,33 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, Plus, Edit, Eye, Pause, Play } from 'lucide-react';
 import { getListingTypeInfo, formatPrice } from '../data/listings';
-import { fetchHostListings, updateHostListingStatus } from '../api/client';
 
 function HostDashboard() {
   const navigate = useNavigate();
   const [myListings, setMyListings] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const loadListings = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const listings = await fetchHostListings();
-        setMyListings(listings);
-      } catch (err) {
-        setError(err.message);
-        console.error('Failed to load host listings:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadListings();
+    // FRONTEND ONLY: Load from localStorage. Will be replaced with API call in backend integration phase.
+    try {
+      const listings = JSON.parse(localStorage.getItem('vendibook_myListings') || '[]');
+      setMyListings(listings);
+    } catch (err) {
+      setError('Failed to load listings');
+      console.error('Failed to load host listings:', err);
+    }
   }, []);
 
-  const toggleStatus = async (listingId) => {
-    const listing = myListings.find(l => l.id === listingId);
-    if (!listing) return;
-    
-    const newStatus = listing.status === 'live' ? 'paused' : 'live';
-    
-    try {
-      const updated = await updateHostListingStatus(listingId, newStatus);
-      setMyListings(myListings.map(l => l.id === listingId ? updated : l));
-    } catch (err) {
-      alert('Failed to update listing status: ' + err.message);
-    }
+  const toggleStatus = (listingId) => {
+    const updatedListings = myListings.map(l => {
+      if (l.id === listingId) {
+        return { ...l, status: l.status === 'live' ? 'paused' : 'live' };
+      }
+      return l;
+    });
+    setMyListings(updatedListings);
+    localStorage.setItem('vendibook_myListings', JSON.stringify(updatedListings));
   };
 
   return (

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, ChevronLeft, ChevronRight, Check, MapPin, Star } from 'lucide-react';
 import { LISTING_TYPES, PRICE_UNITS, getCategoriesByType, getListingTypeInfo, formatPrice } from '../data/listings';
-import { createHostListing } from '../api/client';
 
 function HostOnboardingWizard() {
   const navigate = useNavigate();
@@ -65,23 +64,35 @@ function HostOnboardingWizard() {
   const handleComplete = async () => {
     setIsSubmitting(true);
     try {
+      // FRONTEND ONLY: Save to localStorage. Will be replaced with API call in backend integration phase.
       const newListing = {
+        id: `listing_${Date.now()}`,
         title: listingData.title,
         description: listingData.description,
         listingType: listingData.listingType,
         category: listingData.category,
-        location: listingData.location,
+        city: listingData.location.split(',')[0]?.trim() || 'Phoenix',
+        state: listingData.location.split(',')[1]?.trim() || 'AZ',
         price: parseFloat(listingData.price),
         priceUnit: listingData.priceUnit,
-        amenities: listingData.amenities,
-        images: listingData.images.length > 0 ? listingData.images : ['https://via.placeholder.com/800x500?text=Vendibook'],
-        deliveryOnly: listingData.amenities.includes('Delivery Available'),
-        verifiedVendor: false
+        tags: listingData.amenities,
+        imageUrl: 'https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?w=800&auto=format&fit=crop&q=80',
+        hostName: 'You',
+        isVerified: false,
+        deliveryAvailable: listingData.amenities.includes('Delivery Available'),
+        rating: 0,
+        reviewCount: 0,
+        highlights: []
       };
 
-      const createdListing = await createHostListing(newListing);
-      console.log('Listing created:', createdListing);
-      navigate('/host/dashboard');
+      // Load existing listings from localStorage
+      const existingListings = JSON.parse(localStorage.getItem('vendibook_myListings') || '[]');
+      existingListings.push(newListing);
+      localStorage.setItem('vendibook_myListings', JSON.stringify(existingListings));
+
+      setTimeout(() => {
+        navigate('/host/dashboard');
+      }, 500);
     } catch (err) {
       alert('Failed to create listing: ' + err.message);
       setIsSubmitting(false);
