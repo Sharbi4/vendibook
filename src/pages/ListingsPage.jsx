@@ -4,6 +4,7 @@ import { Truck, Store, X } from 'lucide-react';
 import { listings, LISTING_TYPES, filterListings, getCategoriesByType } from '../data/listings';
 import { useSearchParams } from '../hooks/useSearchParams';
 import ListingCard from '../components/ListingCard';
+import EmptyState from '../components/EmptyState';
 
 function ListingsPage() {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ function ListingsPage() {
         style={{
           padding: '12px 24px',
           border: 'none',
-          borderBottom: isActive ? `3px solid #FF5124` : '3px solid transparent',
+          borderBottom: isActive ? '3px solid #FF5124' : '3px solid transparent',
           background: 'transparent',
           color: isActive ? '#FF5124' : '#717171',
           fontWeight: isActive ? '600' : '500',
@@ -46,6 +47,25 @@ function ListingsPage() {
       </button>
     );
   };
+
+  const CategoryButton = ({ label, isActive, onClick }) => (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '8px 16px',
+        border: isActive ? '1px solid #FF5124' : '1px solid #EBEBEB',
+        background: isActive ? '#FFF3F0' : 'white',
+        color: isActive ? '#FF5124' : '#717171',
+        borderRadius: '6px',
+        fontSize: '13px',
+        fontWeight: isActive ? '600' : '500',
+        cursor: 'pointer',
+        transition: 'all 0.2s'
+      }}
+    >
+      {label}
+    </button>
+  );
 
   const ActiveFilter = ({ label, onClear }) => (
     <div style={{
@@ -138,6 +158,24 @@ function ListingsPage() {
         </div>
       </section>
 
+      {/* Category Filter */}
+      {searchState.listingType && (
+        <section style={{ background: '#FAFAFA', borderBottom: '1px solid #EBEBEB', padding: '16px 0' }}>
+          <div style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {getCategoriesByType(searchState.listingType).map(category => (
+                <CategoryButton
+                  key={category.id}
+                  label={category.name}
+                  isActive={searchState.category === category.id}
+                  onClick={() => searchState.updateSearch({ category: category.id })}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Active Filters */}
       {searchState.hasActiveFilters && (
         <section style={{ background: '#FAFAFA', borderBottom: '1px solid #EBEBEB', padding: '16px 0' }}>
@@ -213,35 +251,28 @@ function ListingsPage() {
             ))}
           </div>
         ) : (
-          <div style={{
-            textAlign: 'center',
-            padding: '80px 20px',
-            background: '#FAFAFA',
-            borderRadius: '16px'
-          }}>
-            <Store style={{ width: '64px', height: '64px', color: '#717171', margin: '0 auto 16px', opacity: 0.5 }} />
-            <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '12px', color: '#343434' }}>
-              No listings found
-            </h2>
-            <p style={{ fontSize: '16px', color: '#717171', marginBottom: '24px' }}>
-              Try adjusting your filters or search criteria
-            </p>
-            <button
-              onClick={() => searchState.resetSearch()}
-              style={{
-                background: '#FF5124',
-                color: 'white',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '8px',
-                fontSize: '15px',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              Reset filters
-            </button>
-          </div>
+          <EmptyState
+            icon={<Store style={{ width: '64px', height: '64px', color: '#717171' }} />}
+            title="No listings found"
+            description="Try adjusting your filters or search criteria"
+            action={
+              <button
+                onClick={() => searchState.resetSearch()}
+                style={{
+                  background: '#FF5124',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Reset filters
+              </button>
+            }
+          />
         )}
       </section>
     </div>
