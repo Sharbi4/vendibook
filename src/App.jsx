@@ -36,32 +36,32 @@ function App() {
 
   // All categories for top navigation
   const allCategories = [
-    { id: 'all', name: 'All', icon: Store, color: '#FF6B35', emoji: '🏪' },
-    { id: 'food-trucks', name: 'Food Trucks', icon: Truck, color: '#FF6B35', emoji: '🚚' },
+    { id: 'all', name: 'All', icon: Store, color: '#FF5124', emoji: '🏪' },
+    { id: 'food-trucks', name: 'Food Trucks', icon: Truck, color: '#FF5124', emoji: '🚚' },
     { id: 'trailers', name: 'Trailers', icon: Truck, color: '#FF8C42', emoji: '🚐' },
     { id: 'ghost-kitchens', name: 'Ghost Kitchens', icon: UtensilsCrossed, color: '#FFA500', emoji: '🍴' },
     { id: 'vending-lots', name: 'Vending Lots', icon: MapPin, color: '#FFB84D', emoji: '📍' },
     { id: 'event-pros', name: 'Event Pros', icon: Users, color: '#FFC966', emoji: '👥' },
-    { id: 'for-sale', name: 'For Sale', icon: ShoppingCart, color: '#FF6B35', emoji: '🛒' }
+    { id: 'for-sale', name: 'For Sale', icon: ShoppingCart, color: '#FF5124', emoji: '🛒' }
   ];
 
   // Categories by listing type (for search modal)
   const categoriesByType = {
     rent: [
-      { id: 'all', name: 'All', icon: Store, color: '#FF6B35', emoji: '🏪' },
-      { id: 'food-trucks', name: 'Food Trucks', icon: Truck, color: '#FF6B35', emoji: '🚚' },
+      { id: 'all', name: 'All', icon: Store, color: '#FF5124', emoji: '🏪' },
+      { id: 'food-trucks', name: 'Food Trucks', icon: Truck, color: '#FF5124', emoji: '🚚' },
       { id: 'trailers', name: 'Trailers', icon: Truck, color: '#FF8C42', emoji: '🚐' },
       { id: 'ghost-kitchens', name: 'Ghost Kitchens', icon: UtensilsCrossed, color: '#FFA500', emoji: '🍴' },
       { id: 'vending-lots', name: 'Vending Lots', icon: MapPin, color: '#FFB84D', emoji: '📍' }
     ],
     sale: [
-      { id: 'all', name: 'All', icon: Store, color: '#FF6B35', emoji: '🏪' },
-      { id: 'for-sale', name: 'Food Trucks', icon: ShoppingCart, color: '#FF6B35', emoji: '🚚' },
+      { id: 'all', name: 'All', icon: Store, color: '#FF5124', emoji: '🏪' },
+      { id: 'for-sale', name: 'Food Trucks', icon: ShoppingCart, color: '#FF5124', emoji: '🚚' },
       { id: 'trailers-sale', name: 'Trailers', icon: ShoppingCart, color: '#FFA500', emoji: '🚐' },
       { id: 'equipment', name: 'Equipment', icon: ShoppingCart, color: '#FF8C42', emoji: '⚙️' }
     ],
     'event-pro': [
-      { id: 'all', name: 'All', icon: Users, color: '#FF6B35', emoji: '👥' },
+      { id: 'all', name: 'All', icon: Users, color: '#FF5124', emoji: '👥' },
       { id: 'chefs', name: 'Chefs', icon: Users, color: '#FFC966', emoji: '👨‍🍳' },
       { id: 'caterers', name: 'Caterers', icon: Users, color: '#FFB84D', emoji: '🍽️' },
       { id: 'baristas', name: 'Baristas', icon: Coffee, color: '#FFA500', emoji: '☕' },
@@ -382,7 +382,7 @@ function App() {
                   borderRadius: '8px',
                   cursor: 'pointer',
                   fontSize: '14px',
-                  background: selected ? '#FF6B35' : inRange ? '#FFF3F0' : 'transparent',
+                  background: selected ? '#FF5124' : inRange ? '#FFF3F0' : 'transparent',
                   color: selected ? 'white' : '#222',
                   fontWeight: selected ? '600' : '400'
                 }}
@@ -433,7 +433,7 @@ function App() {
               <div style={{
                 width: '32px',
                 height: '32px',
-                background: '#FF6B35',
+                background: '#FF5124',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
@@ -444,7 +444,7 @@ function App() {
               <span style={{
                 fontSize: '20px',
                 fontWeight: '700',
-                color: '#FF6B35',
+                color: '#FF5124',
                 letterSpacing: '-0.5px'
               }}>
                 vendibook
@@ -478,7 +478,7 @@ function App() {
                 Sign In
               </button>
               <button style={{
-                background: '#FF6B35',
+                background: '#FF5124',
                 color: 'white',
                 border: 'none',
                 padding: '12px 24px',
@@ -486,7 +486,7 @@ function App() {
                 fontSize: '14px',
                 fontWeight: '600',
                 cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(255, 107, 53, 0.3)',
+                boxShadow: '0 2px 8px rgba(255, 81, 36, 0.3)',
                 transition: 'transform 0.2s, box-shadow 0.2s'
               }}>
                 Sign Up
@@ -498,7 +498,7 @@ function App() {
 
       {/* Hero Section */}
       <section style={{
-        background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #FF6B35 100%)',
+        background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #FF5124 100%)',
         padding: '80px 40px 120px',
         position: 'relative',
         overflow: 'hidden'
@@ -506,7 +506,7 @@ function App() {
         <div style={{
           position: 'absolute',
           inset: 0,
-          backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255, 107, 53, 0.1) 0%, transparent 50%)',
+          backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255, 81, 36, 0.1) 0%, transparent 50%)',
           pointerEvents: 'none'
         }} />
 
@@ -519,7 +519,7 @@ function App() {
             lineHeight: '1.1',
             letterSpacing: '-2px'
           }}>
-            Not sure? You can now <span style={{ color: '#FF6B35' }}>try it</span>.
+            Not sure? You can now <span style={{ color: '#FF5124' }}>try it</span>.
           </h1>
           <p style={{
             fontSize: '20px',
@@ -527,7 +527,7 @@ function App() {
             marginBottom: '48px',
             fontWeight: '400'
           }}>
-            From food trucks to ghost kitchens - start your mobile business today
+            From food trucks to ghost kitchens—start your mobile business today
           </p>
 
           {/* Simplified Search Trigger */}
@@ -557,7 +557,7 @@ function App() {
               </div>
             </div>
             <div style={{
-              background: '#FF6B35',
+              background: '#FF5124',
               color: 'white',
               padding: '12px 24px',
               borderRadius: '12px',
@@ -646,7 +646,7 @@ function App() {
                         border: 'none',
                         borderRadius: '8px',
                         background: listingType === type.id ? 'white' : 'transparent',
-                        color: listingType === type.id ? '#FF6B35' : '#717171',
+                        color: listingType === type.id ? '#FF5124' : '#717171',
                         fontWeight: listingType === type.id ? '600' : '500',
                         fontSize: '14px',
                         cursor: 'pointer',
@@ -821,10 +821,10 @@ function App() {
                           onClick={() => toggleAmenity(amenity)}
                           style={{
                             padding: '8px 16px',
-                            border: `2px solid ${selectedAmenities.includes(amenity) ? '#FF6B35' : '#DDD'}`,
+                            border: `2px solid ${selectedAmenities.includes(amenity) ? '#FF5124' : '#DDD'}`,
                             borderRadius: '20px',
                             background: selectedAmenities.includes(amenity) ? '#FFF3F0' : 'white',
-                            color: selectedAmenities.includes(amenity) ? '#FF6B35' : '#717171',
+                            color: selectedAmenities.includes(amenity) ? '#FF5124' : '#717171',
                             fontSize: '13px',
                             fontWeight: selectedAmenities.includes(amenity) ? '600' : '500',
                             cursor: 'pointer',
@@ -869,7 +869,7 @@ function App() {
                 onClick={handleSearch}
                 style={{
                   width: '100%',
-                  background: '#FF6B35',
+                  background: '#FF5124',
                   color: 'white',
                   border: 'none',
                   padding: '16px',
@@ -881,7 +881,7 @@ function App() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  boxShadow: '0 4px 12px rgba(255, 107, 53, 0.4)'
+                  boxShadow: '0 4px 12px rgba(255, 81, 36, 0.4)'
                 }}
               >
                 <Search style={{ width: '20px', height: '20px' }} />
@@ -1106,7 +1106,7 @@ function App() {
                   width: '80px',
                   height: '80px',
                   borderRadius: '50%',
-                  background: '#FF6B35',
+                  background: '#FF5124',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1118,7 +1118,7 @@ function App() {
                 <div style={{
                   fontSize: '14px',
                   fontWeight: '700',
-                  color: '#FF6B35',
+                  color: '#FF5124',
                   marginBottom: '12px',
                   letterSpacing: '1px'
                 }}>
@@ -1175,7 +1175,7 @@ function App() {
               }}>
                 <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
                   {Array.from({ length: review.rating }).map((_, i) => (
-                    <Star key={i} style={{ width: '16px', height: '16px', fill: '#FF6B35', color: '#FF6B35' }} />
+                    <Star key={i} style={{ width: '16px', height: '16px', fill: '#FF5124', color: '#FF5124' }} />
                   ))}
                 </div>
                 <p style={{ fontSize: '15px', color: '#222', lineHeight: '1.6', marginBottom: '20px', fontStyle: 'italic' }}>
@@ -1193,7 +1193,7 @@ function App() {
 
       {/* CTA Section */}
       <section style={{
-        background: '#FF6B35',
+        background: '#FF5124',
         padding: '80px 40px',
         marginTop: '0'
       }}>
@@ -1209,7 +1209,7 @@ function App() {
               onClick={() => setSearchModalOpen(true)}
               style={{
                 background: 'white',
-                color: '#FF6B35',
+                color: '#FF5124',
                 border: 'none',
                 padding: '16px 32px',
                 borderRadius: '12px',

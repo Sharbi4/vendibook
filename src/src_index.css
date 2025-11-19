@@ -1,9 +1,50 @@
+/* Vendibook Brand Font */
+@font-face {
+  font-family: 'SofiaProSoftLight';
+  src: url('https://vendibook-docs.s3.us-east-1.amazonaws.com/documents/sofiaprosoftlight-webfont.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Vendibook Brand Colors */
+:root {
+  --vendibook-orange: #FF5124;
+  --vendibook-yellow: #FFB42C;
+  --vendibook-dark-gray: #343434;
+  --vendibook-white: #FFFFFF;
+  --vendibook-gradient: linear-gradient(90deg, #FF5124 0%, #FF7A2F 100%);
+
+  /* Semantic colors */
+  --color-primary: #FF5124;
+  --color-secondary: #FFB42C;
+  --color-text-primary: #343434;
+  --color-text-secondary: #717171;
+  --color-border: #EBEBEB;
+  --color-background: #F7F7F7;
+  --color-background-light: #FFFFFF;
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+body,
+p,
+span,
+div,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+input,
+button,
+select,
+textarea,
+label {
+  font-family: 'SofiaProSoftLight', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
 }
