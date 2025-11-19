@@ -204,7 +204,7 @@ export function AdminDashboard() {
                   listings.map(listing => (
                     <tr key={listing.id} className="border-b hover:bg-gray-50">
                       <td className="px-6 py-3">{listing.title}</td>
-                      <td className="px-6 py-3">{listing.owner?.name}</td>
+                      <td className="px-6 py-3">{listing.host?.name || listing.owner?.name}</td>
                       <td className="px-6 py-3">
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                           listing.status === 'LIVE'
@@ -315,7 +315,7 @@ export function AdminDashboard() {
                 ) : bookings.length > 0 ? (
                   bookings.map(booking => (
                     <tr key={booking.id} className="border-b hover:bg-gray-50">
-                      <td className="px-6 py-3">{booking.user?.name}</td>
+                      <td className="px-6 py-3">{booking.renter?.name || booking.user?.name}</td>
                       <td className="px-6 py-3">{booking.listing?.title}</td>
                       <td className="px-6 py-3">
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${

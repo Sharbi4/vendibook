@@ -206,7 +206,7 @@ export function HostBookingsPage() {
                       </h3>
                       <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
                         <User className="w-4 h-4" />
-                        {booking.user?.name || 'Unknown User'}
+                        {booking.renter?.name || booking.user?.name || 'Unknown User'}
                       </div>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(booking.status)}`}>
@@ -228,7 +228,7 @@ export function HostBookingsPage() {
                       </div>
                     )}
                     <div className="col-span-2 md:col-span-1 text-xs">
-                      <p>Contact: {booking.user?.email}</p>
+                      <p>Contact: {booking.renter?.email || booking.user?.email}</p>
                     </div>
                   </div>
 
@@ -262,7 +262,7 @@ export function HostBookingsPage() {
                         Decline
                       </button>
                       <button
-                        onClick={() => navigate(`/messages?listingId=${booking.listing?.id}&userId=${booking.user?.id}`)}
+                        onClick={() => navigate(`/messages?listingId=${booking.listing?.id}&renterId=${booking.renter?.id}`)}
                         className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium"
                       >
                         Message
