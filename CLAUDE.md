@@ -2,13 +2,13 @@
 
 ## Project Overview
 
-**Vendibook** is a mobile business rental platform focused on food trucks, trailers, and ghost kitchens. The current implementation is a React-based landing page MVP showcasing the core concept.
+**Vendibook** is a mobile business rental platform focused on food trucks, trailers, and ghost kitchens. The current implementation is a fully interactive marketplace with search, filtering, and detailed listings.
 
 - **Project Type:** Frontend Web Application (SPA)
-- **Current Version:** 1.0.0
-- **Primary Purpose:** Landing page for mobile business rental marketplace
-- **Target Market:** Tucson, AZ (and expansion markets)
-- **Tech Stack:** React 18 + Vite + Tailwind CSS
+- **Current Version:** 2.0.0 (Major upgrade from simple landing page)
+- **Primary Purpose:** Interactive marketplace for mobile business rentals with full search and filtering
+- **Target Market:** Arizona (Tucson, Phoenix, Tempe, Scottsdale, Mesa)
+- **Tech Stack:** React 18 + Vite + Tailwind CSS (configured)
 - **Repository:** http://local_proxy@127.0.0.1:23854/git/Sharbi4/vendibook
 
 ---
@@ -64,17 +64,17 @@
 - **Build Tool:** Vite (fast HMR, ES modules, optimized bundling)
 - **Module System:** ES Modules (type: "module" in package.json)
 - **Styling:** Tailwind CSS (configured but NOT actively used - see styling conventions)
-- **Icons:** Lucide React (currently uses: Truck, Search imported but unused)
+- **Icons:** Lucide React (uses: Truck, Search, MapPin, Calendar, ChevronRight, Users, UtensilsCrossed, Store, ShoppingCart, Menu, X)
 
 ### Missing Production Dependencies
 
 The following are **NOT** included but may be needed for production:
-- No state management (Redux, Zustand, Context API)
-- No routing library (React Router)
-- No HTTP client (axios, fetch wrapper)
-- No form handling (react-hook-form, Formik)
+- No advanced state management (Redux, Zustand) - using local useState only
+- No routing library (React Router) - single page application
+- No HTTP client (axios, fetch wrapper) - data is hardcoded
+- No form validation library (react-hook-form, Formik)
 - No testing framework (Jest, Vitest, RTL)
-- No backend integration
+- No backend integration - all data is static
 - No authentication system
 
 ---
@@ -119,19 +119,45 @@ dist/
 
 ### Current Architecture
 
-**Type:** Monolithic single-component application
+**Type:** Monolithic single-component application with state management
 
 **Component Hierarchy:**
 ```
 App (Root Component)
-├── Header
-│   ├── Logo (Truck icon + text)
-│   └── Sign Up Button
-├── Hero Section
+├── Sticky Header
+│   ├── Logo (Truck icon + gradient circle)
+│   ├── Desktop Navigation (Rent, Buy, Become a Host)
+│   ├── Sign In Button
+│   └── Sign Up Button (gradient)
+├── Hero Section with Search
+│   ├── Headline ("Not sure? You can now try it.")
+│   ├── Subheadline
+│   └── Search Card
+│       ├── Location Input (with MapPin icon)
+│       ├── Start Date Input (with Calendar icon)
+│       ├── End Date Input (with Calendar icon)
+│       └── Search Button
+├── Sticky Category Navigation Bar
+│   └── 7 Category Buttons (All, Food Trucks, Trailers, Ghost Kitchens, Vending Lots, Event Pros, For Sale)
+├── Listings Grid Section
+│   ├── Dynamic Title (showing filtered count)
+│   └── Grid of 8 Detailed Listing Cards
+│       ├── Image (Unsplash) with hover effect
+│       ├── Delivery Badge (conditional)
+│       ├── Title
+│       ├── Rating & Reviews
+│       ├── Location
+│       ├── Host Type
+│       ├── Features (first 3)
+│       └── Price
+├── CTA Section
 │   ├── Headline
-│   └── Subheadline
-└── Featured Listings Section
-    └── Grid of 3 hardcoded listing cards
+│   ├── Description
+│   └── Two Action Buttons
+└── Footer
+    ├── 4 Column Grid (Support, Community, Hosting, Vendibook)
+    ├── Footer Links
+    └── Copyright & Legal Links
 ```
 
 ### Application Entry Flow
@@ -152,12 +178,23 @@ Renders to #root div
 
 ### Key Files Explained
 
-#### `/home/user/vendibook/src/src_App.jsx` (47 lines)
-- **Purpose:** Main and only React component
+#### `/home/user/vendibook/src/src_App.jsx` (634 lines)
+- **Purpose:** Main and only React component - full marketplace interface
 - **Exports:** Default export of App function component
-- **State:** None (useState imported but unused)
+- **State:** 5 state variables managed with useState:
+  - `location` - Search location input
+  - `checkIn` - Start date for rental
+  - `checkOut` - End date for rental
+  - `selectedCategory` - Active category filter ('all' by default)
+  - `mobileMenuOpen` - Mobile menu toggle (prepared for future mobile nav)
 - **Props:** None
-- **Structure:** Purely presentational component with hardcoded data
+- **Data:**
+  - 7 categories with icons and colors
+  - 8 detailed listings across multiple categories with images, ratings, features
+- **Functions:**
+  - `handleSearch()` - Search functionality (currently shows alert with search params)
+  - `handleBookNow(listing)` - Booking/purchase handler (shows alert with listing details)
+- **Structure:** Fully interactive marketplace with filtering and search
 - **Styling:** All inline styles (see styling conventions below)
 
 #### `/home/user/vendibook/src/src:main.jsx.txt` (10 lines)
@@ -248,20 +285,51 @@ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif
 
 ### Current State
 
-**No dynamic state management** - all data is hardcoded.
+**Local state management with useState** - data is hardcoded but UI is fully interactive.
 
-#### Hardcoded Data
+#### State Variables
 
 ```jsx
-// Listings are generated via array mapping
-{[1, 2, 3].map((i) => (
-  <div key={i}>
-    <h3>Food Truck {i}</h3>
-    <p>Tucson, AZ</p>
-    <p>$250/day</p>
-  </div>
-))}
+const [location, setLocation] = useState('');           // Search location
+const [checkIn, setCheckIn] = useState('');             // Start date
+const [checkOut, setCheckOut] = useState('');           // End date
+const [selectedCategory, setSelectedCategory] = useState('all'); // Category filter
+const [mobileMenuOpen, setMobileMenuOpen] = useState(false);     // Mobile menu (future)
 ```
+
+#### Hardcoded Data Structures
+
+**Categories (7 items):**
+```jsx
+{ id: 'all', name: 'All', icon: Store, color: '#FF6B35' }
+{ id: 'food-trucks', name: 'Food Trucks', icon: Truck, color: '#FF6B35' }
+{ id: 'trailers', name: 'Trailers', icon: Truck, color: '#FF8C42' }
+{ id: 'ghost-kitchens', name: 'Ghost Kitchens', icon: UtensilsCrossed, color: '#FFA500' }
+{ id: 'vending-lots', name: 'Vending Lots', icon: MapPin, color: '#FFB84D' }
+{ id: 'event-pros', name: 'Event Pros', icon: Users, color: '#FFC966' }
+{ id: 'for-sale', name: 'For Sale', icon: ShoppingCart, color: '#FFD700' }
+```
+
+**Listings (8 items):**
+```jsx
+// Each listing includes:
+{
+  id: 1,
+  title: 'Fully Equipped Taco Truck - LA Style',
+  category: 'food-trucks',
+  location: 'Tucson, AZ',
+  price: 250,
+  priceType: 'day',  // or 'hour', 'sale'
+  image: 'https://images.unsplash.com/...',  // Real Unsplash images
+  rating: 4.9,
+  reviews: 32,
+  features: ['Power', 'Water', 'Propane', 'Full Kitchen'],
+  host: 'Verified Host',  // or 'Superhost', 'Verified Seller'
+  deliveryAvailable: true
+}
+```
+
+**Locations covered:** Tucson, Phoenix, Tempe, Scottsdale, Mesa (all in Arizona)
 
 ### Future State Management Needs
 
@@ -350,10 +418,13 @@ b91cebe - commit
 ### React Patterns in Use
 
 1. **Functional Components:** All components use function syntax (no classes)
-2. **Hooks:** `useState` imported but not currently used
+2. **Hooks:** `useState` actively used for 5 state variables (location, checkIn, checkOut, selectedCategory, mobileMenuOpen)
 3. **Props:** Not used (single component app)
-4. **Keys:** Properly used in `.map()` operations
+4. **Keys:** Properly used in `.map()` operations (categories, listings, features)
 5. **StrictMode:** Enabled in main.jsx for development checks
+6. **Event Handlers:** onClick, onChange, onMouseOver, onMouseOut
+7. **Conditional Rendering:** Category filtering, delivery badges, price formatting
+8. **Array Methods:** `.map()`, `.filter()`, `.find()`, `.slice()`
 
 ### Code Style Observations
 
@@ -373,12 +444,12 @@ export default App;
 ### Missing Patterns (Opportunities)
 
 - No prop-types or TypeScript for type safety
-- No custom hooks
-- No component composition (everything in App.jsx)
+- No custom hooks (could extract useSearch, useFilter)
+- No component composition (everything in App.jsx - could extract Header, SearchCard, CategoryBar, ListingCard, Footer)
 - No separation of concerns (presentation/container)
 - No error boundaries
 - No loading states
-- No conditional rendering
+- Limited conditional rendering (has some: delivery badges, category filtering, price formatting)
 
 ---
 
@@ -936,10 +1007,11 @@ import Header from './components/Header';
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2025-11-19 | 2.0.0 | Major update: Documented full marketplace upgrade with search, filtering, 8 listings, 7 categories, interactive UI |
 | 2025-11-19 | 1.0.0 | Initial CLAUDE.md creation - comprehensive codebase documentation |
 
 ---
 
 **Last Updated:** November 19, 2025
-**Document Version:** 1.0.0
+**Document Version:** 2.0.0
 **AI Assistant:** Claude (Sonnet 4.5)
