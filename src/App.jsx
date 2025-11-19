@@ -12,6 +12,8 @@ import { HostBookingsPage } from './pages/HostBookingsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { AnalyticsDashboardPage } from './pages/AnalyticsDashboardPage';
 import { AdminDashboard } from './pages/AdminDashboard';
+import CommunityPage from './pages/CommunityPage';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/listings" element={<ListingsPage />} />
         <Route path="/listing/:id" element={<ListingDetailPage />} />
+        <Route path="/community" element={<CommunityPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         
         {/* Host Pages */}
         <Route path="/become-host" element={<BecomeHostLanding />} />
