@@ -81,9 +81,13 @@ export function NotificationsPage() {
         notificationIds: [notificationId]
       });
 
-      setNotifications(notifications.map(n =>
-        n.id === notificationId ? { ...n, read: true, readAt: new Date() } : n
-      ));
+      setNotifications(prevNotifications =>
+        prevNotifications.map(notification =>
+          notification.id === notificationId
+            ? { ...notification, read: true, readAt: new Date() }
+            : notification
+        )
+      );
     } catch (error) {
       console.error('Failed to mark as read:', error);
     }
@@ -95,11 +99,13 @@ export function NotificationsPage() {
         markAllAsRead: true
       });
 
-      setNotifications(notifications.map(n => ({
-        ...n,
-        read: true,
-        readAt: new Date()
-      })));
+      setNotifications(prevNotifications =>
+        prevNotifications.map(notification => ({
+          ...notification,
+          read: true,
+          readAt: new Date()
+        }))
+      );
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }
@@ -107,15 +113,18 @@ export function NotificationsPage() {
 
   const handleNavigate = (notification) => {
     if (notification.relatedId) {
-      if (notification.type.includes('BOOKING')) {
+      const normalizedType = (notification.type || '').toUpperCase();
+
+      if (normalizedType.includes('BOOKING')) {
         navigate(`/bookings/${notification.relatedId}`);
-      } else if (notification.type === 'MESSAGE_RECEIVED') {
+      } else if (normalizedType === 'MESSAGE_RECEIVED') {
         navigate(`/messages/${notification.relatedId}`);
       }
     }
   };
 
   const getNotificationIcon = (type) => {
+    const normalizedType = (type || '').toUpperCase();
     const icons = {
       BOOKING_REQUEST: '📅',
       BOOKING_APPROVED: '✅',
@@ -125,10 +134,11 @@ export function NotificationsPage() {
       LISTING_PUBLISHED: '📢',
       LISTING_FLAGGED: '🚩'
     };
-    return icons[type] || '🔔';
+    return icons[normalizedType] || '🔔';
   };
 
   const getNotificationColor = (type) => {
+    const normalizedType = (type || '').toUpperCase();
     const colors = {
       BOOKING_REQUEST: 'border-l-4 border-yellow-500',
       BOOKING_APPROVED: 'border-l-4 border-green-500',
@@ -138,7 +148,7 @@ export function NotificationsPage() {
       LISTING_PUBLISHED: 'border-l-4 border-indigo-500',
       LISTING_FLAGGED: 'border-l-4 border-red-500'
     };
-    return colors[type] || 'border-l-4 border-gray-500';
+    return colors[normalizedType] || 'border-l-4 border-gray-500';
   };
 
   const formatTime = (date) => {
