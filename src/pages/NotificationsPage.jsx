@@ -11,6 +11,7 @@ export function NotificationsPage() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMarkingAll, setIsMarkingAll] = useState(false);
   const [filterUnread, setFilterUnread] = useState(false);
 
   useEffect(() => {
@@ -94,6 +95,9 @@ export function NotificationsPage() {
   };
 
   const handleMarkAllAsRead = async () => {
+    if (isMarkingAll) return;
+
+    setIsMarkingAll(true);
     try {
       await apiClient.post('/notifications/read', {
         markAllAsRead: true
@@ -108,6 +112,8 @@ export function NotificationsPage() {
       );
     } catch (error) {
       console.error('Failed to mark all as read:', error);
+    } finally {
+      setIsMarkingAll(false);
     }
   };
 
@@ -169,23 +175,24 @@ export function NotificationsPage() {
     });
   };
 
+  const hasUnread = notifications.some(n => !n.read);
+
   return (
     <PageShell
       title="Notifications"
       subtitle="Stay updated on bookings, messages, and more"
-      action={
-        notifications.some(n => !n.read)
-          ? {
-              label: 'Mark all as read',
-              onClick: handleMarkAllAsRead
-            }
-          : undefined
-      }
+      action={{
+        label: hasUnread ? 'Mark all as read' : 'All caught up',
+        onClick: hasUnread ? handleMarkAllAsRead : undefined,
+        disabled: isLoading || isMarkingAll || !hasUnread,
+        variant: hasUnread ? 'primary' : 'secondary'
+      }}
     >
       {/* Filter */}
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setFilterUnread(false)}
+          aria-pressed={!filterUnread}
           className={`px-4 py-2 rounded-full font-medium transition ${
             !filterUnread
               ? 'bg-blue-500 text-white'
@@ -196,6 +203,7 @@ export function NotificationsPage() {
         </button>
         <button
           onClick={() => setFilterUnread(true)}
+          aria-pressed={filterUnread}
           className={`px-4 py-2 rounded-full font-medium transition ${
             filterUnread
               ? 'bg-blue-500 text-white'
