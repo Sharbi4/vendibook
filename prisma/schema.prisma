@@ -26,6 +26,29 @@ model User {
   avatarUrl     String?
   bio           String?
   
+  // Address masking for hosts
+  displayCity   String?
+  displayState  String?
+  displayLocation String?
+  preciseAddress String?  // Exact address - protected
+  coordinates   Json?     // { lat, lng } - protected
+  
+  // Professional info (for hosts/event pros)
+  businessName  String?
+  businessLicense String?
+  insuranceStatus String?  // VERIFIED, PENDING, EXPIRED
+  serviceAreas  String[]   // Service radius cities
+  
+  // Event Pro specialization
+  eventProCategories String[]  // CHEF, BARTENDER, DJ, CATERER, etc
+  eventProRating Float @default(0)
+  eventProReviews Int @default(0)
+  
+  // Seller specific
+  sellerVerified Boolean @default(false)
+  titleVerified  Boolean @default(false)
+  remoteNotaryUsed Boolean @default(false)
+  
   // Relationships
   hostListings  HostListing[]
   bookings      Booking[]
@@ -38,6 +61,9 @@ model User {
   messageThreads MessageThread[]
   wishlist      Wishlist[]
   recentlyViewed RecentlyViewed[]
+  documents     Document[]
+  subscriptions Subscription[]
+  transactions  Transaction[]
   
   // Metadata
   createdAt     DateTime  @default(now())
@@ -125,10 +151,15 @@ model HostListing {
   listingType     ListingType
   category        String
   
-  // Location
+  // Location - with masking support
   city            String
   state           String
   location        String
+  
+  // Address masking fields
+  displayLocation String?   // What renters see (e.g., "Downtown Miami area")
+  preciseAddress  String?   // Exact address - only shown to approved bookers
+  coordinates     Json?     // { lat, lng } - only shown to approved bookers
   
   // Pricing
   price           Float
@@ -146,6 +177,8 @@ model HostListing {
   // Verification
   isVerified      Boolean   @default(false)
   deliveryAvailable Boolean @default(false)
+  maxRentalDuration Int?    // Days
+  minRentalDuration Int?    // Days
   
   // Metadata
   views           Int       @default(0)
@@ -153,6 +186,7 @@ model HostListing {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   publishedAt     DateTime?
+  deletedAt       DateTime?  // Soft delete support
   
   // Relationships
   bookings        Booking[]
@@ -163,6 +197,8 @@ model HostListing {
   statusLogs      StatusLog[]
   wishlistItems   Wishlist[]
   recentViews     RecentlyViewed[]
+  documents       Document[]
+  transactions    Transaction[]
   
   @@index([ownerId])
   @@index([listingType])
@@ -202,12 +238,46 @@ model Booking {
   
   // For EVENT_PRO bookings
   eventDate       DateTime?
+  eventTime       DateTime?  // Specific time window
+  eventLocation   String?
+  eventDescription String?
   guestCount      Int?
   
   // Details
   message         String?   @db.Text
   price           Float?
   priceUnit       String?
+  
+  // Pricing breakdown
+  subtotal        Float?
+  platformFee     Float?
+  discount        Float?
+  totalPrice      Float?
+  
+  // Delivery & Pickup
+  deliveryAddress String?
+  deliveryDate    DateTime?
+  pickupAddress   String?
+  
+  // Confirmation tracking
+  hostConfirmedAt DateTime?
+  renterConfirmedAt DateTime?
+  
+  // Return & Condition
+  returnCondition String?  // PRISTINE, GOOD, FAIR, POOR
+  returnPhotos    String[]
+  returnNotes     String?  @db.Text
+  
+  // Multi-listing support
+  bundleId        String?  // Group related bookings
+  parentBookingId String?  // For linked bookings
+  linkedBookings  String[]
+  
+  // Relationships
+  documents       Document[]
+  transactions    Transaction[]
+  threadId        String?
+  thread          MessageThread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
   
   // Metadata
   createdAt       DateTime  @default(now())
@@ -218,6 +288,7 @@ model Booking {
   @@index([userId])
   @@index([listingId])
   @@index([status])
+  @@index([bundleId])
   @@index([createdAt])
 }
 
@@ -545,3 +616,182 @@ model RecentlyViewed {
   @@index([viewedAt])
 }
 
+// ============================================================================
+// DOCUMENTS (Insurance, Permits, Titles, Waivers)
+// ============================================================================
+
+model Document {
+  id              String    @id @default(cuid())
+  
+  // Document metadata
+  type            DocumentType
+  category        String  // e.g., "liability_insurance", "business_license"
+  status          DocumentStatus @default(PENDING)
+  
+  // Relationships
+  userId          String?
+  user            User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  listingId       String?
+  listing         HostListing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  bookingId       String?
+  booking         Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  // File storage
+  fileUrl         String
+  fileKey         String  @unique
+  mimeType        String
+  fileSize        Int
+  
+  // Verification
+  uploadedBy      String
+  verifiedBy      String?
+  verifiedAt      DateTime?
+  expiresAt       DateTime?
+  
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([listingId])
+  @@index([bookingId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum DocumentType {
+  INSURANCE
+  PERMIT
+  TITLE
+  WAIVER
+  AGREEMENT
+  LICENSE
+  INSPECTION
+  OTHER
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+// ============================================================================
+// SUBSCRIPTIONS (Renter Pro, Host Plans)
+// ============================================================================
+
+model Subscription {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  planType        SubscriptionType
+  status          SubscriptionStatus @default(ACTIVE)
+  
+  // Pricing
+  pricePerMonth   Float
+  billingCycle    Int  // Days
+  
+  // Duration
+  startDate       DateTime
+  endDate         DateTime?
+  autoRenew       Boolean @default(true)
+  
+  // Discounts
+  discountPercent Float @default(0)
+  couponCode      String?
+  
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([planType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum SubscriptionType {
+  RENTER_PRO
+  HOST_STANDARD
+  HOST_PREMIUM
+  ADMIN_PLATFORM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAUSED
+  EXPIRED
+}
+
+// ============================================================================
+// TRANSACTIONS & PAYMENTS
+// ============================================================================
+
+model Transaction {
+  id              String    @id @default(cuid())
+  
+  // Transaction metadata
+  type            TransactionType
+  status          TransactionStatus @default(PENDING)
+  
+  // Parties
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Related entity
+  bookingId       String?
+  booking         Booking? @relation(fields: [bookingId], references: [id])
+  
+  listingId       String?
+  listing         HostListing? @relation(fields: [listingId], references: [id])
+  
+  // Amount
+  amount          Float
+  currency        String @default("USD")
+  platformFee     Float @default(0)
+  commission      Float @default(0)
+  netAmount       Float
+  
+  // Payment method
+  paymentMethod   String?
+  paymentIntentId String?
+  
+  // Refund tracking
+  refundAmount    Float @default(0)
+  refundReason    String?
+  
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  processedAt     DateTime?
+  
+  @@index([userId])
+  @@index([bookingId])
+  @@index([listingId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum TransactionType {
+  BOOKING_PAYMENT
+  REFUND
+  PAYOUT
+  COMMISSION
+  PLATFORM_FEE
+  SUBSCRIPTION_CHARGE
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
