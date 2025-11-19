@@ -1,38 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Store, Truck, Users, UtensilsCrossed, MapPin, ShoppingCart, X } from 'lucide-react';
-import { LISTING_TYPES, getListingTypeInfo, formatPrice } from '../data/listings';
+import { Truck, Store, X } from 'lucide-react';
+import { listings, LISTING_TYPES, filterListings, getCategoriesByType } from '../data/listings';
 import { useSearchParams } from '../hooks/useSearchParams';
-import { fetchListings } from '../api/client';
+import ListingCard from '../components/ListingCard';
 
 function ListingsPage() {
   const navigate = useNavigate();
   const searchState = useSearchParams();
   const [filteredData, setFilteredData] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const loadListings = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const filters = {
-          listingType: searchState.listingType,
-          category: searchState.category !== 'all' ? searchState.category : undefined,
-          location: searchState.location
-        };
-        const data = await fetchListings(filters);
-        setFilteredData(data);
-      } catch (err) {
-        setError(err.message);
-        console.error('Failed to load listings:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadListings();
+    // Filter listings based on current search state
+    const filtered = filterListings(listings, {
+      listingType: searchState.listingType,
+      category: searchState.category !== 'all' ? searchState.category : undefined,
+      location: searchState.location,
+      priceMin: searchState.priceMin,
+      priceMax: searchState.priceMax,
+      deliveryOnly: searchState.deliveryOnly,
+      verifiedOnly: searchState.verifiedOnly,
+      amenities: searchState.amenities
+    });
+    setFilteredData(filtered);
   }, [searchState]);
 
   const ListingTypeTab = ({ type, label }) => {
@@ -86,83 +76,6 @@ function ListingsPage() {
     </div>
   );
 
-  const ListingCard = ({ listing }) => {
-    const typeInfo = getListingTypeInfo(listing.listingType);
-
-    return (
-      <div
-        onClick={() => navigate(`/listing/${listing.id}`)}
-        style={{
-          cursor: 'pointer',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          transition: 'transform 0.2s, box-shadow 0.2s'
-        }}
-        onMouseOver={(e) => {
-          e.currentTarget.style.transform = 'translateY(-4px)';
-          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
-        }}
-        onMouseOut={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = 'none';
-        }}
-      >
-        <div style={{ position: 'relative', aspectRatio: '20/19' }}>
-          <img
-            src={listing.imageUrl}
-            alt={listing.title}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-          <div style={{
-            position: 'absolute',
-            top: '12px',
-            left: '12px',
-            padding: '6px 12px',
-            background: typeInfo.bgColor,
-            color: typeInfo.color,
-            borderRadius: '6px',
-            fontSize: '12px',
-            fontWeight: '600'
-          }}>
-            {typeInfo.label}
-          </div>
-        </div>
-        <div style={{ padding: '16px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px', color: '#343434' }}>
-            {listing.title}
-          </h3>
-          <p style={{ fontSize: '14px', color: '#717171', marginBottom: '8px' }}>
-            {listing.city}, {listing.state}
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '12px' }}>
-            <span style={{ fontSize: '14px' }}>★</span>
-            <span style={{ fontSize: '14px', fontWeight: '600' }}>{listing.rating}</span>
-            <span style={{ fontSize: '14px', color: '#717171' }}>({listing.reviewCount})</span>
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
-            {listing.tags.slice(0, 3).map((tag, idx) => (
-              <span
-                key={idx}
-                style={{
-                  fontSize: '11px',
-                  color: '#717171',
-                  padding: '4px 8px',
-                  background: '#F7F7F7',
-                  borderRadius: '4px'
-                }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-          <p style={{ fontSize: '16px', fontWeight: '600', color: '#343434' }}>
-            {formatPrice(listing.price, listing.priceUnit)}
-          </p>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div style={{ minHeight: '100vh', background: 'white' }}>
       {/* Header */}
@@ -196,12 +109,19 @@ function ListingsPage() {
               </span>
             </div>
             <nav style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-              <a
+              <button
                 onClick={() => navigate('/become-host')}
-                style={{ color: '#343434', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}
+                style={{ 
+                  background: 'none',
+                  border: 'none',
+                  color: '#343434', 
+                  fontSize: '14px', 
+                  fontWeight: '500', 
+                  cursor: 'pointer'
+                }}
               >
                 Become a Host
-              </a>
+              </button>
             </nav>
           </div>
         </div>
@@ -276,25 +196,17 @@ function ListingsPage() {
       {/* Results Header */}
       <section style={{ maxWidth: '1760px', margin: '0 auto', padding: '32px 40px 0' }}>
         <h1 style={{ fontSize: '28px', fontWeight: '600', color: '#343434', marginBottom: '8px' }}>
-          {filteredData.length} {searchState.listingType === LISTING_TYPES.EVENT_PRO ? 'event pros' : searchState.listingType === LISTING_TYPES.SALE ? 'listings for sale' : 'rentals'} in Arizona
+          {filteredData.length} results
         </h1>
       </section>
 
       {/* Listings Grid */}
       <section style={{ maxWidth: '1760px', margin: '0 auto', padding: '32px 40px 80px' }}>
-        {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '80px 20px' }}>
-            <p style={{ fontSize: '16px', color: '#717171' }}>Loading listings...</p>
-          </div>
-        ) : error ? (
-          <div style={{ textAlign: 'center', padding: '80px 20px', background: '#FEF0ED', borderRadius: '16px' }}>
-            <p style={{ fontSize: '16px', color: '#D84D42' }}>Error: {error}</p>
-          </div>
-        ) : filteredData.length > 0 ? (
+        {filteredData.length > 0 ? (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: '32px'
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: '24px'
           }}>
             {filteredData.map(listing => (
               <ListingCard key={listing.id} listing={listing} />
