@@ -2,48 +2,76 @@
 
 ## Project Overview
 
-**Vendibook** is a mobile business rental platform focused on food trucks, trailers, and ghost kitchens. The current implementation is a fully interactive marketplace with search, filtering, and detailed listings.
+**Vendibook** is a mobile business rental and services platform. The current implementation is a **FRONTEND-ONLY** fully functional marketplace using mock data (no backend integration yet).
 
-- **Project Type:** Frontend Web Application (SPA)
-- **Current Version:** 2.0.0 (Major upgrade from simple landing page)
-- **Primary Purpose:** Interactive marketplace for mobile business rentals with full search and filtering
-- **Target Market:** Arizona (Tucson, Phoenix, Tempe, Scottsdale, Mesa)
-- **Tech Stack:** React 18 + Vite + Tailwind CSS (configured)
-- **Repository:** http://local_proxy@127.0.0.1:23854/git/Sharbi4/vendibook
+- **Project Type:** Frontend Web Application (SPA with React Router)
+- **Current Version:** 2.0.0 (Complete frontend marketplace)
+- **Status:** ✅ Build passing, dev server running, all pages functional with mock data
+- **Tech Stack:** React 18 + Vite 7.2.2 + Lucide Icons
+- **Styling:** Inline styles (comprehensive design system in theme.js + global.css)
+- **Data:** Mock data in src/data/listings.js with 10+ realistic listings
+- **Routing:** 6 routes (Home, Listings, Listing Detail, Host Onboarding, Host Dashboard, Become Host)
+- **State Management:** useState hooks + useSearchParams custom hook + localStorage for host listings
+- **Repository:** GitHub (vendibook)
+
+**IMPORTANT:** All API endpoints are structured but frontend currently uses mock data. Backend integration phase will replace mock data with real API calls while keeping the same interface.
 
 ---
 
-## Repository Structure
+## Repository Structure (Updated)
 
 ```
-/home/user/vendibook/
-├── src/                           # Source files
-│   ├── src_App.jsx               # Main React component (root component)
-│   ├── src:main.jsx.txt          # React entry point (unusual naming - see conventions)
-│   └── src_index.css             # Global CSS reset and typography
+/Users/lala/Desktop/GitHub/vendibook/
+├── src/
+│   ├── App.jsx                    # Root router component (all 6 routes configured)
+│   ├── main.jsx                   # Entry point with global CSS imports
+│   ├── index.css                  # Global styles
+│   ├── api/
+│   │   ├── client.js              # [FUTURE] API helper functions (not used yet)
+│   │   ├── _db.js                 # [FUTURE] In-memory mock database
+│   │   ├── _auth.js               # [FUTURE] Auth helpers
+│   │   ├── auth/                  # [FUTURE] Auth endpoints
+│   │   ├── listings/              # [FUTURE] Listings API endpoints
+│   │   └── host/                  # [FUTURE] Host management endpoints
+│   ├── components/
+│   │   ├── ListingCard.jsx        # ✅ Reusable listing card component
+│   │   └── ProtectedRoute.jsx     # [FUTURE] Auth guard component
+│   ├── data/
+│   │   └── listings.js            # ✅ Mock data + helpers (10+ realistic listings)
+│   ├── hooks/
+│   │   └── useSearchParams.js     # ✅ URL-synced search state hook
+│   ├── pages/
+│   │   ├── HomePage.jsx           # ✅ Landing page with search modal
+│   │   ├── ListingsPage.jsx       # ✅ Marketplace grid with filtering
+│   │   ├── ListingDetailPage.jsx  # ✅ Listing detail with type-specific CTAs
+│   │   ├── BecomeHostLanding.jsx  # ✅ Host signup CTA page
+│   │   ├── HostOnboardingWizard.jsx # ✅ Multi-step form with live preview (saves to localStorage)
+│   │   └── HostDashboard.jsx      # ✅ Host listings management (loads from localStorage)
+│   ├── styles/
+│   │   └── global.css             # ✅ Global reset, typography, utilities
+│   └── theme/
+│       └── theme.js               # ✅ Centralized design tokens (colors, spacing, shadows)
+├── api/                           # [FUTURE] Vercel serverless functions (structure created, not connected)
+│   ├── _auth.js
+│   ├── _db.js
+│   ├── auth/
+│   ├── host/
+│   └── listings/
 ├── index.html                     # HTML entry point
-├── package.json                   # Dependencies and scripts
-├── package-lock.json              # Locked dependency versions
-├── vite.config.js                # Vite build configuration
-├── tailwind.config.js             # Tailwind CSS configuration
-├── postcss.config.js              # PostCSS config (currently empty)
-├── .gitignore                     # Git ignore patterns
-├── .gitattributes                 # Git LF normalization
-└── .DS_Store                      # macOS system file (should be gitignored)
+├── package.json                   # React 18, Vite 7.2.2, Lucide Icons, React Router 7.9.6
+├── vite.config.js                 # Vite config
+├── tailwind.config.js             # Not currently used (using inline styles instead)
+├── postcss.config.js              # PostCSS config
+├── .gitignore                     # ✅ Configured with node_modules, .DS_Store, dist, .env
+├── CLAUDE.md                      # This file
+└── .DS_Store                      # [gitignored]
 ```
 
-### Important File Naming Conventions
-
-**CRITICAL:** This repository uses non-standard file naming:
-
-- `src_App.jsx` instead of `src/App.jsx`
-- `src:main.jsx.txt` instead of `src/main.jsx`
-- `src_index.css` instead of `src/index.css`
-
-**When working with files:**
-- Always use the exact file paths as they exist
-- Do NOT attempt to rename files without explicit user approval
-- The `/src/` directory exists but files are named with prefixes instead of being nested
+**Key Status Indicators:**
+- ✅ = Implemented and tested
+- 🔄 = In progress
+- [FUTURE] = Created but not yet integrated with frontend
+- ❌ = Not implemented
 
 ---
 
