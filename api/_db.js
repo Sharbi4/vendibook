@@ -1,56 +1,27 @@
 /**
- * Vendibook Core Listing Model
+ * In-Memory Data Store for Vendibook API
  *
- * Defines listing types and provides mock data for the marketplace.
- * In production, this would be replaced with API calls.
+ * This module provides a simple in-memory database for prototyping.
+ * In production, replace this with a real database (PostgreSQL, Supabase, etc.)
+ *
+ * To migrate to a real database:
+ * 1. Replace these arrays with database queries
+ * 2. Update all API endpoints to use the database client
+ * 3. Add proper indexes and relationships
+ * 4. Implement transaction support for complex operations
  */
 
-// Listing type constants
-export const LISTING_TYPES = {
-  RENT: 'RENT',
-  SALE: 'SALE',
-  EVENT_PRO: 'EVENT_PRO'
-};
-
-// Price unit constants
-export const PRICE_UNITS = {
-  PER_DAY: 'per day',
-  PER_HOUR: 'per hour',
-  ONE_TIME: 'one-time'
-};
-
-/**
- * @typedef {Object} Listing
- * @property {string} id
- * @property {string} title
- * @property {string} listingType - RENT | SALE | EVENT_PRO
- * @property {string} category
- * @property {string} city
- * @property {string} state
- * @property {number} price
- * @property {string} priceUnit
- * @property {number} rating
- * @property {number} reviewCount
- * @property {string[]} tags
- * @property {string} imageUrl
- * @property {string} hostName
- * @property {boolean} isVerified
- * @property {string} description
- * @property {string[]} highlights
- * @property {boolean} deliveryAvailable
- */
-
-// Mock listing data
-export const listings = [
+// Initial listings data (seeded from src/data/listings.js)
+const listings = [
   {
     id: '1',
     title: 'Fully Equipped Taco Truck - LA Style',
-    listingType: LISTING_TYPES.RENT,
+    listingType: 'RENT',
     category: 'food-trucks',
     city: 'Tucson',
     state: 'AZ',
     price: 250,
-    priceUnit: PRICE_UNITS.PER_DAY,
+    priceUnit: 'per day',
     rating: 4.9,
     reviewCount: 32,
     tags: ['Power', 'Water', 'Propane', 'Full Kitchen', 'Delivery Available'],
@@ -65,17 +36,20 @@ export const listings = [
       '100 lb propane system with dual tanks',
       'Point-of-sale system and WiFi ready',
       'Full health inspection documentation'
-    ]
+    ],
+    ownerId: 'host1',
+    status: 'live',
+    createdAt: new Date('2024-01-15').toISOString()
   },
   {
     id: '2',
     title: 'Wood-Fired Pizza Trailer - Professional Setup',
-    listingType: LISTING_TYPES.RENT,
+    listingType: 'RENT',
     category: 'trailers',
     city: 'Phoenix',
     state: 'AZ',
     price: 180,
-    priceUnit: PRICE_UNITS.PER_DAY,
+    priceUnit: 'per day',
     rating: 4.8,
     reviewCount: 28,
     tags: ['Power', 'Water', 'Wood-fired Oven', 'Prep Station'],
@@ -90,17 +64,20 @@ export const listings = [
       'Stainless steel prep stations',
       'Refrigerated ingredient storage',
       'Towable with standard vehicle'
-    ]
+    ],
+    ownerId: 'host2',
+    status: 'live',
+    createdAt: new Date('2024-01-20').toISOString()
   },
   {
     id: '3',
     title: 'Premium Ghost Kitchen - 24/7 Access',
-    listingType: LISTING_TYPES.RENT,
+    listingType: 'RENT',
     category: 'ghost-kitchens',
     city: 'Tucson',
     state: 'AZ',
     price: 150,
-    priceUnit: PRICE_UNITS.PER_DAY,
+    priceUnit: 'per day',
     rating: 5.0,
     reviewCount: 15,
     tags: ['Full Kitchen', 'Storage', '24/7 Access', 'Walk-in Cooler'],
@@ -115,17 +92,20 @@ export const listings = [
       'Commercial gas range and griddle',
       'Dry storage and prep areas',
       'High-speed internet and POS ready'
-    ]
+    ],
+    ownerId: 'host3',
+    status: 'live',
+    createdAt: new Date('2024-02-01').toISOString()
   },
   {
     id: '4',
     title: 'Downtown Vending Location - High Traffic',
-    listingType: LISTING_TYPES.RENT,
+    listingType: 'RENT',
     category: 'vending-lots',
     city: 'Tempe',
     state: 'AZ',
     price: 120,
-    priceUnit: PRICE_UNITS.PER_DAY,
+    priceUnit: 'per day',
     rating: 4.7,
     reviewCount: 45,
     tags: ['High Foot Traffic', 'Power Hookup', 'Weekend Events', 'Permits Included'],
@@ -140,17 +120,20 @@ export const listings = [
       'Weekend farmer\'s market access',
       'All city permits handled',
       'Flexible lease terms'
-    ]
+    ],
+    ownerId: 'host4',
+    status: 'live',
+    createdAt: new Date('2024-02-05').toISOString()
   },
   {
     id: '5',
     title: 'Award-Winning Chef - Mexican Cuisine',
-    listingType: LISTING_TYPES.EVENT_PRO,
+    listingType: 'EVENT_PRO',
     category: 'chefs',
     city: 'Phoenix',
     state: 'AZ',
     price: 75,
-    priceUnit: PRICE_UNITS.PER_HOUR,
+    priceUnit: 'per hour',
     rating: 4.9,
     reviewCount: 67,
     tags: ['Certified', 'Catering License', 'Menu Planning', '10+ Years Exp'],
@@ -165,17 +148,20 @@ export const listings = [
       'Custom menu development',
       'Authentic family recipes',
       'Available for tastings'
-    ]
+    ],
+    ownerId: 'host5',
+    status: 'live',
+    createdAt: new Date('2024-02-10').toISOString()
   },
   {
     id: '6',
     title: 'Vintage Coffee Cart - Fully Restored',
-    listingType: LISTING_TYPES.RENT,
+    listingType: 'RENT',
     category: 'trailers',
     city: 'Scottsdale',
     state: 'AZ',
     price: 95,
-    priceUnit: PRICE_UNITS.PER_DAY,
+    priceUnit: 'per day',
     rating: 4.6,
     reviewCount: 19,
     tags: ['Espresso Machine', 'Power', 'Compact', 'Instagram-worthy'],
@@ -190,17 +176,20 @@ export const listings = [
       'Compact and mobile',
       'Power supply included',
       'Perfect for weddings'
-    ]
+    ],
+    ownerId: 'host6',
+    status: 'live',
+    createdAt: new Date('2024-02-15').toISOString()
   },
   {
     id: '7',
     title: '2022 Food Truck - Like New',
-    listingType: LISTING_TYPES.SALE,
+    listingType: 'SALE',
     category: 'for-sale',
     city: 'Phoenix',
     state: 'AZ',
     price: 45000,
-    priceUnit: PRICE_UNITS.ONE_TIME,
+    priceUnit: 'one-time',
     rating: 5.0,
     reviewCount: 8,
     tags: ['Title Verified', 'Low Miles', 'Full Inspection', 'Financing Available'],
@@ -215,17 +204,20 @@ export const listings = [
       'Recent health inspection',
       'Clean title in hand',
       'Financing options available'
-    ]
+    ],
+    ownerId: 'host7',
+    status: 'live',
+    createdAt: new Date('2024-02-20').toISOString()
   },
   {
     id: '8',
     title: 'BBQ Smoker Trailer - Competition Ready',
-    listingType: LISTING_TYPES.RENT,
+    listingType: 'RENT',
     category: 'trailers',
     city: 'Mesa',
     state: 'AZ',
     price: 220,
-    priceUnit: PRICE_UNITS.PER_DAY,
+    priceUnit: 'per day',
     rating: 4.9,
     reviewCount: 52,
     tags: ['Large Smoker', 'Prep Station', 'Power', 'Water Hookup'],
@@ -240,17 +232,20 @@ export const listings = [
       'Temperature control system',
       'Prep and serving stations',
       'Award-winning equipment'
-    ]
+    ],
+    ownerId: 'host8',
+    status: 'live',
+    createdAt: new Date('2024-02-25').toISOString()
   },
   {
     id: '9',
     title: 'Professional Caterer - Italian Cuisine',
-    listingType: LISTING_TYPES.EVENT_PRO,
+    listingType: 'EVENT_PRO',
     category: 'caterers',
     city: 'Scottsdale',
     state: 'AZ',
     price: 65,
-    priceUnit: PRICE_UNITS.PER_HOUR,
+    priceUnit: 'per hour',
     rating: 4.8,
     reviewCount: 43,
     tags: ['Full Service', 'Equipment Included', 'Menu Planning', 'Wine Pairing'],
@@ -265,17 +260,20 @@ export const listings = [
       'Equipment and rentals included',
       'Wine pairing expertise',
       'Event coordination available'
-    ]
+    ],
+    ownerId: 'host9',
+    status: 'live',
+    createdAt: new Date('2024-03-01').toISOString()
   },
   {
     id: '10',
     title: 'Craft Coffee Barista - Specialty Drinks',
-    listingType: LISTING_TYPES.EVENT_PRO,
+    listingType: 'EVENT_PRO',
     category: 'baristas',
     city: 'Tempe',
     state: 'AZ',
     price: 50,
-    priceUnit: PRICE_UNITS.PER_HOUR,
+    priceUnit: 'per hour',
     rating: 4.7,
     reviewCount: 31,
     tags: ['Latte Art', 'Mobile Equipment', 'Custom Drinks', 'SCA Certified'],
@@ -290,17 +288,20 @@ export const listings = [
       'Mobile espresso setup',
       'Custom drink menus',
       'Premium beans sourced locally'
-    ]
+    ],
+    ownerId: 'host10',
+    status: 'live',
+    createdAt: new Date('2024-03-05').toISOString()
   },
   {
     id: '11',
     title: 'Commercial Kitchen Equipment Set',
-    listingType: LISTING_TYPES.SALE,
+    listingType: 'SALE',
     category: 'equipment',
     city: 'Phoenix',
     state: 'AZ',
     price: 8500,
-    priceUnit: PRICE_UNITS.ONE_TIME,
+    priceUnit: 'one-time',
     rating: 4.5,
     reviewCount: 12,
     tags: ['Commercial Grade', 'NSF Certified', 'Warranty Included'],
@@ -315,17 +316,20 @@ export const listings = [
       '6-month warranty',
       'Installation available',
       'Financing options'
-    ]
+    ],
+    ownerId: 'host11',
+    status: 'live',
+    createdAt: new Date('2024-03-10').toISOString()
   },
   {
     id: '12',
     title: 'Event Staff Coordinator - Full Service',
-    listingType: LISTING_TYPES.EVENT_PRO,
+    listingType: 'EVENT_PRO',
     category: 'event-staff',
     city: 'Mesa',
     state: 'AZ',
     price: 55,
-    priceUnit: PRICE_UNITS.PER_HOUR,
+    priceUnit: 'per hour',
     rating: 4.9,
     reviewCount: 28,
     tags: ['Team Management', 'Bar Service', 'Serving Staff', 'Event Coordination'],
@@ -340,236 +344,207 @@ export const listings = [
       'Professional servers',
       'Event coordination',
       'Flexible team sizes'
-    ]
+    ],
+    ownerId: 'host12',
+    status: 'live',
+    createdAt: new Date('2024-03-15').toISOString()
   }
 ];
 
-/**
- * Get listing type display info
- */
-export const getListingTypeInfo = (listingType) => {
-  const typeMap = {
-    [LISTING_TYPES.RENT]: {
-      label: 'For Rent',
-      color: '#FF5124',
-      bgColor: '#FFF3F0',
-      actionLabel: 'Request Rental',
-      pricePrefix: 'From'
-    },
-    [LISTING_TYPES.SALE]: {
-      label: 'For Sale',
-      color: '#FFB42C',
-      bgColor: '#FFF9E6',
-      actionLabel: 'Contact Seller',
-      pricePrefix: ''
-    },
-    [LISTING_TYPES.EVENT_PRO]: {
-      label: 'Event Pro',
-      color: '#343434',
-      bgColor: '#F7F7F7',
-      actionLabel: 'Check Availability',
-      pricePrefix: 'Rate'
-    }
-  };
-  return typeMap[listingType] || typeMap[LISTING_TYPES.RENT];
-};
-
-/**
- * Format price with unit
- */
-export const formatPrice = (price, priceUnit) => {
-  if (priceUnit === PRICE_UNITS.ONE_TIME) {
-    return `$${price.toLocaleString()}`;
+// Users (hosts and renters)
+const users = [
+  {
+    id: 'host1',
+    email: 'maria@example.com',
+    password: 'password123', // In production, this would be properly hashed
+    name: 'Maria Rodriguez',
+    role: 'host',
+    createdAt: new Date('2024-01-01').toISOString()
+  },
+  {
+    id: 'demo',
+    email: 'demo@vendibook.com',
+    password: 'demo123',
+    name: 'Demo User',
+    role: 'host',
+    createdAt: new Date('2024-01-01').toISOString()
   }
-  return `$${price.toLocaleString()} ${priceUnit}`;
-};
+];
+
+// Active sessions (token -> userId mapping)
+const sessions = new Map();
+
+// Host-created listings (separate from main listings)
+const hostListings = [];
+
+// Booking requests
+const bookings = [];
+
+// Sale inquiries
+const inquiries = [];
+
+// Event requests
+const eventRequests = [];
 
 /**
- * Get category options by listing type
- */
-export const getCategoriesByType = (listingType) => {
-  const categories = {
-    [LISTING_TYPES.RENT]: [
-      { id: 'all', name: 'All' },
-      { id: 'food-trucks', name: 'Food Trucks' },
-      { id: 'trailers', name: 'Trailers' },
-      { id: 'ghost-kitchens', name: 'Ghost Kitchens' },
-      { id: 'vending-lots', name: 'Vending Lots' }
-    ],
-    [LISTING_TYPES.SALE]: [
-      { id: 'all', name: 'All' },
-      { id: 'for-sale', name: 'Food Trucks' },
-      { id: 'trailers-sale', name: 'Trailers' },
-      { id: 'equipment', name: 'Equipment' }
-    ],
-    [LISTING_TYPES.EVENT_PRO]: [
-      { id: 'all', name: 'All' },
-      { id: 'chefs', name: 'Chefs' },
-      { id: 'caterers', name: 'Caterers' },
-      { id: 'baristas', name: 'Baristas' },
-      { id: 'event-staff', name: 'Event Staff' }
-    ]
-  };
-  return categories[listingType] || categories[LISTING_TYPES.RENT];
-};
-
-/**
- * Filter listings by criteria
- */
-export const filterListings = (listings, filters) => {
-  return listings.filter(listing => {
-    // Listing type filter
-    if (filters.listingType && filters.listingType !== 'all' && listing.listingType !== filters.listingType) {
-      return false;
-    }
-
-    // Category filter
-    if (filters.category && filters.category !== 'all' && listing.category !== filters.category) {
-      return false;
-    }
-
-    // Location filter
-    if (filters.location) {
-      const searchLower = filters.location.toLowerCase();
-      const locationMatch = listing.city.toLowerCase().includes(searchLower) ||
-                           listing.state.toLowerCase().includes(searchLower);
-      if (!locationMatch) return false;
-    }
-
-    // Price filter
-    if (filters.priceMin && listing.price < parseInt(filters.priceMin)) {
-      return false;
-    }
-    if (filters.priceMax && listing.price > parseInt(filters.priceMax)) {
-      return false;
-    }
-
-    // Delivery filter
-    if (filters.deliveryOnly && !listing.deliveryAvailable) {
-      return false;
-    }
-
-    // Verified filter
-    if (filters.verifiedOnly && !listing.isVerified) {
-      return false;
-    }
-
-    // Amenities filter
-    if (filters.amenities && filters.amenities.length > 0) {
-      const hasAllAmenities = filters.amenities.every(amenity =>
-        listing.tags.some(tag => tag.toLowerCase().includes(amenity.toLowerCase()))
-      );
-      if (!hasAllAmenities) return false;
-    }
-
-    return true;
-  });
-};
-
-/**
- * API Helper Functions
+ * Database interface
  *
- * These functions call the Vendibook API endpoints
- * Replace the base URL with your actual API URL in production
+ * To migrate to a real database:
+ * - Replace these methods with database queries
+ * - Add connection pooling
+ * - Implement proper error handling
+ * - Add transactions where needed
  */
-
-const API_BASE = process.env.NODE_ENV === 'production'
-  ? '/api'
-  : 'http://localhost:3000/api';
-
-/**
- * Fetch all listings with optional filters
- */
-export const fetchListings = async (filters = {}) => {
-  try {
-    const params = new URLSearchParams();
-    if (filters.type) params.append('type', filters.type);
-    if (filters.category) params.append('category', filters.category);
-    if (filters.location) params.append('location', filters.location);
-
-    const url = `${API_BASE}/listings${params.toString() ? '?' + params.toString() : ''}`;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch listings: ${response.statusText}`);
+const db = {
+  // Listings
+  listings: {
+    getAll: () => [...listings],
+    getById: (id) => listings.find(l => l.id === id),
+    search: (filters) => {
+      return listings.filter(listing => {
+        if (filters.listingType && filters.listingType !== 'all' && listing.listingType !== filters.listingType) {
+          return false;
+        }
+        if (filters.category && filters.category !== 'all' && listing.category !== filters.category) {
+          return false;
+        }
+        if (filters.location) {
+          const searchLower = filters.location.toLowerCase();
+          const locationMatch = listing.city.toLowerCase().includes(searchLower) ||
+                               listing.state.toLowerCase().includes(searchLower);
+          if (!locationMatch) return false;
+        }
+        if (filters.priceMin && listing.price < parseInt(filters.priceMin)) {
+          return false;
+        }
+        if (filters.priceMax && listing.price > parseInt(filters.priceMax)) {
+          return false;
+        }
+        if (filters.deliveryOnly && !listing.deliveryAvailable) {
+          return false;
+        }
+        if (filters.verifiedOnly && !listing.isVerified) {
+          return false;
+        }
+        if (filters.amenities && filters.amenities.length > 0) {
+          const hasAllAmenities = filters.amenities.every(amenity =>
+            listing.tags.some(tag => tag.toLowerCase().includes(amenity.toLowerCase()))
+          );
+          if (!hasAllAmenities) return false;
+        }
+        return true;
+      });
     }
+  },
 
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching listings:', error);
-    // Fallback to local data if API fails
-    return listings;
-  }
-};
-
-/**
- * Fetch single listing by ID
- */
-export const fetchListingById = async (id) => {
-  try {
-    const response = await fetch(`${API_BASE}/listings/${id}`);
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        return null;
+  // Host listings
+  hostListings: {
+    getAll: () => [...hostListings],
+    getByOwnerId: (ownerId) => hostListings.filter(l => l.ownerId === ownerId),
+    getById: (id) => hostListings.find(l => l.id === id),
+    create: (listing) => {
+      const newListing = {
+        ...listing,
+        id: `host-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        status: listing.status || 'live'
+      };
+      hostListings.push(newListing);
+      // Also add to main listings for search
+      listings.push(newListing);
+      return newListing;
+    },
+    update: (id, updates) => {
+      const index = hostListings.findIndex(l => l.id === id);
+      if (index === -1) return null;
+      hostListings[index] = { ...hostListings[index], ...updates, updatedAt: new Date().toISOString() };
+      // Update in main listings too
+      const mainIndex = listings.findIndex(l => l.id === id);
+      if (mainIndex !== -1) {
+        listings[mainIndex] = { ...listings[mainIndex], ...updates, updatedAt: new Date().toISOString() };
       }
-      throw new Error(`Failed to fetch listing: ${response.statusText}`);
+      return hostListings[index];
+    },
+    updateStatus: (id, status) => {
+      return db.hostListings.update(id, { status });
     }
+  },
 
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching listing:', error);
-    // Fallback to local data
-    return listings.find(l => l.id === id);
+  // Users
+  users: {
+    getAll: () => [...users],
+    getById: (id) => users.find(u => u.id === id),
+    getByEmail: (email) => users.find(u => u.email.toLowerCase() === email.toLowerCase()),
+    create: (user) => {
+      const newUser = {
+        ...user,
+        id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString()
+      };
+      users.push(newUser);
+      return newUser;
+    }
+  },
+
+  // Sessions
+  sessions: {
+    create: (userId) => {
+      const token = `token-${Date.now()}-${Math.random().toString(36).substr(2, 16)}`;
+      sessions.set(token, userId);
+      return token;
+    },
+    getUserId: (token) => {
+      return sessions.get(token);
+    },
+    delete: (token) => {
+      sessions.delete(token);
+    }
+  },
+
+  // Bookings
+  bookings: {
+    create: (booking) => {
+      const newBooking = {
+        ...booking,
+        id: `booking-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        status: 'pending'
+      };
+      bookings.push(newBooking);
+      return newBooking;
+    },
+    getAll: () => [...bookings]
+  },
+
+  // Inquiries
+  inquiries: {
+    create: (inquiry) => {
+      const newInquiry = {
+        ...inquiry,
+        id: `inquiry-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        status: 'pending'
+      };
+      inquiries.push(newInquiry);
+      return newInquiry;
+    },
+    getAll: () => [...inquiries]
+  },
+
+  // Event requests
+  eventRequests: {
+    create: (request) => {
+      const newRequest = {
+        ...request,
+        id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        status: 'pending'
+      };
+      eventRequests.push(newRequest);
+      return newRequest;
+    },
+    getAll: () => [...eventRequests]
   }
 };
 
-/**
- * Search listings with full filter support
- */
-export const searchListings = async (filters) => {
-  try {
-    const response = await fetch(`${API_BASE}/listings/search`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(filters)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Search failed: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.results || data;
-  } catch (error) {
-    console.error('Error searching listings:', error);
-    // Fallback to local filtering
-    return filterListings(listings, filters);
-  }
-};
-
-/**
- * Create a booking/inquiry request
- */
-export const createBookingRequest = async (listingId, requestData) => {
-  try {
-    const response = await fetch(`${API_BASE}/listings/${listingId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestData)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to create request: ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error creating booking request:', error);
-    throw error;
-  }
-};
+module.exports = db;

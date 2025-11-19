@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, ChevronLeft, ChevronRight, Check, MapPin, Star } from 'lucide-react';
 import { LISTING_TYPES, PRICE_UNITS, getCategoriesByType, getListingTypeInfo, formatPrice } from '../data/listings';
+import { createHostListing } from '../utils/auth';
 
 function HostOnboardingWizard() {
   const navigate = useNavigate();
@@ -61,25 +62,22 @@ function HostOnboardingWizard() {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     const newListing = {
       ...listingData,
-      id: `new-${Date.now()}`,
-      rating: 0,
-      reviewCount: 0,
-      hostName: 'Your Name',
-      isVerified: false,
       deliveryAvailable: listingData.tags.includes('Delivery Available'),
       highlights: listingData.tags,
       imageUrl: listingData.imageUrl || 'https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?w=800&auto=format&fit=crop&q=80'
     };
 
-    // Store in localStorage for demo (in production this would be an API call)
-    const existingListings = JSON.parse(localStorage.getItem('myListings') || '[]');
-    existingListings.push(newListing);
-    localStorage.setItem('myListings', JSON.stringify(existingListings));
-
-    navigate('/host/dashboard');
+    try {
+      // Call API to create listing
+      await createHostListing(newListing);
+      navigate('/host/dashboard');
+    } catch (error) {
+      console.error('Failed to create listing:', error);
+      alert('Failed to create listing. Please try again.');
+    }
   };
 
   // Live Preview Component

@@ -1,11 +1,38 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Truck, MapPin, Star, Check } from 'lucide-react';
-import { listings, getListingTypeInfo, formatPrice, LISTING_TYPES } from '../data/listings';
+import { fetchListingById, getListingTypeInfo, formatPrice, LISTING_TYPES, createBookingRequest } from '../data/listings';
 
 function ListingDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const listing = listings.find(l => l.id === id);
+  const [listing, setListing] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadListing();
+  }, [id]);
+
+  const loadListing = async () => {
+    try {
+      const data = await fetchListingById(id);
+      setListing(data);
+    } catch (error) {
+      console.error('Failed to load listing:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center', color: '#717171' }}>
+          Loading...
+        </div>
+      </div>
+    );
+  }
 
   if (!listing) {
     return (
@@ -34,13 +61,39 @@ function ListingDetailPage() {
 
   const typeInfo = getListingTypeInfo(listing.listingType);
 
-  const handleCTA = () => {
-    if (listing.listingType === LISTING_TYPES.RENT) {
-      alert(`Request rental for: ${listing.title}\nPrice: ${formatPrice(listing.price, listing.priceUnit)}\n\nNext steps:\n- Select dates\n- Confirm booking\n- Complete payment`);
-    } else if (listing.listingType === LISTING_TYPES.SALE) {
-      alert(`Contact seller about: ${listing.title}\nPrice: ${formatPrice(listing.price, listing.priceUnit)}\n\nNext steps:\n- Schedule inspection\n- Discuss financing\n- Complete purchase`);
-    } else {
-      alert(`Check availability for: ${listing.hostName}\nRate: ${formatPrice(listing.price, listing.priceUnit)}\n\nNext steps:\n- Share event details\n- Get custom quote\n- Confirm booking`);
+  const handleCTA = async () => {
+    // In a real app, this would open a booking modal to collect details
+    // For now, we'll collect minimal info via prompt
+    const name = prompt('Your name:');
+    if (!name) return;
+
+    const email = prompt('Your email:');
+    if (!email) return;
+
+    const message = prompt('Message or special requests:');
+
+    try {
+      let requestData = {
+        name,
+        email,
+        message,
+        type: listing.listingType
+      };
+
+      if (listing.listingType === LISTING_TYPES.RENT) {
+        const startDate = prompt('Start date (YYYY-MM-DD):');
+        const endDate = prompt('End date (YYYY-MM-DD):');
+        requestData = { ...requestData, startDate, endDate };
+      } else if (listing.listingType === LISTING_TYPES.EVENT_PRO) {
+        const eventDate = prompt('Event date (YYYY-MM-DD):');
+        const guestCount = prompt('Number of guests:');
+        requestData = { ...requestData, eventDate, guestCount };
+      }
+
+      await createBookingRequest(listing.id, requestData);
+      alert('Request submitted successfully! The host will contact you soon.');
+    } catch (error) {
+      alert('Failed to submit request. Please try again.');
     }
   };
 

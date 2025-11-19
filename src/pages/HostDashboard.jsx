@@ -2,24 +2,43 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, Plus, Edit, Eye, Pause, Play } from 'lucide-react';
 import { getListingTypeInfo, formatPrice } from '../data/listings';
+import { getHostListings, updateListingStatus } from '../utils/auth';
 
 function HostDashboard() {
   const navigate = useNavigate();
   const [myListings, setMyListings] = useState([]);
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('myListings') || '[]');
-    setMyListings(stored);
+    loadListings();
   }, []);
 
-  const toggleStatus = (listingId) => {
-    const updated = myListings.map(listing =>
-      listing.id === listingId
-        ? { ...listing, status: listing.status === 'live' ? 'paused' : 'live' }
-        : listing
-    );
-    setMyListings(updated);
-    localStorage.setItem('myListings', JSON.stringify(updated));
+  const loadListings = async () => {
+    try {
+      const listings = await getHostListings();
+      setMyListings(listings);
+    } catch (error) {
+      console.error('Failed to load listings:', error);
+    }
+  };
+
+  const toggleStatus = async (listingId) => {
+    const listing = myListings.find(l => l.id === listingId);
+    if (!listing) return;
+
+    const newStatus = listing.status === 'live' ? 'paused' : 'live';
+
+    try {
+      await updateListingStatus(listingId, newStatus);
+      // Update local state
+      setMyListings(prevListings =>
+        prevListings.map(l =>
+          l.id === listingId ? { ...l, status: newStatus } : l
+        )
+      );
+    } catch (error) {
+      console.error('Failed to update status:', error);
+      alert('Failed to update listing status');
+    }
   };
 
   return (
