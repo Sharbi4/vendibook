@@ -1,40 +1,74 @@
 /**
- * POST /api/host/listings - Create a new listing as a host
  * GET /api/host/listings - Get all listings owned by the current host
+ * POST /api/host/listings - Create a new listing as a host
+ * 
+ * All endpoints require authentication (Bearer token)
  */
 
 const db = require('../../_db');
-const { requireAuth } = require('../../_auth');
+const auth = require('../../_auth');
 
 export default function handler(req, res) {
-  if (req.method === 'POST') {
-    // Create a new host listing
-    const user = requireAuth(req, res);
+  // ========================================================================
+  // GET /api/host/listings - Get my listings
+  // ========================================================================
+  if (req.method === 'GET') {
+    const user = auth.requireAuth(req, res);
     if (!user) return;
     
-    const listingData = req.body;
-    
-    const newListing = db.addHostListing({
-      ...listingData,
-      ownerId: user.id,
-      ownerName: user.name,
-      ownerEmail: user.email
-    });
-    
-    return res.status(201).json(newListing);
+    try {
+      const hostListings = db.host.getByUserId(user.id);
+      
+      return res.status(200).json({
+        count: hostListings.length,
+        listings: hostListings
+      });
+    } catch (error) {
+      return res.status(500).json({
+        error: 'Server error',
+        message: error.message
+      });
+    }
   }
   
-  if (req.method === 'GET') {
-    // Get all listings owned by the current host
-    const user = requireAuth(req, res);
+  // ========================================================================
+  // POST /api/host/listings - Create new listing
+  // ========================================================================
+  if (req.method === 'POST') {
+    const user = auth.requireAuth(req, res);
     if (!user) return;
     
-    const hostListings = db.getHostListingsByUserId(user.id);
-    
-    return res.status(200).json({
-      count: hostListings.length,
-      listings: hostListings
-    });
+    try {
+      const listingData = req.body;
+      
+      // Validate required fields
+      if (!listingData.title || !listingData.listingType || !listingData.price) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          message: 'Missing required fields: title, listingType, price'
+        });
+      }
+      
+      // Create listing
+      const newListing = db.host.create(user.id, {
+        ...listingData,
+        ownerName: user.name,
+        ownerEmail: user.email,
+        ownerId: user.id
+      });
+      
+      return res.status(201).json({
+        success: true,
+        listing: newListing,
+        message: 'Listing created successfully'
+      });
+      
+    } catch (error) {
+      return res.status(500).json({
+        error: 'Server error',
+        message: error.message
+      });
+    }
   }
   
   res.status(405).json({ error: 'Method not allowed' });
