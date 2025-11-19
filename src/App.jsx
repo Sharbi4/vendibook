@@ -5,17 +5,42 @@ import ListingDetailPage from './pages/ListingDetailPage';
 import BecomeHostLanding from './pages/BecomeHostLanding';
 import HostOnboardingWizard from './pages/HostOnboardingWizard';
 import HostDashboard from './pages/HostDashboard';
+import { MessagesInboxPage } from './pages/MessagesInboxPage';
+import { MessageDetailPage } from './pages/MessageDetailPage';
+import { MyBookingsPage } from './pages/MyBookingsPage';
+import { HostBookingsPage } from './pages/HostBookingsPage';
+import { NotificationsPage } from './pages/NotificationsPage';
+import { AnalyticsDashboardPage } from './pages/AnalyticsDashboardPage';
+import { AdminDashboard } from './pages/AdminDashboard';
 
 function App() {
   return (
     <Router>
       <Routes>
+        {/* Main Pages */}
         <Route path="/" element={<HomePage />} />
         <Route path="/listings" element={<ListingsPage />} />
         <Route path="/listing/:id" element={<ListingDetailPage />} />
+        
+        {/* Host Pages */}
         <Route path="/become-host" element={<BecomeHostLanding />} />
         <Route path="/host/onboarding" element={<HostOnboardingWizard />} />
         <Route path="/host/dashboard" element={<HostDashboard />} />
+        <Route path="/host/bookings" element={<HostBookingsPage />} />
+        <Route path="/analytics" element={<AnalyticsDashboardPage />} />
+        
+        {/* Renter Pages */}
+        <Route path="/bookings" element={<MyBookingsPage />} />
+        
+        {/* Messaging */}
+        <Route path="/messages" element={<MessagesInboxPage />} />
+        <Route path="/messages/:threadId" element={<MessageDetailPage />} />
+        
+        {/* Notifications */}
+        <Route path="/notifications" element={<NotificationsPage />} />
+        
+        {/* Admin */}
+        <Route path="/admin" element={<AdminDashboard />} />
       </Routes>
     </Router>
   );

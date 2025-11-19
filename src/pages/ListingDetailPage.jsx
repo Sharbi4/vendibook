@@ -69,6 +69,18 @@ function ListingDetailPage() {
     }
   };
 
+  const handleMessageHost = () => {
+    // TODO: Create message thread with host and navigate to messages
+    const hostId = listing.hostId; // Assume this is added to listing data
+    if (!hostId) {
+      alert('Host information not available');
+      return;
+    }
+    // TODO: Call API to create thread
+    // navigate(`/messages?hostId=${hostId}&listingId=${id}`);
+    console.log('Message host:', listing.hostName);
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: 'white' }}>
       {/* Header */}
@@ -246,6 +258,31 @@ function ListingDetailPage() {
                 }}
               >
                 {isCTALoading ? 'Submitting...' : typeInfo.actionLabel}
+              </button>
+
+              <button
+                onClick={handleMessageHost}
+                style={{
+                  width: '100%',
+                  background: 'white',
+                  color: '#FF5124',
+                  border: '2px solid #FF5124',
+                  padding: '14px',
+                  borderRadius: '8px',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  marginBottom: '12px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#FFF5F1';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'white';
+                }}
+              >
+                Message {listing.listingType === LISTING_TYPES.EVENT_PRO ? 'Professional' : 'Host'}
               </button>
 
               {listing.listingType === LISTING_TYPES.RENT && listing.deliveryAvailable && (
