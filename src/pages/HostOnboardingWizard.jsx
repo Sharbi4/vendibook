@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, ChevronLeft, ChevronRight, Check, MapPin, Star } from 'lucide-react';
+import { Truck } from 'lucide-react';
 import { LISTING_TYPES, PRICE_UNITS, getCategoriesByType, getListingTypeInfo, formatPrice } from '../data/listings';
+import ListingCardPreview from '../components/ListingCardPreview';
+import SectionHeader from '../components/SectionHeader';
+import FormField from '../components/FormField';
+import StepNavigation from '../components/StepNavigation';
 
 function HostOnboardingWizard() {
   const navigate = useNavigate();
@@ -269,93 +273,41 @@ function HostOnboardingWizard() {
   // Step 2: Basic Info
   const Step2 = () => (
     <div>
-      <h2 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '12px', color: '#343434' }}>
-        Tell us about your listing
-      </h2>
-      <p style={{ fontSize: '16px', color: '#717171', marginBottom: '32px' }}>
-        Provide the basic details
-      </p>
+      <SectionHeader
+        title="Tell us about your listing"
+        description="Provide the basic details to help customers find your listing"
+      />
 
       <div style={{ display: 'grid', gap: '24px' }}>
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#343434' }}>
-            Title *
-          </label>
-          <input
-            type="text"
-            value={listingData.title}
-            onChange={(e) => updateData('title', e.target.value)}
-            placeholder="e.g., Fully Equipped Taco Truck"
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '1px solid #EBEBEB',
-              borderRadius: '8px',
-              fontSize: '15px'
-            }}
-          />
-        </div>
+        <FormField
+          label="Listing Title"
+          required
+          type="text"
+          value={listingData.title}
+          onChange={(e) => updateData('title', e.target.value)}
+          placeholder="e.g., Fully Equipped Taco Truck"
+        />
 
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#343434' }}>
-            Category *
-          </label>
-          <select
-            value={listingData.category}
-            onChange={(e) => updateData('category', e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '1px solid #EBEBEB',
-              borderRadius: '8px',
-              fontSize: '15px'
-            }}
-          >
-            <option value="">Select a category</option>
-            {getCategoriesByType(listingData.listingType).slice(1).map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
-        </div>
+        <FormField
+          label="Category"
+          required
+          type="select"
+          value={listingData.category}
+          onChange={(e) => updateData('category', e.target.value)}
+          options={getCategoriesByType(listingData.listingType).slice(1).map(cat => ({
+            value: cat.id,
+            label: cat.name
+          }))}
+        />
 
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#343434' }}>
-              City *
-            </label>
-            <input
-              type="text"
-              value={listingData.city}
-              onChange={(e) => updateData('city', e.target.value)}
-              placeholder="Phoenix"
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #EBEBEB',
-                borderRadius: '8px',
-                fontSize: '15px'
-              }}
-            />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#343434' }}>
-              State *
-            </label>
-            <select
-              value={listingData.state}
-              onChange={(e) => updateData('state', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '1px solid #EBEBEB',
-                borderRadius: '8px',
-                fontSize: '15px'
-              }}
-            >
-              <option value="AZ">AZ</option>
-            </select>
-          </div>
-        </div>
+        <FormField
+          label="Location"
+          required
+          type="text"
+          value={listingData.location}
+          onChange={(e) => updateData('location', e.target.value)}
+          placeholder="e.g., Phoenix, AZ"
+        />
       </div>
     </div>
   );
@@ -363,57 +315,44 @@ function HostOnboardingWizard() {
   // Step 3: Pricing
   const Step3 = () => (
     <div>
-      <h2 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '12px', color: '#343434' }}>
-        Set your {listingData.listingType === LISTING_TYPES.SALE ? 'price' : 'rate'}
-      </h2>
-      <p style={{ fontSize: '16px', color: '#717171', marginBottom: '32px' }}>
-        {listingData.listingType === LISTING_TYPES.SALE
+      <SectionHeader
+        title={`Set your ${listingData.listingType === LISTING_TYPES.SALE ? 'price' : 'rate'}`}
+        description={listingData.listingType === LISTING_TYPES.SALE
           ? 'Set your asking price'
           : listingData.listingType === LISTING_TYPES.EVENT_PRO
           ? 'Set your hourly service rate'
           : 'Set your daily rental rate'}
-      </p>
+      />
 
-      <div>
-        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#343434' }}>
-          {listingData.listingType === LISTING_TYPES.SALE ? 'Price' : 'Rate'} *
-        </label>
-        <div style={{ position: 'relative' }}>
-          <span style={{
-            position: 'absolute',
-            left: '12px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            fontSize: '18px',
-            color: '#717171'
-          }}>
-            $
-          </span>
-          <input
-            type="number"
-            value={listingData.price}
-            onChange={(e) => updateData('price', e.target.value)}
-            placeholder="250"
-            style={{
-              width: '100%',
-              padding: '12px 12px 12px 32px',
-              border: '1px solid #EBEBEB',
-              borderRadius: '8px',
-              fontSize: '18px',
-              fontWeight: '600'
-            }}
-          />
-        </div>
-        <p style={{ fontSize: '13px', color: '#717171', marginTop: '8px' }}>
-          {listingData.listingType === LISTING_TYPES.RENT && 'per day'}
-          {listingData.listingType === LISTING_TYPES.EVENT_PRO && 'per hour'}
-          {listingData.listingType === LISTING_TYPES.SALE && 'one-time purchase'}
-        </p>
+      <div style={{ display: 'grid', gap: '24px' }}>
+        <FormField
+          label={`${listingData.listingType === LISTING_TYPES.SALE ? 'Price' : 'Rate'}`}
+          required
+          type="number"
+          value={listingData.price}
+          onChange={(e) => updateData('price', e.target.value)}
+          placeholder="250"
+        />
+
+        <FormField
+          label="Pricing Unit"
+          required
+          type="select"
+          value={listingData.priceUnit}
+          onChange={(e) => updateData('priceUnit', e.target.value)}
+          options={
+            listingData.listingType === LISTING_TYPES.SALE
+              ? [{ value: PRICE_UNITS.ONE_TIME, label: 'One-time purchase' }]
+              : listingData.listingType === LISTING_TYPES.EVENT_PRO
+              ? [{ value: PRICE_UNITS.PER_HOUR, label: 'Per hour' }]
+              : [{ value: PRICE_UNITS.PER_DAY, label: 'Per day' }]
+          }
+        />
       </div>
     </div>
   );
 
-  // Step 4: Tags
+  // Step 4: Tags/Amenities
   const Step4 = () => {
     const tagOptions = listingData.listingType === LISTING_TYPES.EVENT_PRO
       ? ['Certified', 'Licensed', 'Insured', 'Menu Planning', 'Catering', 'Bar Service', '10+ Years Exp']
@@ -421,12 +360,10 @@ function HostOnboardingWizard() {
 
     return (
       <div>
-        <h2 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '12px', color: '#343434' }}>
-          Add features and amenities
-        </h2>
-        <p style={{ fontSize: '16px', color: '#717171', marginBottom: '32px' }}>
-          Select all that apply to your listing
-        </p>
+        <SectionHeader
+          title="Add features and amenities"
+          description="Select all that apply to your listing"
+        />
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
           {tagOptions.map(tag => (
@@ -435,12 +372,12 @@ function HostOnboardingWizard() {
               onClick={() => toggleTag(tag)}
               style={{
                 padding: '12px 20px',
-                border: listingData.tags.includes(tag) ? '2px solid #FF5124' : '2px solid #EBEBEB',
+                border: listingData.amenities.includes(tag) ? '2px solid #FF5124' : '2px solid #EBEBEB',
                 borderRadius: '24px',
-                background: listingData.tags.includes(tag) ? '#FFF3F0' : 'white',
-                color: listingData.tags.includes(tag) ? '#FF5124' : '#717171',
+                background: listingData.amenities.includes(tag) ? '#FFF3F0' : 'white',
+                color: listingData.amenities.includes(tag) ? '#FF5124' : '#717171',
                 fontSize: '14px',
-                fontWeight: listingData.tags.includes(tag) ? '600' : '500',
+                fontWeight: listingData.amenities.includes(tag) ? '600' : '500',
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
@@ -456,55 +393,28 @@ function HostOnboardingWizard() {
   // Step 5: Description & Photos
   const Step5 = () => (
     <div>
-      <h2 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '12px', color: '#343434' }}>
-        Add final details
-      </h2>
-      <p style={{ fontSize: '16px', color: '#717171', marginBottom: '32px' }}>
-        Help renters understand what makes your listing special
-      </p>
+      <SectionHeader
+        title="Add final details"
+        description="Help renters understand what makes your listing special"
+      />
 
       <div style={{ display: 'grid', gap: '24px' }}>
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#343434' }}>
-            Description *
-          </label>
-          <textarea
-            value={listingData.description}
-            onChange={(e) => updateData('description', e.target.value)}
-            placeholder="Describe your listing, what makes it special, and any important details..."
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '1px solid #EBEBEB',
-              borderRadius: '8px',
-              fontSize: '15px',
-              minHeight: '120px',
-              resize: 'vertical'
-            }}
-          />
-        </div>
+        <FormField
+          label="Description"
+          required
+          type="textarea"
+          value={listingData.description}
+          onChange={(e) => updateData('description', e.target.value)}
+          placeholder="Describe your listing, what makes it special, and any important details..."
+        />
 
-        <div>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px', color: '#343434' }}>
-            Photo URL (optional)
-          </label>
-          <input
-            type="text"
-            value={listingData.imageUrl}
-            onChange={(e) => updateData('imageUrl', e.target.value)}
-            placeholder="https://images.unsplash.com/..."
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '1px solid #EBEBEB',
-              borderRadius: '8px',
-              fontSize: '15px'
-            }}
-          />
-          <p style={{ fontSize: '13px', color: '#717171', marginTop: '8px' }}>
-            In production, you would upload photos here
-          </p>
-        </div>
+        <FormField
+          label="Photo URL (optional)"
+          type="text"
+          value={listingData.imageUrl}
+          onChange={(e) => updateData('imageUrl', e.target.value)}
+          placeholder="https://images.unsplash.com/..."
+        />
       </div>
     </div>
   );
@@ -609,54 +519,20 @@ function HostOnboardingWizard() {
                 Back
               </button>
 
-              {currentStep < 5 ? (
-                <button
-                  onClick={nextStep}
-                  disabled={!isStepComplete(currentStep)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '12px 24px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    background: isStepComplete(currentStep) ? '#FF5124' : '#EBEBEB',
-                    color: 'white',
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    cursor: isStepComplete(currentStep) ? 'pointer' : 'not-allowed'
-                  }}
-                >
-                  Next
-                  <ChevronRight style={{ width: '20px', height: '20px' }} />
-                </button>
-              ) : (
-                <button
-                  onClick={handleComplete}
-                  disabled={!isStepComplete(5)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '12px 32px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    background: isStepComplete(5) ? '#FF5124' : '#EBEBEB',
-                    color: 'white',
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    cursor: isStepComplete(5) ? 'pointer' : 'not-allowed'
-                  }}
-                >
-                  <Check style={{ width: '20px', height: '20px' }} />
-                  Complete & Publish
-                </button>
-              )}
+              <StepNavigation
+                currentStep={currentStep}
+                totalSteps={5}
+                isStepValid={isStepComplete(currentStep)}
+                onNext={nextStep}
+                onPrev={prevStep}
+                onComplete={handleComplete}
+                isSubmitting={isSubmitting}
+              />
             </div>
           </div>
 
           {/* Live Preview */}
-          <LivePreview />
+          <ListingCardPreview listingData={listingData} />
         </div>
       </div>
     </div>
