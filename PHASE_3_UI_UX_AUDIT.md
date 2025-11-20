@@ -1,3 +1,56 @@
+# Phase 3: UI/UX Audit & Layout Modernization (Addendum Complete)
+
+**Addendum Date:** November 19, 2025  
+**Original Audit Date:** January 2025  
+**Current Status:** ✅ Complete (Addendum applied)  
+**Latest Build:** ✅ Passing (1701 modules transformed)  
+
+This addendum documents the late‑2025 modernization and accessibility sweep performed after the initial Phase 3 audit. It supersedes certain earlier notes while preserving the original record below for historical context.
+
+## Addendum Executive Summary
+We introduced a unified layout grammar, standardized loading/empty/metric patterns, and improved accessibility across all major functional surfaces. The UI now uses reusable primitives that reduce duplication and speed further feature delivery.
+
+### Newly Introduced Components
+- `PageShell`: Wraps every page with consistent header, spacing, and width constraints.
+- `MetricCard`: Normalized KPI / stats tiles across dashboards.
+- `ListSkeleton`: Reusable animated loading placeholder for vertical lists (messages, bookings, notifications, admin tables).
+- `DataTable`: Sortable, accessible table abstraction with built‑in skeleton and empty state for admin views.
+- `WizardLayout`: Two‑column responsive host onboarding flow with accessible progress bar.
+
+### Pages Updated to Use New Primitives
+NotificationsPage, HostDashboard, MessagesInboxPage, MessageDetailPage, AnalyticsDashboardPage, AdminDashboard, ListingDetailPage, HostOnboardingWizard, MyBookingsPage, HostBookingsPage.
+
+### Accessibility Enhancements
+- Added `aria-label` to actionable list items (notifications, messages, bookings).
+- Added `role="progressbar"` with value attributes to wizard progress indicator.
+- Converted booking/message/thread collections to semantic `<ul>/<li>` lists.
+- Introduced consistent focus rings for filter chips & interactive cards.
+- Added `aria-pressed` to toggle/filter buttons for state clarity.
+
+### Data Shape Normalization
+- Resolved inconsistent metric fields (`avgRating` vs `averageRating`, `completedBookings` variants).
+- Unified naming fallbacks for host/owner and renter/user references.
+- Defensive fallback for message thread preview fields.
+
+### Build & Performance
+Latest production build passes cleanly (1701 modules). No unresolved warnings. Refactors did not increase bundle size materially; skeleton & layout components are lightweight.
+
+### Benefits
+- Faster future page creation (drop in `PageShell` and primitives).
+- Reduced cognitive overhead (one pattern for loading, metrics, tables).
+- Improved a11y baseline for next phase (keyboard + SR traversal clearer).
+- Cleaner diffs going forward (styling centralized in utility patterns).
+
+### Recommended Next Steps (Phase 4+)
+1. Replace remaining mock data with live API integrations progressively.
+2. Add toast/inline feedback system for CRUD & messaging actions.
+3. Introduce dark mode via CSS variables and Tailwind `dark:` variants.
+4. Add skip links + landmark roles for improved screen reader navigation.
+5. Begin route-level code splitting and image optimization.
+
+---
+
+# Original Phase 3 Audit (Archive)
 # Phase 3: UI/UX Audit & Page Layout Correction
 
 **Date:** January 2025  

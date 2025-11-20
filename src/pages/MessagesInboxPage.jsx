@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { MessageThreadList } from '../components/MessageThreadCard';
-import SectionHeader from '../components/SectionHeader';
 import EmptyState from '../components/EmptyState';
+import PageShell from '../components/layout/PageShell';
+import ListSkeleton from '../components/ListSkeleton';
 
 /**
  * MessagesInboxPage - Display user's message threads
@@ -61,23 +62,14 @@ export function MessagesInboxPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <SectionHeader title="Messages" subtitle="Your conversations" />
-        <button
-          onClick={handleNewMessage}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-        >
-          New Message
-        </button>
-      </div>
-
+    <PageShell
+      title="Messages"
+      subtitle="Your conversations"
+      action={{ label: 'New Message', onClick: handleNewMessage }}
+      maxWidth="max-w-4xl"
+    >
       {isLoading ? (
-        <div className="space-y-4 animate-pulse">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-24 bg-gray-200 rounded"></div>
-          ))}
-        </div>
+        <ListSkeleton count={3} />
       ) : threads.length > 0 ? (
         <MessageThreadList
           threads={threads}
@@ -94,6 +86,6 @@ export function MessagesInboxPage() {
           }}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

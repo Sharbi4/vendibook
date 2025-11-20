@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Eye, MessageSquare, DollarSign, Star, Calendar } from 'lucide-react';
 import { apiClient } from '../api/client';
-import SectionHeader from '../components/SectionHeader';
+import PageShell from '../components/layout/PageShell';
+import MetricCard from '../components/MetricCard';
+import ListSkeleton from '../components/ListSkeleton';
 
 /**
  * AnalyticsDashboardPage - Host analytics and insights
@@ -58,89 +60,81 @@ export function AnalyticsDashboardPage() {
     loadAnalytics();
   }, [navigate]);
 
+  // Provide early skeleton layout inside shell while loading
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
+      <PageShell
+        title="Analytics Dashboard"
+        subtitle="Loading performance data"
+        maxWidth="max-w-7xl"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8" aria-label="Loading metrics">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-28 bg-gray-200 animate-pulse rounded-xl" />
+          ))}
+        </div>
+        <ListSkeleton count={3} />
+      </PageShell>
     );
   }
 
   if (!analytics) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Failed to load analytics</p>
-      </div>
+      <PageShell
+        title="Analytics Dashboard"
+        subtitle="Track your hosting performance and earnings"
+        maxWidth="max-w-7xl"
+      >
+        <div className="text-center py-24" aria-label="Analytics unavailable">
+          <p className="text-gray-500">Failed to load analytics</p>
+        </div>
+      </PageShell>
     );
   }
 
-  // Summary cards data
+  // Normalized metrics (handle variant field names from mock / API)
+  const normalized = {
+    totalViews: analytics.totalViews || 0,
+    totalInquiries: analytics.totalInquiries || 0,
+    completedBookings: analytics.completedBookings || analytics.bookingMetrics?.completed || 0,
+    totalEarnings: analytics.totalEarnings || 0,
+    avgRating: analytics.avgRating || analytics.averageRating || 0,
+    conversionRate: analytics.conversionRate || 0
+  };
+
   const cards = [
-    {
-      icon: <Eye className="w-6 h-6" />,
-      label: 'Total Views',
-      value: analytics.totalViews.toLocaleString(),
-      color: 'bg-blue-50 text-blue-600'
-    },
-    {
-      icon: <MessageSquare className="w-6 h-6" />,
-      label: 'Inquiries',
-      value: analytics.totalInquiries.toLocaleString(),
-      color: 'bg-green-50 text-green-600'
-    },
-    {
-      icon: <Calendar className="w-6 h-6" />,
-      label: 'Bookings',
-      value: analytics.completedBookings.toLocaleString(),
-      color: 'bg-purple-50 text-purple-600'
-    },
-    {
-      icon: <DollarSign className="w-6 h-6" />,
-      label: 'Total Earnings',
-      value: `$${analytics.totalEarnings.toLocaleString()}`,
-      color: 'bg-green-50 text-green-600'
-    },
-    {
-      icon: <Star className="w-6 h-6" />,
-      label: 'Average Rating',
-      value: `${analytics.avgRating} ⭐`,
-      color: 'bg-yellow-50 text-yellow-600'
-    },
-    {
-      icon: <TrendingUp className="w-6 h-6" />,
-      label: 'Conversion Rate',
-      value: `${analytics.conversionRate}%`,
-      color: 'bg-indigo-50 text-indigo-600'
-    }
+    { icon: Eye, label: 'Total Views', value: normalized.totalViews.toLocaleString(), tone: 'info' },
+    { icon: MessageSquare, label: 'Inquiries', value: normalized.totalInquiries.toLocaleString(), tone: 'success' },
+    { icon: Calendar, label: 'Bookings', value: normalized.completedBookings.toLocaleString(), tone: 'default' },
+    { icon: DollarSign, label: 'Earnings', value: `$${normalized.totalEarnings.toLocaleString()}`, tone: 'success' },
+    { icon: Star, label: 'Avg Rating', value: `${normalized.avgRating} ⭐`, tone: 'warning' },
+    { icon: TrendingUp, label: 'Conversion', value: `${normalized.conversionRate}%`, tone: 'info' }
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <SectionHeader
-        title="Analytics Dashboard"
-        subtitle="Track your hosting performance and earnings"
-      />
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {cards.map((card, index) => (
-          <div
-            key={index}
-            className={`${card.color} p-6 rounded-lg shadow-sm border border-gray-200`}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-700">{card.label}</p>
-              {card.icon}
-            </div>
-            <p className="text-3xl font-bold">{card.value}</p>
-          </div>
+    <PageShell
+      title="Analytics Dashboard"
+      subtitle="Track your hosting performance and earnings"
+      action={{ label: 'Manage Listings', onClick: () => navigate('/host/listings') }}
+      maxWidth="max-w-7xl"
+    >
+      {/* Summary Metric Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10" aria-label="Summary metrics">
+        {cards.map((card) => (
+          <MetricCard
+            key={card.label}
+            icon={card.icon}
+            label={card.label}
+            value={card.value}
+            tone={card.tone}
+          />
         ))}
       </div>
 
       {/* Detailed Metrics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
         {/* Booking Metrics */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200" aria-label="Booking performance metrics">
           <h3 className="text-lg font-bold text-gray-900 mb-4">Booking Performance</h3>
           <div className="space-y-4">
             <div>
@@ -191,7 +185,7 @@ export function AnalyticsDashboardPage() {
         </div>
 
         {/* Listing Metrics */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200" aria-label="Listing status metrics">
           <h3 className="text-lg font-bold text-gray-900 mb-4">Listing Status</h3>
           <div className="space-y-4">
             <div>
@@ -224,20 +218,17 @@ export function AnalyticsDashboardPage() {
               </div>
             </div>
 
-            <div className="pt-2">
-              <button
-                onClick={() => navigate('/host/listings')}
-                className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium"
-              >
-                Manage Listings
-              </button>
+            <div className="pt-2 text-sm text-gray-500">
+              <p>
+                Active listings represent inventory currently visible to guests.
+              </p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Performance Tips */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200" aria-label="Performance optimization tips">
         <h3 className="text-lg font-bold text-gray-900 mb-4">Performance Tips</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {analytics.totalViews === 0 && (
@@ -269,6 +260,6 @@ export function AnalyticsDashboardPage() {
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

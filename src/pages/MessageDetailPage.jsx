@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { MessageThread } from '../components/MessageBubble';
+import PageShell from '../components/layout/PageShell';
 
 /**
  * MessageDetailPage - Display and manage a specific message thread
@@ -110,59 +111,44 @@ export function MessageDetailPage() {
     }
   };
 
+  const otherParticipant = thread?.participants?.find(p => currentUser && p.id !== currentUser.id);
+
   if (isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
+      <PageShell title="Loading conversation" subtitle="Fetching messages" maxWidth="max-w-4xl">
+        <div className="flex items-center justify-center py-24" aria-label="Loading thread">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+        </div>
+      </PageShell>
     );
   }
 
   if (!thread || !currentUser) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <p className="text-gray-500">Thread not found</p>
-      </div>
+      <PageShell title="Conversation" subtitle="Not found" maxWidth="max-w-4xl">
+        <div className="flex items-center justify-center py-24" aria-label="Thread not found">
+          <p className="text-gray-500">Thread not found</p>
+        </div>
+      </PageShell>
     );
   }
 
-  const otherParticipant = thread.participants?.find(p => p.id !== currentUser.id);
-
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b px-4 py-4">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">
-              {otherParticipant?.name || 'Unknown User'}
-            </h2>
-            {thread.subject && (
-              <p className="text-sm text-gray-600">{thread.subject}</p>
-            )}
-          </div>
-          <button
-            onClick={() => navigate('/messages')}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            ✕
-          </button>
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 max-w-4xl mx-auto w-full overflow-hidden flex flex-col">
+    <PageShell
+      title={otherParticipant?.name || 'Conversation'}
+      subtitle={thread.subject || 'Direct messages'}
+      action={{ label: 'Close', onClick: () => navigate('/messages') }}
+      maxWidth="max-w-4xl"
+      className="!min-h-screen"
+    >
+      <div className="flex flex-col h-[70vh] bg-white border rounded-lg overflow-hidden">
         <MessageThread
           messages={messages}
           currentUserId={currentUser.id}
           isLoading={isLoading}
         />
-      </div>
-
-      {/* Message Input */}
-      <div className="bg-white border-t px-4 py-4">
-        <div className="max-w-4xl mx-auto">
-          <form onSubmit={handleSendMessage} className="flex gap-2">
+        <div className="border-t p-4">
+          <form onSubmit={handleSendMessage} className="flex gap-2" aria-label="Send a message form">
             <textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
@@ -170,24 +156,21 @@ export function MessageDetailPage() {
               className="flex-1 px-4 py-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
               rows="3"
               disabled={isSending}
+              aria-label="Message input"
             />
             <button
               type="submit"
               disabled={isSending || !newMessage.trim()}
-              className={`px-6 py-2 bg-blue-500 text-white rounded-lg font-medium
-                ${isSending || !newMessage.trim()
-                  ? 'opacity-50 cursor-not-allowed'
-                  : 'hover:bg-blue-600'
-                }
-                transition`}
+              className={`px-6 py-2 bg-blue-500 text-white rounded-lg font-medium transition ${isSending || !newMessage.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}
+              aria-disabled={isSending || !newMessage.trim()}
+              aria-label="Send message"
             >
               {isSending ? 'Sending...' : 'Send'}
             </button>
           </form>
         </div>
+        <div ref={messageEndRef} />
       </div>
-
-      <div ref={messageEndRef} />
-    </div>
+    </PageShell>
   );
 }
