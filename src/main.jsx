@@ -6,7 +6,7 @@ import GlobalErrorBoundary from './components/GlobalErrorBoundary.jsx';
 import GlobalLoadingOverlay from './components/GlobalLoadingOverlay.jsx';
 
 // Simple top-level loading state placeholder; replace with real auth/app initialization later.
-function Root() {
+export function Root() {
   const [booting, setBooting] = React.useState(true);
   React.useEffect(() => {
     const t = setTimeout(() => setBooting(false), 300); // simulate quick boot
@@ -19,7 +19,6 @@ function Root() {
     </GlobalErrorBoundary>
   );
 }
-import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
