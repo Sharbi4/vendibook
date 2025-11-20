@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
-import SectionHeader from '../components/SectionHeader';
 import EmptyState from '../components/EmptyState';
+import PageShell from '../components/PageShell';
 
 /**
  * NotificationsPage - Full notifications center
@@ -11,6 +11,7 @@ export function NotificationsPage() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMarkingAll, setIsMarkingAll] = useState(false);
   const [filterUnread, setFilterUnread] = useState(false);
 
   useEffect(() => {
@@ -81,41 +82,55 @@ export function NotificationsPage() {
         notificationIds: [notificationId]
       });
 
-      setNotifications(notifications.map(n =>
-        n.id === notificationId ? { ...n, read: true, readAt: new Date() } : n
-      ));
+      setNotifications(prevNotifications =>
+        prevNotifications.map(notification =>
+          notification.id === notificationId
+            ? { ...notification, read: true, readAt: new Date() }
+            : notification
+        )
+      );
     } catch (error) {
       console.error('Failed to mark as read:', error);
     }
   };
 
   const handleMarkAllAsRead = async () => {
+    if (isMarkingAll) return;
+
+    setIsMarkingAll(true);
     try {
       await apiClient.post('/notifications/read', {
         markAllAsRead: true
       });
 
-      setNotifications(notifications.map(n => ({
-        ...n,
-        read: true,
-        readAt: new Date()
-      })));
+      setNotifications(prevNotifications =>
+        prevNotifications.map(notification => ({
+          ...notification,
+          read: true,
+          readAt: new Date()
+        }))
+      );
     } catch (error) {
       console.error('Failed to mark all as read:', error);
+    } finally {
+      setIsMarkingAll(false);
     }
   };
 
   const handleNavigate = (notification) => {
     if (notification.relatedId) {
-      if (notification.type.includes('BOOKING')) {
+      const normalizedType = (notification.type || '').toUpperCase();
+
+      if (normalizedType.includes('BOOKING')) {
         navigate(`/bookings/${notification.relatedId}`);
-      } else if (notification.type === 'MESSAGE_RECEIVED') {
+      } else if (normalizedType === 'MESSAGE_RECEIVED') {
         navigate(`/messages/${notification.relatedId}`);
       }
     }
   };
 
   const getNotificationIcon = (type) => {
+    const normalizedType = (type || '').toUpperCase();
     const icons = {
       BOOKING_REQUEST: '📅',
       BOOKING_APPROVED: '✅',
@@ -125,10 +140,11 @@ export function NotificationsPage() {
       LISTING_PUBLISHED: '📢',
       LISTING_FLAGGED: '🚩'
     };
-    return icons[type] || '🔔';
+    return icons[normalizedType] || '🔔';
   };
 
   const getNotificationColor = (type) => {
+    const normalizedType = (type || '').toUpperCase();
     const colors = {
       BOOKING_REQUEST: 'border-l-4 border-yellow-500',
       BOOKING_APPROVED: 'border-l-4 border-green-500',
@@ -138,7 +154,7 @@ export function NotificationsPage() {
       LISTING_PUBLISHED: 'border-l-4 border-indigo-500',
       LISTING_FLAGGED: 'border-l-4 border-red-500'
     };
-    return colors[type] || 'border-l-4 border-gray-500';
+    return colors[normalizedType] || 'border-l-4 border-gray-500';
   };
 
   const formatTime = (date) => {
@@ -159,96 +175,129 @@ export function NotificationsPage() {
     });
   };
 
+  const hasUnread = notifications.some(n => !n.read);
+  const unreadCount = notifications.filter(n => !n.read).length;
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <SectionHeader title="Notifications" subtitle="Stay updated on bookings, messages, and more" />
-        {notifications.some(n => !n.read) && (
-          <button
-            onClick={handleMarkAllAsRead}
-            className="px-4 py-2 text-blue-500 hover:text-blue-700 font-medium text-sm"
-          >
-            Mark all as read
-          </button>
-        )}
-      </div>
-
-      {/* Filter */}
-      <div className="mb-6 flex gap-2">
-        <button
-          onClick={() => setFilterUnread(false)}
-          className={`px-4 py-2 rounded-full font-medium transition ${
-            !filterUnread
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          All
-        </button>
-        <button
-          onClick={() => setFilterUnread(true)}
-          className={`px-4 py-2 rounded-full font-medium transition ${
-            filterUnread
-              ? 'bg-blue-500 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          Unread
-        </button>
-      </div>
-
-      {/* Notifications List */}
-      {isLoading ? (
-        <div className="space-y-4 animate-pulse">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-20 bg-gray-200 rounded-lg"></div>
-          ))}
-        </div>
-      ) : notifications.length > 0 ? (
-        <div className="space-y-3">
-          {notifications.map(notification => (
-            <div
-              key={notification.id}
-              className={`p-4 bg-white border rounded-lg hover:shadow-md transition cursor-pointer ${
-                !notification.read ? 'bg-blue-50' : ''
-              } ${getNotificationColor(notification.type)}`}
-              onClick={() => {
-                handleNavigate(notification);
-                if (!notification.read) {
-                  handleMarkAsRead(notification.id);
-                }
-              }}
+    <PageShell
+      title="Notifications"
+      subtitle="Stay updated on bookings, messages, and more"
+      action={{
+        label: hasUnread ? 'Mark all as read' : 'All caught up',
+        onClick: hasUnread ? handleMarkAllAsRead : undefined,
+        disabled: isLoading || isMarkingAll || !hasUnread,
+        variant: hasUnread ? 'primary' : 'secondary'
+      }}
+    >
+      <section className="grid gap-6">
+        <div className="grid gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:grid-cols-2 sm:items-center sm:p-6">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-blue-700">Inbox health</p>
+            <h2 className="text-2xl font-semibold text-gray-900">
+              {hasUnread ? `${unreadCount} unread updates` : 'You are all caught up'}
+            </h2>
+            <p className="text-sm text-gray-600">
+              Manage booking changes, messages, and reviews without missing a beat.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3 sm:justify-end">
+            <button
+              onClick={() => setFilterUnread(false)}
+              aria-pressed={!filterUnread}
+              className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                !filterUnread
+                  ? 'bg-blue-600 text-white shadow-sm hover:bg-blue-700 focus:ring-blue-500'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-blue-400'
+              }`}
             >
-              <div className="flex gap-4 items-start">
-                <span className="text-2xl">{getNotificationIcon(notification.type)}</span>
-                <div className="flex-1">
-                  <h3 className="font-bold text-gray-900">
-                    {notification.title}
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {notification.message}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-2">
-                    {formatTime(notification.createdAt)}
-                  </p>
-                </div>
-                {!notification.read && (
-                  <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0 mt-1"></div>
-                )}
-              </div>
-            </div>
-          ))}
+              All
+            </button>
+            <button
+              onClick={() => setFilterUnread(true)}
+              aria-pressed={filterUnread}
+              className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                filterUnread
+                  ? 'bg-blue-600 text-white shadow-sm hover:bg-blue-700 focus:ring-blue-500'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-blue-400'
+              }`}
+            >
+              Unread
+            </button>
+          </div>
         </div>
-      ) : (
-        <EmptyState
-          title="No Notifications"
-          description="You're all caught up! Come back later for updates on your bookings and messages."
-          action={{
-            label: 'Browse Listings',
-            onClick: () => navigate('/listings')
-          }}
-        />
-      )}
-    </div>
+
+        {isLoading ? (
+          <div className="grid gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+            <div className="flex items-center justify-between">
+              <div className="h-5 w-32 animate-pulse rounded bg-gray-200" />
+              <div className="h-4 w-20 animate-pulse rounded bg-gray-200" />
+            </div>
+            <div className="space-y-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-20 animate-pulse rounded-lg bg-gray-200" />
+              ))}
+            </div>
+          </div>
+        ) : notifications.length > 0 ? (
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Recent activity</p>
+                <p className="text-xs text-gray-500">Tap a card to open the related booking, message, or listing.</p>
+              </div>
+              <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                {notifications.length} total
+              </span>
+            </div>
+
+            <div className="divide-y divide-gray-100">
+              {notifications.map(notification => (
+                <button
+                  key={notification.id}
+                  type="button"
+                  className={`w-full text-left transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    !notification.read ? 'bg-blue-50/50' : 'bg-white'
+                  } ${getNotificationColor(notification.type)}`}
+                  onClick={() => {
+                    handleNavigate(notification);
+                    if (!notification.read) {
+                      handleMarkAsRead(notification.id);
+                    }
+                  }}
+                >
+                  <div className="flex items-start gap-4 px-4 py-4 sm:px-6">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 text-xl">
+                      {getNotificationIcon(notification.type)}
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <h3 className="font-semibold text-gray-900">{notification.title}</h3>
+                        <span className="text-xs font-medium text-gray-500">{formatTime(notification.createdAt)}</span>
+                      </div>
+                      <p className="text-sm text-gray-600">{notification.message}</p>
+                      {notification.link && (
+                        <p className="text-xs font-semibold text-blue-600">View details →</p>
+                      )}
+                    </div>
+                    {!notification.read && (
+                      <span className="mt-1 inline-flex h-3 w-3 flex-shrink-0 rounded-full bg-blue-500" aria-hidden="true" />
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <EmptyState
+            title="No Notifications"
+            description="You're all caught up! Come back later for updates on your bookings and messages."
+            action={{
+              label: 'Browse Listings',
+              onClick: () => navigate('/listings')
+            }}
+          />
+        )}
+      </section>
+    </PageShell>
   );
 }
