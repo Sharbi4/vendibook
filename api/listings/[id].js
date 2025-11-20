@@ -57,7 +57,7 @@ export default function handler(req, res) {
       });
     }
     
-    const { type, startDate, endDate, eventDate, guestCount, message } = req.body;
+    const { type: _type, startDate, endDate, eventDate, guestCount, message } = req.body;
     
     let request;
     
