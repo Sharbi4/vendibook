@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, Store, X } from 'lucide-react';
-import { listings, LISTING_TYPES, filterListings, getCategoriesByType } from '../data/listings';
+import { listings as mockListings, LISTING_TYPES, filterListings, getCategoriesByType } from '../data/listings';
+import { fetchListings } from '../utils/apiClient';
 import { useSearchParams } from '../hooks/useSearchParams';
 import ListingCard from '../components/ListingCard';
 import EmptyState from '../components/EmptyState';
@@ -10,20 +11,52 @@ function ListingsPage() {
   const navigate = useNavigate();
   const searchState = useSearchParams();
   const [filteredData, setFilteredData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
-    // Filter listings based on current search state
-    const filtered = filterListings(listings, {
-      listingType: searchState.listingType,
-      category: searchState.category !== 'all' ? searchState.category : undefined,
-      location: searchState.location,
-      priceMin: searchState.priceMin,
-      priceMax: searchState.priceMax,
-      deliveryOnly: searchState.deliveryOnly,
-      verifiedOnly: searchState.verifiedOnly,
-      amenities: searchState.amenities
-    });
-    setFilteredData(filtered);
+    let abort = false;
+    async function load() {
+      setIsLoading(true);
+      setLoadError(null);
+      try {
+        const filters = {
+          listingType: searchState.listingType,
+          category: searchState.category !== 'all' ? searchState.category : undefined,
+          location: searchState.location,
+          priceMin: searchState.priceMin,
+          priceMax: searchState.priceMax,
+          deliveryOnly: searchState.deliveryOnly,
+          verifiedOnly: searchState.verifiedOnly,
+          amenities: searchState.amenities
+        };
+        // Attempt API fetch
+        const apiResp = await fetchListings(filters);
+        if (!abort) {
+          setFilteredData(apiResp.listings || []);
+        }
+      } catch (err) {
+        // Fallback to local mock data on error
+        const fallback = filterListings(mockListings, {
+          listingType: searchState.listingType,
+          category: searchState.category !== 'all' ? searchState.category : undefined,
+          location: searchState.location,
+          priceMin: searchState.priceMin,
+          priceMax: searchState.priceMax,
+          deliveryOnly: searchState.deliveryOnly,
+          verifiedOnly: searchState.verifiedOnly,
+          amenities: searchState.amenities
+        });
+        if (!abort) {
+          setFilteredData(fallback);
+          setLoadError(err.message || 'Failed to load listings');
+        }
+      } finally {
+        if (!abort) setIsLoading(false);
+      }
+    }
+    load();
+    return () => { abort = true; };
   }, [searchState]);
 
   const ListingTypeTab = ({ type, label }) => {
@@ -234,13 +267,38 @@ function ListingsPage() {
       {/* Results Header */}
       <section style={{ maxWidth: '1760px', margin: '0 auto', padding: '32px 40px 0' }}>
         <h1 style={{ fontSize: '28px', fontWeight: '600', color: '#343434', marginBottom: '8px' }}>
-          {filteredData.length} results
+          {isLoading ? 'Loading listings…' : `${filteredData.length} results`}
         </h1>
+        {loadError && (
+          <div style={{
+            padding: '12px 16px',
+            background: '#FFF3F0',
+            border: '1px solid #FFDACD',
+            borderRadius: '8px',
+            color: '#FF5124',
+            fontSize: '13px',
+            fontWeight: 500,
+            maxWidth: '480px'
+          }}>
+            Failed to load from API. Showing fallback data. ({loadError})
+          </div>
+        )}
       </section>
 
       {/* Listings Grid */}
       <section style={{ maxWidth: '1760px', margin: '0 auto', padding: '32px 40px 80px' }}>
-        {filteredData.length > 0 ? (
+        {isLoading ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} style={{
+                height: '320px',
+                background: '#F5F5F5',
+                borderRadius: '16px',
+                animation: 'pulse 1.5s ease-in-out infinite'
+              }} />
+            ))}
+          </div>
+        ) : filteredData.length > 0 ? (
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
