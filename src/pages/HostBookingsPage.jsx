@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Calendar, User } from 'lucide-react';
 import { apiClient } from '../api/client';
-import SectionHeader from '../components/SectionHeader';
 import EmptyState from '../components/EmptyState';
+import PageShell from '../components/layout/PageShell';
+import ListSkeleton from '../components/ListSkeleton';
 import { formatPrice } from '../data/listings';
 
 /**
@@ -162,138 +163,106 @@ export function HostBookingsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <SectionHeader title="Manage Bookings" subtitle="Review and respond to booking requests" />
-
-      {/* Status Filter */}
-      <div className="mb-6 flex flex-wrap gap-2">
+    <PageShell
+      title="Manage Bookings"
+      subtitle="Review and respond to booking requests"
+      maxWidth="max-w-6xl"
+      action={{ label: 'Dashboard', onClick: () => navigate('/host/dashboard') }}
+    >
+      <div className="mb-8 flex flex-wrap gap-2" aria-label="Filter bookings by status">
         {statuses.map(status => (
           <button
             key={status}
             onClick={() => handleStatusChange(status)}
-            className={`px-4 py-2 rounded-full font-medium transition ${
+            className={`px-4 py-2 rounded-full text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
               selectedStatus === status
-                ? 'bg-blue-500 text-white'
+                ? 'bg-blue-600 text-white shadow-sm'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
+            aria-pressed={selectedStatus === status}
+            aria-label={`Show ${status.toLowerCase()} bookings`}
           >
             {status}
           </button>
         ))}
       </div>
 
-      {/* Bookings List */}
       {isLoading ? (
-        <div className="space-y-4 animate-pulse">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
-          ))}
-        </div>
+        <ListSkeleton count={3} />
       ) : bookings.length > 0 ? (
-        <div className="space-y-4">
+        <ul className="space-y-4" aria-label="Host bookings list">
           {bookings.map(booking => (
-            <div
-              key={booking.id}
-              className="border rounded-lg p-6 bg-white hover:shadow-lg transition"
-            >
-              <div className="flex flex-col md:flex-row gap-6">
-                {/* Booking Details */}
-                <div className="flex-1">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900">
-                        {booking.listing?.title || 'Unknown Listing'}
-                      </h3>
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
-                        <User className="w-4 h-4" />
-                        {booking.renter?.name || booking.user?.name || 'Unknown User'}
-                      </div>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(booking.status)}`}>
-                      {booking.status}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-600 mb-3">
-                    {booking.startDate && (
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        <span>{formatDate(booking.startDate)}</span>
-                      </div>
-                    )}
-                    {booking.endDate && (
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        <span>{formatDate(booking.endDate)}</span>
-                      </div>
-                    )}
-                    <div className="col-span-2 md:col-span-1 text-xs">
-                      <p>Contact: {booking.renter?.email || booking.user?.email}</p>
+            <li key={booking.id} className="border rounded-lg p-6 bg-white hover:shadow-md transition">
+              <div className="flex flex-col gap-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{booking.listing?.title || 'Unknown Listing'}</h3>
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
+                      <User className="w-4 h-4" />
+                      {booking.renter?.name || booking.user?.name || 'Unknown User'}
                     </div>
                   </div>
-
-                  {booking.message && (
-                    <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded mb-3 border-l-4 border-blue-500">
-                      {booking.message}
-                    </p>
-                  )}
-
-                  {booking.price && (
-                    <p className="font-semibold text-gray-900 mb-4">
-                      {formatPrice(booking.price, booking.priceUnit)}
-                    </p>
-                  )}
-
-                  {/* Actions */}
-                  {booking.status === 'PENDING' && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleApproveBooking(booking.id)}
-                        disabled={actionLoading}
-                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 font-medium"
-                      >
-                        {actionLoading ? 'Processing...' : 'Approve'}
-                      </button>
-                      <button
-                        onClick={() => handleDeclineBooking(booking.id)}
-                        disabled={actionLoading}
-                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 font-medium"
-                      >
-                        Decline
-                      </button>
-                      <button
-                        onClick={() => navigate(`/messages?listingId=${booking.listing?.id}&renterId=${booking.renter?.id}`)}
-                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium"
-                      >
-                        Message
-                      </button>
-                    </div>
-                  )}
-
-                  {booking.status === 'APPROVED' && (
-                    <button
-                      onClick={() => handleCompleteBooking(booking.id)}
-                      disabled={actionLoading}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 font-medium"
-                    >
-                      Mark Complete
-                    </button>
-                  )}
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>{booking.status}</span>
                 </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-600 mb-2">
+                  {booking.startDate && (
+                    <div className="flex items-center gap-2"><Calendar className="w-4 h-4" /><span>{formatDate(booking.startDate)}</span></div>
+                  )}
+                  {booking.endDate && (
+                    <div className="flex items-center gap-2"><Calendar className="w-4 h-4" /><span>{formatDate(booking.endDate)}</span></div>
+                  )}
+                  <div className="col-span-2 md:col-span-1 text-xs"><p>Contact: {booking.renter?.email || booking.user?.email}</p></div>
+                </div>
+                {booking.message && (
+                  <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded border-l-4 border-blue-500" aria-label="Renter message">{booking.message}</p>
+                )}
+                {booking.price && (
+                  <p className="font-semibold text-gray-900">{formatPrice(booking.price, booking.priceUnit)}</p>
+                )}
+                {booking.status === 'PENDING' && (
+                  <div className="flex flex-wrap gap-2" aria-label="Pending booking actions">
+                    <button
+                      onClick={() => handleApproveBooking(booking.id)}
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm font-medium"
+                    >
+                      {actionLoading ? 'Processing...' : 'Approve'}
+                    </button>
+                    <button
+                      onClick={() => handleDeclineBooking(booking.id)}
+                      disabled={actionLoading}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
+                    >
+                      Decline
+                    </button>
+                    <button
+                      onClick={() => navigate(`/messages?listingId=${booking.listing?.id}&renterId=${booking.renter?.id}`)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                    >
+                      Message
+                    </button>
+                  </div>
+                )}
+                {booking.status === 'APPROVED' && (
+                  <button
+                    onClick={() => handleCompleteBooking(booking.id)}
+                    disabled={actionLoading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+                  >
+                    Mark Complete
+                  </button>
+                )}
               </div>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       ) : (
         <EmptyState
           title="No Bookings"
           description={`No ${selectedStatus.toLowerCase()} bookings at the moment.`}
-          action={{
-            label: 'Back to Dashboard',
-            onClick: () => navigate('/host/dashboard')
-          }}
+          action={{ label: 'Back to Dashboard', onClick: () => navigate('/host/dashboard') }}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

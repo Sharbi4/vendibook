@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, List, Calendar, BarChart3 } from 'lucide-react';
 import { apiClient } from '../api/client';
-import SectionHeader from '../components/SectionHeader';
+import PageShell from '../components/layout/PageShell';
+import MetricCard from '../components/MetricCard';
+import DataTable from '../components/DataTable';
 
 /**
  * AdminDashboard - Platform administration and moderation
@@ -126,225 +128,162 @@ export function AdminDashboard() {
   };
 
   if (!currentUser) {
-    return <div className="text-center py-12">Loading...</div>;
+    return (
+      <PageShell
+        title="Admin Dashboard"
+        subtitle="Verifying admin access"
+        maxWidth="max-w-7xl"
+      >
+        <div className="py-24 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+        </div>
+      </PageShell>
+    );
   }
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <SectionHeader
-        title="Admin Dashboard"
-        subtitle="Manage users, listings, and platform operations"
-      />
+  const overviewCards = [
+    { label: 'Total Users', value: users.length || '–', tone: 'info', icon: Users },
+    { label: 'Total Listings', value: listings.length || '–', tone: 'success', icon: List },
+    { label: 'Total Bookings', value: bookings.length || '–', tone: 'default', icon: Calendar },
+    { label: 'Platform Health', value: 'Good', tone: 'success', icon: BarChart3 }
+  ];
 
+  const listingsColumns = [
+    { key: 'title', header: 'Title', sortable: true },
+    { key: 'host', header: 'Host', render: (r) => r.host?.name || r.owner?.name || '–' },
+    { key: 'status', header: 'Status', render: (r) => (
+      <span
+        className={`px-3 py-1 rounded-full text-xs font-medium ${r.status === 'LIVE' || r.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}
+      >
+        {r.status}
+      </span>
+    ) },
+    { key: 'actions', header: 'Actions', render: (r) => (
+      <div className="space-x-2">
+        {(r.status === 'LIVE' || r.status === 'ACTIVE') ? (
+          <button
+            onClick={() => handleSuspendListing(r.id)}
+            className="px-3 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+          >
+            Suspend
+          </button>
+        ) : (
+          <button
+            onClick={() => handleUnsuspendListing(r.id)}
+            className="px-3 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600"
+          >
+            Reinstate
+          </button>
+        )}
+      </div>
+    ) }
+  ];
+
+  const usersColumns = [
+    { key: 'name', header: 'Name', sortable: true },
+    { key: 'email', header: 'Email' },
+    { key: 'role', header: 'Role', render: (r) => (
+      <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">{r.role}</span>
+    ) },
+    { key: 'createdAt', header: 'Joined', sortable: true, render: (r) => formatDate(r.createdAt) }
+  ];
+
+  const bookingsColumns = [
+    { key: 'renter', header: 'User', render: (r) => r.renter?.name || r.user?.name || '–' },
+    { key: 'listing', header: 'Listing', render: (r) => r.listing?.title || '–' },
+    { key: 'status', header: 'Status', render: (r) => (
+      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+        r.status === 'APPROVED'
+          ? 'bg-green-100 text-green-800'
+          : r.status === 'PENDING'
+          ? 'bg-yellow-100 text-yellow-800'
+          : 'bg-red-100 text-red-800'
+      }`}>{r.status}</span>
+    ) },
+    { key: 'createdAt', header: 'Date', sortable: true, render: (r) => formatDate(r.createdAt) }
+  ];
+
+  return (
+    <PageShell
+      title="Admin Dashboard"
+      subtitle="Manage users, listings, and platform operations"
+      maxWidth="max-w-7xl"
+    >
       {/* Tabs */}
-      <div className="flex border-b mb-8">
+      <div className="flex border-b mb-8" role="tablist" aria-label="Admin sections">
         {[
-          { id: 'overview', label: 'Overview', icon: <BarChart3 className="w-5 h-5" /> },
-          { id: 'listings', label: 'Listings', icon: <List className="w-5 h-5" /> },
-          { id: 'users', label: 'Users', icon: <Users className="w-5 h-5" /> },
-          { id: 'bookings', label: 'Bookings', icon: <Calendar className="w-5 h-5" /> }
+          { id: 'overview', label: 'Overview', icon: BarChart3 },
+          { id: 'listings', label: 'Listings', icon: List },
+          { id: 'users', label: 'Users', icon: Users },
+          { id: 'bookings', label: 'Bookings', icon: Calendar }
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
+            role="tab"
+            aria-selected={activeTab === tab.id}
             className={`flex items-center gap-2 px-6 py-3 border-b-2 font-medium transition ${
               activeTab === tab.id
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-600 hover:text-gray-900'
             }`}
           >
-            {tab.icon}
+            <tab.icon className="w-5 h-5" />
             {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Content */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-lg border">
-            <p className="text-sm text-gray-600 mb-2">Total Users</p>
-            <p className="text-3xl font-bold text-gray-900">-</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg border">
-            <p className="text-sm text-gray-600 mb-2">Total Listings</p>
-            <p className="text-3xl font-bold text-gray-900">-</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg border">
-            <p className="text-sm text-gray-600 mb-2">Total Bookings</p>
-            <p className="text-3xl font-bold text-gray-900">-</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg border">
-            <p className="text-sm text-gray-600 mb-2">Platform Health</p>
-            <p className="text-3xl font-bold text-green-600">Good</p>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6" aria-label="Platform overview metrics">
+          {overviewCards.map(card => (
+            <MetricCard
+              key={card.label}
+              icon={card.icon}
+              label={card.label}
+              value={card.value}
+              tone={card.tone}
+            />
+          ))}
         </div>
       )}
 
       {activeTab === 'listings' && (
-        <div>
-          <div className="bg-white rounded-lg border">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-900">Title</th>
-                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-900">Host</th>
-                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-900">Status</th>
-                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-900">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
-                      Loading...
-                    </td>
-                  </tr>
-                ) : listings.length > 0 ? (
-                  listings.map(listing => (
-                    <tr key={listing.id} className="border-b hover:bg-gray-50">
-                      <td className="px-6 py-3">{listing.title}</td>
-                      <td className="px-6 py-3">{listing.host?.name || listing.owner?.name}</td>
-                      <td className="px-6 py-3">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          listing.status === 'LIVE'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {listing.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-sm space-x-2">
-                        {listing.status === 'LIVE' ? (
-                          <button
-                            onClick={() => handleSuspendListing(listing.id)}
-                            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                          >
-                            Suspend
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleUnsuspendListing(listing.id)}
-                            className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                          >
-                            Reinstate
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
-                      No listings found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DataTable
+          columns={listingsColumns}
+          data={listings}
+          isLoading={isLoading}
+          emptyMessage="No listings found"
+        />
       )}
 
       {activeTab === 'users' && (
-        <div>
-          <div className="bg-white rounded-lg border">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-900">Name</th>
-                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-900">Email</th>
-                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-900">Role</th>
-                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-900">Joined</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
-                      Loading...
-                    </td>
-                  </tr>
-                ) : users.length > 0 ? (
-                  users.map(user => (
-                    <tr key={user.id} className="border-b hover:bg-gray-50">
-                      <td className="px-6 py-3">{user.name}</td>
-                      <td className="px-6 py-3">{user.email}</td>
-                      <td className="px-6 py-3">
-                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                          {user.role}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-sm text-gray-600">
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
-                      No users found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DataTable
+          columns={usersColumns}
+          data={users}
+          isLoading={isLoading}
+          emptyMessage="No users found"
+        />
       )}
 
       {activeTab === 'bookings' && (
-        <div>
-          <div className="bg-white rounded-lg border">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-900">User</th>
-                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-900">Listing</th>
-                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-900">Status</th>
-                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-900">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
-                      Loading...
-                    </td>
-                  </tr>
-                ) : bookings.length > 0 ? (
-                  bookings.map(booking => (
-                    <tr key={booking.id} className="border-b hover:bg-gray-50">
-                      <td className="px-6 py-3">{booking.renter?.name || booking.user?.name}</td>
-                      <td className="px-6 py-3">{booking.listing?.title}</td>
-                      <td className="px-6 py-3">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          booking.status === 'APPROVED'
-                            ? 'bg-green-100 text-green-800'
-                            : booking.status === 'PENDING'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {booking.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-sm text-gray-600">
-                        {new Date(booking.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
-                      No bookings found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <DataTable
+          columns={bookingsColumns}
+          data={bookings}
+          isLoading={isLoading}
+          emptyMessage="No bookings found"
+        />
       )}
-    </div>
+    </PageShell>
   );
+}
+
+function formatDate(value) {
+  try {
+    const d = value instanceof Date ? value : new Date(value);
+    if (isNaN(d.getTime())) return '–';
+    return d.toLocaleDateString();
+  } catch {
+    return '–';
+  }
 }
