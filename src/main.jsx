@@ -4,18 +4,19 @@ import App from './App.jsx';
 import './index.css';
 import GlobalErrorBoundary from './components/GlobalErrorBoundary.jsx';
 import GlobalLoadingOverlay from './components/GlobalLoadingOverlay.jsx';
+import AppStatusProvider from './providers/AppStatusProvider.jsx';
+import AuthProvider from './providers/AuthProvider.jsx';
 
 // Simple top-level loading state placeholder; replace with real auth/app initialization later.
 export function Root() {
-  const [booting, setBooting] = React.useState(true);
-  React.useEffect(() => {
-    const t = setTimeout(() => setBooting(false), 300); // simulate quick boot
-    return () => clearTimeout(t);
-  }, []);
   return (
     <GlobalErrorBoundary>
-      <GlobalLoadingOverlay active={booting} message="Booting application" />
-      {!booting && <App />}
+      <AppStatusProvider>
+        <AuthProvider>
+          <GlobalLoadingOverlay active={false} />
+          <App />
+        </AuthProvider>
+      </AppStatusProvider>
     </GlobalErrorBoundary>
   );
 }
