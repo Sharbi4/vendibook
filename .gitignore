@@ -1,9 +1,18 @@
 node_modules/
 dist/
-.DS_Store
 .env
 .env.local
 .vscode/
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
 # Logs
 logs
 *.log
