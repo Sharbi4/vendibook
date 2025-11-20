@@ -29,7 +29,7 @@
 const db = require('../../_db');
 const auth = require('../../_auth');
 
-export default function handler(req, res) {
+module.exports = function handler(req, res) {
   // ========================================================================
   // GET /api/host/listings - Get host's listings
   // ========================================================================
@@ -38,12 +38,40 @@ export default function handler(req, res) {
     if (!user) return;
     
     try {
-      const hostListings = db.host.getByUserId(user.id);
+      const {
+        page = '1',
+        limit = '20',
+        listingType,
+        city,
+        state
+      } = req.query;
+
+      const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+      const pageSize = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+
+      const allListings = db.host.getByUserId(user.id);
+
+      const filtered = allListings.filter((listing) => {
+        if (listingType && listing.listingType !== listingType) return false;
+        if (city && listing.city !== city) return false;
+        if (state && listing.state !== state) return false;
+        return true;
+      });
+
+      const total = filtered.length;
+      const start = (pageNum - 1) * pageSize;
+      const end = start + pageSize;
+      const pageItems = filtered.slice(start, end);
       
       return res.status(200).json({
         success: true,
-        count: hostListings.length,
-        listings: hostListings
+        data: pageItems,
+        pagination: {
+          page: pageNum,
+          limit: pageSize,
+          total,
+          pages: Math.ceil(total / pageSize) || 1
+        }
       });
       
     } catch (error) {
