@@ -75,6 +75,14 @@ function HomePage() {
 
   const amenitiesList = ['Power', 'Water', 'Propane', 'Full Kitchen', 'Storage', 'WiFi'];
 
+  const navLinks = [
+    { label: 'Rent Equipment', path: '/listings' },
+    { label: 'Buy Equipment', path: '/listings' },
+    { label: 'Become a Host', path: '/become-host' },
+    { label: 'Community', path: '/community' },
+    { label: 'Profile', path: '/profile' }
+  ];
+
   const allListings = [
     {
       id: 1,
@@ -455,16 +463,25 @@ function HomePage() {
               </span>
             </div>
 
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-              <a href="#" style={{ color: '#222', fontSize: '14px', fontWeight: '500', textDecoration: 'none' }}>
-                Rent Equipment
-              </a>
-              <a href="#" style={{ color: '#222', fontSize: '14px', fontWeight: '500', textDecoration: 'none' }}>
-                Buy Equipment
-              </a>
-              <a href="#" style={{ color: '#222', fontSize: '14px', fontWeight: '500', textDecoration: 'none' }}>
-                Become a Host
-              </a>
+            <nav style={{ display: 'flex', alignItems: 'center', gap: '32px', flexWrap: 'wrap' }}>
+              {navLinks.map((link) => (
+                <button
+                  key={link.path}
+                  type="button"
+                  onClick={() => navigate(link.path)}
+                  style={{
+                    color: '#222',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    textDecoration: 'none',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {link.label}
+                </button>
+              ))}
             </nav>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
