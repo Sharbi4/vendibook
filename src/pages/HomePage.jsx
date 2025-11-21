@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useListings } from '../hooks/useListings.js';
 import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, Calendar, ChevronRight, Truck, Users, UtensilsCrossed, Store, ShoppingCart, Menu, X, ChevronDown, ChevronUp, Star, Check, DollarSign, Zap, Coffee } from 'lucide-react';
 
@@ -83,7 +84,10 @@ function HomePage() {
     { label: 'Profile', path: '/profile' }
   ];
 
-  const allListings = [
+  // Fetch dynamic listings from API (Neon) and merge with legacy mock data until fully migrated
+  const { listings: dynamicListings, loading: listingsLoading } = useListings(appliedSearch);
+
+  const mockListings = [
     {
       id: 1,
       title: 'Fully Equipped Taco Truck - LA Style',
@@ -207,7 +211,8 @@ function HomePage() {
   ];
 
   // Filter listings based on applied search
-  const filteredListings = allListings.filter(listing => {
+  const combinedListings = [...dynamicListings, ...mockListings];
+  const filteredListings = combinedListings.filter(listing => {
     // Listing type filter
     if (appliedSearch.listingType !== 'all' && listing.listingType !== appliedSearch.listingType) {
       return false;

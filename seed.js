@@ -1,10 +1,8 @@
-import dotenv from 'dotenv';
-
-dotenv.config({ path: '.env.local' });
+import 'dotenv/config';
+import { sql, bootstrapListingsTable } from './src/api/db.js';
 
 (async () => {
   try {
-    const { sql, bootstrapListingsTable } = await import('./src/api/db.js');
     await bootstrapListingsTable();
     await sql`INSERT INTO listings (title, description, city, state, price, listing_type)
               VALUES ('Sample Listing', 'Demo data for testing', 'Tucson', 'AZ', 250, 'food-truck');`;

@@ -1,6 +1,10 @@
 import { neon } from '@neondatabase/serverless';
 import dotenv from 'dotenv';
 
+// Load environment variables prioritizing .env.local, then fallback to .env
+if (typeof process !== 'undefined' && !process.env.DATABASE_URL) {
+  dotenv.config({ path: '.env.local' });
+}
 if (typeof process !== 'undefined' && !process.env.DATABASE_URL) {
   dotenv.config({ path: '.env' });
 }
