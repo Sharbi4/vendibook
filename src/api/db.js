@@ -24,6 +24,7 @@ let userSettingsBootstrapPromise;
 let userSocialLinksBootstrapPromise;
 let userPayoutAccountsBootstrapPromise;
 let userMetricsBootstrapPromise;
+let bookingsBootstrapPromise;
 
 export function bootstrapListingsTable() {
   if (!listingsBootstrapPromise) {
@@ -236,4 +237,40 @@ export function bootstrapUserMetricsTable() {
   }
 
   return userMetricsBootstrapPromise;
+}
+
+export function bootstrapBookingsTable() {
+  if (!bookingsBootstrapPromise) {
+    bookingsBootstrapPromise = (async () => {
+      await bootstrapListingsTable();
+      await bootstrapUsersTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS bookings (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+          renter_user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+          host_user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+          start_date DATE NOT NULL,
+          end_date DATE NOT NULL,
+          total_price NUMERIC NOT NULL,
+          currency TEXT NOT NULL DEFAULT 'USD',
+          status TEXT NOT NULL DEFAULT 'pending',
+          notes TEXT,
+          cancellation_reason TEXT,
+          cancellation_by TEXT,
+          cancelled_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          CHECK (end_date >= start_date)
+        );
+      `;
+    })().catch(error => {
+      bookingsBootstrapPromise = undefined;
+      console.error('Failed to bootstrap bookings table:', error);
+      throw error;
+    });
+  }
+
+  return bookingsBootstrapPromise;
 }
