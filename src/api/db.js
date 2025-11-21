@@ -19,6 +19,7 @@ export const sql = neon(connectionString);
 
 let listingsBootstrapPromise;
 let usersBootstrapPromise;
+let userVerificationsBootstrapPromise;
 
 export function bootstrapListingsTable() {
   if (!listingsBootstrapPromise) {
@@ -77,4 +78,35 @@ export function bootstrapUsersTable() {
   }
 
   return usersBootstrapPromise;
+}
+
+export function bootstrapUserVerificationsTable() {
+  if (!userVerificationsBootstrapPromise) {
+    userVerificationsBootstrapPromise = (async () => {
+      await bootstrapUsersTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS user_verifications (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          id_verified BOOLEAN DEFAULT FALSE,
+          title_verified BOOLEAN DEFAULT FALSE,
+          notary_verified BOOLEAN DEFAULT FALSE,
+          insurance_verified BOOLEAN DEFAULT FALSE,
+          kyc_status TEXT,
+          verification_level TEXT,
+          notes TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (user_id)
+        );
+      `;
+    })().catch(error => {
+      userVerificationsBootstrapPromise = undefined;
+      console.error('Failed to bootstrap user_verifications table:', error);
+      throw error;
+    });
+  }
+
+  return userVerificationsBootstrapPromise;
 }
