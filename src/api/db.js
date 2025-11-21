@@ -22,6 +22,8 @@ let usersBootstrapPromise;
 let userVerificationsBootstrapPromise;
 let userSettingsBootstrapPromise;
 let userSocialLinksBootstrapPromise;
+let userPayoutAccountsBootstrapPromise;
+let userMetricsBootstrapPromise;
 
 export function bootstrapListingsTable() {
   if (!listingsBootstrapPromise) {
@@ -173,4 +175,65 @@ export function bootstrapUserSocialLinksTable() {
   }
 
   return userSocialLinksBootstrapPromise;
+}
+
+export function bootstrapUserPayoutAccountsTable() {
+  if (!userPayoutAccountsBootstrapPromise) {
+    userPayoutAccountsBootstrapPromise = (async () => {
+      await bootstrapUsersTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS user_payout_accounts (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          stripe_connect_id TEXT,
+          stripe_customer_id TEXT,
+          plaid_account_id TEXT,
+          plaid_status TEXT,
+          payout_enabled BOOLEAN DEFAULT FALSE,
+          last_payout_date TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (user_id)
+        );
+      `;
+    })().catch(error => {
+      userPayoutAccountsBootstrapPromise = undefined;
+      console.error('Failed to bootstrap user_payout_accounts table:', error);
+      throw error;
+    });
+  }
+
+  return userPayoutAccountsBootstrapPromise;
+}
+
+export function bootstrapUserMetricsTable() {
+  if (!userMetricsBootstrapPromise) {
+    userMetricsBootstrapPromise = (async () => {
+      await bootstrapUsersTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS user_metrics (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          rating_average NUMERIC DEFAULT 0,
+          rating_count INTEGER DEFAULT 0,
+          reviews_written INTEGER DEFAULT 0,
+          reviews_received INTEGER DEFAULT 0,
+          followers INTEGER DEFAULT 0,
+          following INTEGER DEFAULT 0,
+          badges TEXT[] DEFAULT ARRAY[]::TEXT[],
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (user_id)
+        );
+      `;
+    })().catch(error => {
+      userMetricsBootstrapPromise = undefined;
+      console.error('Failed to bootstrap user_metrics table:', error);
+      throw error;
+    });
+  }
+
+  return userMetricsBootstrapPromise;
 }
