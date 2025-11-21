@@ -10,7 +10,9 @@
     "env:pull": "vercel env pull .env.development.local"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
     "lucide-react": "^0.294.0",
     "nanoid": "^5.0.0",
     "prop-types": "^15.8.1",
