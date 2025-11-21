@@ -1,48 +1,81 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { fetchListings } from '../utils/apiClient';
 
-// Fetch listings from API and adapt shape to existing UI expectations
-export function useListings(appliedSearch) {
+const DEFAULT_IMAGE = 'https://via.placeholder.com/800x600?text=Vendibook+Listing';
+
+export function useListings(filters = {}) {
   const [listings, setListings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const { normalizedFilters, queryString } = useMemo(() => {
+    const params = new URLSearchParams();
+    const normalized = {};
+
+    Object.entries(filters || {}).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        const cleaned = value.filter((item) => item !== undefined && item !== null && item !== '' && item !== false);
+        if (cleaned.length) {
+          normalized[key] = cleaned;
+          cleaned.forEach((entry) => params.append(key, entry));
+        }
+      } else if (value !== undefined && value !== null && value !== '' && value !== false) {
+        normalized[key] = value;
+        params.set(key, value);
+      }
+    });
+
+    return { normalizedFilters: normalized, queryString: params.toString() };
+  }, [filters]);
 
   useEffect(() => {
     const controller = new AbortController();
+
     async function load() {
-      setLoading(true);
+      setIsLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/listings', { signal: controller.signal });
-        if (!res.ok) throw new Error(`API error ${res.status}`);
-        const json = await res.json();
-        const data = Array.isArray(json.data) ? json.data : [];
-        // Map API rows to UI listing structure
-        const mapped = data.map(row => ({
+        const json = await fetchListings(normalizedFilters, { signal: controller.signal });
+        const data = Array.isArray(json.data)
+          ? json.data
+          : Array.isArray(json.listings)
+            ? json.listings
+            : [];
+        const mapped = data.map((row) => ({
           id: row.id,
           title: row.title,
-            // Simplistic category inference; adjust when schema expands
-          category: row.listing_type === 'food-truck' ? 'food-trucks' : 'misc',
-          listingType: row.listing_type || 'rent',
-          location: `${row.city || ''}${row.state ? ', ' + row.state : ''}`.trim(),
+          category: row.category || 'misc',
+          listingType: row.listing_type || row.listingType || 'RENT',
+          city: row.city || '',
+          state: row.state || '',
+          location: row.location || [row.city, row.state].filter(Boolean).join(', '),
           price: Number(row.price) || 0,
-          priceType: 'day',
-          image: row.image || 'https://via.placeholder.com/600x400?text=Listing',
-          rating: 0,
-          reviews: 0,
-          features: [],
-          host: 'Host',
-          deliveryAvailable: false
+          priceUnit: row.price_unit || row.priceUnit || 'per day',
+          image: row.image_url || row.imageUrl || DEFAULT_IMAGE,
+          tags: row.tags || [],
+          highlights: row.highlights || [],
+          deliveryAvailable: Boolean(row.deliveryAvailable ?? row.delivery_available ?? false),
+          host: row.hostName || row.host_name || 'Host',
+          rating: Number(row.rating) || 0,
+          reviewCount: row.reviewCount || row.review_count || 0,
         }));
+
         setListings(mapped);
-      } catch (e) {
-        setError(e.message);
+        setPagination(json.pagination || json.meta?.pagination || null);
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        setError(err.message || 'Failed to load listings');
+        setListings([]);
+        setPagination(null);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     }
+
     load();
     return () => controller.abort();
-  }, [appliedSearch]);
+  }, [queryString, normalizedFilters]);
 
-  return { listings, loading, error };
+  return { listings, pagination, isLoading, error };
 }

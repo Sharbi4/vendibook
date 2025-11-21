@@ -1,63 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, Store, X } from 'lucide-react';
-import { listings as mockListings, LISTING_TYPES, filterListings, getCategoriesByType } from '../data/listings';
-import { fetchListings } from '../utils/apiClient';
+import { LISTING_TYPES, getCategoriesByType } from '../data/listings';
 import { useSearchParams } from '../hooks/useSearchParams';
 import ListingCard from '../components/ListingCard';
 import EmptyState from '../components/EmptyState';
+import { useListings } from '../hooks/useListings';
 
 function ListingsPage() {
   const navigate = useNavigate();
   const searchState = useSearchParams();
-  const [filteredData, setFilteredData] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadError, setLoadError] = useState(null);
 
-  useEffect(() => {
-    let abort = false;
-    async function load() {
-      setIsLoading(true);
-      setLoadError(null);
-      try {
-        const filters = {
-          listingType: searchState.listingType,
-          category: searchState.category !== 'all' ? searchState.category : undefined,
-          location: searchState.location,
-          priceMin: searchState.priceMin,
-          priceMax: searchState.priceMax,
-          deliveryOnly: searchState.deliveryOnly,
-          verifiedOnly: searchState.verifiedOnly,
-          amenities: searchState.amenities
-        };
-        // Attempt API fetch
-        const apiResp = await fetchListings(filters);
-        if (!abort) {
-          setFilteredData(apiResp.listings || []);
-        }
-      } catch (err) {
-        // Fallback to local mock data on error
-        const fallback = filterListings(mockListings, {
-          listingType: searchState.listingType,
-          category: searchState.category !== 'all' ? searchState.category : undefined,
-          location: searchState.location,
-          priceMin: searchState.priceMin,
-          priceMax: searchState.priceMax,
-          deliveryOnly: searchState.deliveryOnly,
-          verifiedOnly: searchState.verifiedOnly,
-          amenities: searchState.amenities
-        });
-        if (!abort) {
-          setFilteredData(fallback);
-          setLoadError(err.message || 'Failed to load listings');
-        }
-      } finally {
-        if (!abort) setIsLoading(false);
-      }
-    }
-    load();
-    return () => { abort = true; };
-  }, [searchState]);
+  const filters = useMemo(() => ({
+    page: searchState.page || 1,
+    listingType: searchState.listingType,
+    category: searchState.category !== 'all' ? searchState.category : undefined,
+    location: searchState.location,
+    priceMin: searchState.priceMin,
+    priceMax: searchState.priceMax,
+    deliveryOnly: searchState.deliveryOnly ? 'true' : undefined,
+    verifiedOnly: searchState.verifiedOnly ? 'true' : undefined
+  }), [searchState]);
+
+  const { listings, pagination, isLoading, error } = useListings(filters);
+  const totalResults = listings.length;
 
   const ListingTypeTab = ({ type, label }) => {
     const isActive = searchState.listingType === type;
@@ -267,9 +233,9 @@ function ListingsPage() {
       {/* Results Header */}
       <section style={{ maxWidth: '1760px', margin: '0 auto', padding: '32px 40px 0' }}>
         <h1 style={{ fontSize: '28px', fontWeight: '600', color: '#343434', marginBottom: '8px' }}>
-          {isLoading ? 'Loading listings…' : `${filteredData.length} results`}
+          {isLoading ? 'Loading listings…' : `${totalResults} results`}
         </h1>
-        {loadError && (
+        {error && (
           <div style={{
             padding: '12px 16px',
             background: '#FFF3F0',
@@ -280,7 +246,7 @@ function ListingsPage() {
             fontWeight: 500,
             maxWidth: '480px'
           }}>
-            Failed to load from API. Showing fallback data. ({loadError})
+            {error}
           </div>
         )}
       </section>
@@ -298,13 +264,13 @@ function ListingsPage() {
               }} />
             ))}
           </div>
-        ) : filteredData.length > 0 ? (
+        ) : listings.length > 0 ? (
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
             gap: '24px'
           }}>
-            {filteredData.map(listing => (
+            {listings.map(listing => (
               <ListingCard key={listing.id} listing={listing} />
             ))}
           </div>
@@ -333,6 +299,47 @@ function ListingsPage() {
           />
         )}
       </section>
+
+      {/* Pagination */}
+      {pagination && pagination.pages > 1 && (
+        <section style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px 48px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <button
+              onClick={() => searchState.updateSearch({ page: Math.max(1, Number(filters.page) - 1) })}
+              disabled={Number(filters.page) <= 1}
+              style={{
+                padding: '12px 20px',
+                borderRadius: '8px',
+                border: '1px solid #EBEBEB',
+                background: Number(filters.page) <= 1 ? '#F5F5F5' : 'white',
+                color: '#343434',
+                fontWeight: 600,
+                cursor: Number(filters.page) <= 1 ? 'not-allowed' : 'pointer'
+              }}
+            >
+              Previous
+            </button>
+            <span style={{ fontSize: '14px', color: '#717171' }}>
+              Page {filters.page} of {pagination.pages}
+            </span>
+            <button
+              onClick={() => searchState.updateSearch({ page: Math.min(pagination.pages, Number(filters.page) + 1) })}
+              disabled={Number(filters.page) >= pagination.pages}
+              style={{
+                padding: '12px 20px',
+                borderRadius: '8px',
+                border: '1px solid #EBEBEB',
+                background: Number(filters.page) >= pagination.pages ? '#F5F5F5' : 'white',
+                color: '#343434',
+                fontWeight: 600,
+                cursor: Number(filters.page) >= pagination.pages ? 'not-allowed' : 'pointer'
+              }}
+            >
+              Next
+            </button>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -9,7 +9,13 @@
 
 import * as authUtil from './auth';
 
-const API_BASE = process.env.REACT_APP_API_URL || '';
+const REMOTE_API_BASE = 'https://vendibook.vercel.app';
+
+// Prefer explicit env var, otherwise fall back to production API when running on localhost
+const envBase = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE || '').trim();
+const sanitizedBase = envBase ? envBase.replace(/\/$/, '') : '';
+const API_BASE = sanitizedBase ||
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? REMOTE_API_BASE : '');
 
 // ============================================================================
 // HELPER: Make authenticated API requests
@@ -149,9 +155,10 @@ export async function logoutUser() {
  * @param {object} filters - { listingType, category, location, priceMin, priceMax, verifiedOnly, deliveryOnly }
  * @returns {Promise<object>} - { count, total, listings }
  */
-export async function fetchListings(filters = {}) {
+export async function fetchListings(filters = {}, fetchOptions = {}) {
   const params = new URLSearchParams();
   
+  if (filters.page) params.append('page', filters.page);
   if (filters.listingType) params.append('listingType', filters.listingType);
   if (filters.category) params.append('category', filters.category);
   if (filters.location) params.append('location', filters.location);
@@ -161,11 +168,15 @@ export async function fetchListings(filters = {}) {
   if (filters.deliveryOnly) params.append('deliveryOnly', 'true');
   if (filters.search) params.append('search', filters.search);
   if (filters.limit) params.append('limit', filters.limit);
+  if (filters.amenities) {
+    const amenities = Array.isArray(filters.amenities) ? filters.amenities : [filters.amenities];
+    amenities.filter(Boolean).forEach((amenity) => params.append('amenities', amenity));
+  }
   
   const queryString = params.toString();
   const path = `/api/listings${queryString ? '?' + queryString : ''}`;
   
-  return apiRequest(path, { method: 'GET' });
+  return apiRequest(path, { method: 'GET', ...fetchOptions });
 }
 
 /**
