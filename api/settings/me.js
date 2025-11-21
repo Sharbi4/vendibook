@@ -1,0 +1,90 @@
+/**
+ * GET/POST /api/settings/me - Fetch current user's settings by Clerk ID
+ */
+
+import { sql, bootstrapUsersTable, bootstrapUserSettingsTable } from '../../src/api/db.js';
+
+let bootstrapPromise;
+
+function ensureBootstrap() {
+  if (!bootstrapPromise) {
+    bootstrapPromise = Promise.all([
+      bootstrapUsersTable(),
+      bootstrapUserSettingsTable()
+    ]);
+  }
+  return bootstrapPromise;
+}
+
+function extractClerkId(req) {
+  const headers = req.headers || {};
+  return (
+    headers['x-clerk-id'] ||
+    headers['x-clerkid'] ||
+    headers['clerk-id'] ||
+    headers['clerkid'] ||
+    req.body?.clerkId ||
+    req.body?.clerk_id ||
+    req.query?.clerkId ||
+    req.query?.clerk_id ||
+    null
+  );
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
+  }
+
+  try {
+    await ensureBootstrap();
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: 'Failed to initialize user settings subsystem'
+    });
+  }
+
+  const clerkId = extractClerkId(req);
+
+  if (!clerkId) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid request',
+      message: 'Missing clerkId. Provide via x-clerk-id header or request body.'
+    });
+  }
+
+  try {
+    const [user] = await sql`SELECT id FROM users WHERE clerk_id = ${clerkId} LIMIT 1`;
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found',
+        message: 'User not registered. POST to /api/users first.'
+      });
+    }
+
+    const [settings] = await sql`SELECT * FROM user_settings WHERE user_id = ${user.id} LIMIT 1`;
+
+    if (!settings) {
+      return res.status(200).json({
+        success: true,
+        data: null,
+        message: 'No settings found. POST to /api/settings to initialize preferences.',
+        userId: user.id
+      });
+    }
+
+    return res.status(200).json({ success: true, data: settings });
+  } catch (error) {
+    console.error('Failed to fetch user settings for current user:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: 'Unable to fetch user settings'
+    });
+  }
+}

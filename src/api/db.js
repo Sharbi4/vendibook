@@ -20,6 +20,8 @@ export const sql = neon(connectionString);
 let listingsBootstrapPromise;
 let usersBootstrapPromise;
 let userVerificationsBootstrapPromise;
+let userSettingsBootstrapPromise;
+let userSocialLinksBootstrapPromise;
 
 export function bootstrapListingsTable() {
   if (!listingsBootstrapPromise) {
@@ -109,4 +111,66 @@ export function bootstrapUserVerificationsTable() {
   }
 
   return userVerificationsBootstrapPromise;
+}
+
+export function bootstrapUserSettingsTable() {
+  if (!userSettingsBootstrapPromise) {
+    userSettingsBootstrapPromise = (async () => {
+      await bootstrapUsersTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS user_settings (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          notifications_enabled BOOLEAN DEFAULT TRUE,
+          search_radius_miles INTEGER DEFAULT 25,
+          onboarding_step TEXT,
+          subscription_plan TEXT,
+          subscription_status TEXT,
+          subscription_start_date TIMESTAMPTZ,
+          subscription_pause_date TIMESTAMPTZ,
+          account_status TEXT DEFAULT 'active',
+          support_contact_events INTEGER DEFAULT 0,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (user_id)
+        );
+      `;
+    })().catch(error => {
+      userSettingsBootstrapPromise = undefined;
+      console.error('Failed to bootstrap user_settings table:', error);
+      throw error;
+    });
+  }
+
+  return userSettingsBootstrapPromise;
+}
+
+export function bootstrapUserSocialLinksTable() {
+  if (!userSocialLinksBootstrapPromise) {
+    userSocialLinksBootstrapPromise = (async () => {
+      await bootstrapUsersTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS user_social_links (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          instagram_url TEXT,
+          tiktok_url TEXT,
+          youtube_url TEXT,
+          facebook_url TEXT,
+          website_url TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (user_id)
+        );
+      `;
+    })().catch(error => {
+      userSocialLinksBootstrapPromise = undefined;
+      console.error('Failed to bootstrap user_social_links table:', error);
+      throw error;
+    });
+  }
+
+  return userSocialLinksBootstrapPromise;
 }
