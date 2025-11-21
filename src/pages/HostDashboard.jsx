@@ -1,44 +1,89 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, Plus, Eye, Pause, Play } from 'lucide-react';
+import { Plus, Eye, Pause, Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getListingTypeInfo, formatPrice } from '../data/listings';
 import EmptyState from '../components/EmptyState';
 import PageShell from '../components/layout/PageShell';
 import MetricCard from '../components/MetricCard';
+import { useAppStatus } from '../hooks/useAppStatus';
 
 function HostDashboard() {
   const navigate = useNavigate();
+  const { setGlobalLoading, setGlobalError } = useAppStatus();
   const [myListings, setMyListings] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
+  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 1 });
+
+  const fetchHostListings = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setGlobalLoading(true);
+      setError(null);
+      setGlobalError(null);
+
+      // FRONTEND ONLY: Load from localStorage. Will be replaced with real API call in backend integration phase.
+      // Simulating paginated API response structure
+      const allListings = JSON.parse(localStorage.getItem('vendibook_myListings') || '[]');
+      const total = allListings.length;
+      const pages = Math.ceil(total / limit) || 1;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const pageListings = allListings.slice(startIndex, endIndex);
+
+      setMyListings(pageListings);
+      setPagination({ page, limit, total, pages });
+    } catch (err) {
+      const errorMsg = 'Failed to load listings';
+      setError(errorMsg);
+      setGlobalError(errorMsg);
+      console.error('Failed to load host listings:', err);
+    } finally {
+      setIsLoading(false);
+      setGlobalLoading(false);
+    }
+  }, [page, limit, setGlobalLoading, setGlobalError]);
 
   useEffect(() => {
-    // FRONTEND ONLY: Load from localStorage. Will be replaced with API call in backend integration phase.
-    try {
-      const listings = JSON.parse(localStorage.getItem('vendibook_myListings') || '[]');
-      setMyListings(listings);
-    } catch (err) {
-      setError('Failed to load listings');
-      console.error('Failed to load host listings:', err);
-    }
-  }, []);
+    fetchHostListings();
+  }, [fetchHostListings]);
 
   const toggleStatus = (listingId) => {
-    const updatedListings = myListings.map(l => {
+    // Update localStorage and refetch to keep pagination consistent
+    const allListings = JSON.parse(localStorage.getItem('vendibook_myListings') || '[]');
+    const updatedListings = allListings.map(l => {
       if (l.id === listingId) {
         return { ...l, status: l.status === 'live' ? 'paused' : 'live' };
       }
       return l;
     });
-    setMyListings(updatedListings);
     localStorage.setItem('vendibook_myListings', JSON.stringify(updatedListings));
+    fetchHostListings();
   };
 
   const metrics = useMemo(() => {
-    const live = myListings.filter(l => (l.status || 'live') === 'live').length;
-    const paused = myListings.filter(l => (l.status || 'live') === 'paused').length;
-    return { live, paused, total: myListings.length };
-  }, [myListings]);
+    // Metrics based on ALL listings, not just current page
+    const allListings = JSON.parse(localStorage.getItem('vendibook_myListings') || '[]');
+    const live = allListings.filter(l => (l.status || 'live') === 'live').length;
+    const paused = allListings.filter(l => (l.status || 'live') === 'paused').length;
+    return { live, paused, total: allListings.length };
+  }, []); // Computed from localStorage directly, not from state
+
+  const handlePrevPage = () => {
+    if (page > 1) {
+      setPage(page - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (page < pagination.pages) {
+      setPage(page + 1);
+    }
+  };
 
   return (
     <PageShell
@@ -76,55 +121,86 @@ function HostDashboard() {
             }}
           />
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {myListings.map(listing => {
-              const typeInfo = getListingTypeInfo(listing.listingType);
-              const status = listing.status || 'live';
-              const isLive = status === 'live';
-              return (
-                <div
-                  key={listing.id}
-                  className="group bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-4 hover:shadow-md transition"
-                >
-                  <div className="relative rounded-lg overflow-hidden h-40">
-                    <img
-                      src={listing.imageUrl}
-                      alt={listing.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className={`absolute top-2 left-2 px-2 py-1 rounded text-xs font-semibold ${typeInfo.bgColor} ${typeInfo.color}`}>
-                      {typeInfo.label}
+          <>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {myListings.map(listing => {
+                const typeInfo = getListingTypeInfo(listing.listingType);
+                const status = listing.status || 'live';
+                const isLive = status === 'live';
+                return (
+                  <div
+                    key={listing.id}
+                    className="group bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-4 hover:shadow-md transition"
+                  >
+                    <div className="relative rounded-lg overflow-hidden h-40">
+                      <img
+                        src={listing.imageUrl}
+                        alt={listing.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className={`absolute top-2 left-2 px-2 py-1 rounded text-xs font-semibold ${typeInfo.bgColor} ${typeInfo.color}`}>
+                        {typeInfo.label}
+                      </div>
+                    </div>
+                    <div className="flex-1 flex flex-col gap-1">
+                      <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">{listing.title}</h3>
+                      <p className="text-sm text-gray-600 line-clamp-1">{listing.city}, {listing.state}</p>
+                      <p className="text-xl font-semibold text-gray-900">{formatPrice(listing.price, listing.priceUnit)}</p>
+                      <span className={`mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${isLive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>                      {isLive ? '● Live' : '○ Paused'}
+                      </span>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => navigate(`/listing/${listing.id}`)}
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition text-sm font-medium"
+                        aria-label={`View listing ${listing.title}`}
+                      >
+                        <Eye className="w-4 h-4" />
+                        View
+                      </button>
+                      <button
+                        onClick={() => toggleStatus(listing.id)}
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition text-sm font-medium"
+                        aria-label={`${isLive ? 'Pause' : 'Activate'} listing ${listing.title}`}
+                      >
+                        {isLive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                        {isLive ? 'Pause' : 'Activate'}
+                      </button>
                     </div>
                   </div>
-                  <div className="flex-1 flex flex-col gap-1">
-                    <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">{listing.title}</h3>
-                    <p className="text-sm text-gray-600 line-clamp-1">{listing.city}, {listing.state}</p>
-                    <p className="text-xl font-semibold text-gray-900">{formatPrice(listing.price, listing.priceUnit)}</p>
-                    <span className={`mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${isLive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>                      {isLive ? '● Live' : '○ Paused'}
-                    </span>
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      onClick={() => navigate(`/listing/${listing.id}`)}
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition text-sm font-medium"
-                      aria-label={`View listing ${listing.title}`}
-                    >
-                      <Eye className="w-4 h-4" />
-                      View
-                    </button>
-                    <button
-                      onClick={() => toggleStatus(listing.id)}
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-200 rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition text-sm font-medium"
-                      aria-label={`${isLive ? 'Pause' : 'Activate'} listing ${listing.title}`}
-                    >
-                      {isLive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                      {isLive ? 'Pause' : 'Activate'}
-                    </button>
-                  </div>
+                );
+              })}
+            </div>
+
+            {/* Pagination Controls */}
+            {pagination.pages > 1 && (
+              <div className="flex items-center justify-between border-t border-gray-200 pt-6 mt-6">
+                <div className="text-sm text-gray-600">
+                  Page {pagination.page} of {pagination.pages} • {pagination.total} total listings
                 </div>
-              );
-            })}
-          </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={page === 1}
+                    className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Previous
+                  </button>
+                  <button
+                    onClick={handleNextPage}
+                    disabled={page === pagination.pages}
+                    className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Next page"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </section>
     </PageShell>
