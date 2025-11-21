@@ -32,7 +32,6 @@ export function Root() {
   );
 }
 
-  <React.StrictMode>
 // Add error logging
 const rootElement = document.getElementById('root');
 if (!rootElement) {
