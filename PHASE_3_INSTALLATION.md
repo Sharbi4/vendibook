@@ -11,6 +11,21 @@
 
 ### 1. Database Configuration
 
+**Option A: Pull Environment Variables from Vercel (Recommended for Team)**
+
+If you have access to the Vercel project, you can pull all environment variables automatically:
+
+```bash
+npm run env:pull
+```
+
+This command will:
+- Authenticate with Vercel (first time only)
+- Pull all environment variables from the Vercel project
+- Create a `.env.development.local` file with all necessary configuration
+
+**Option B: Manual Configuration**
+
 Create a `.env.local` file in the project root with:
 
 ```env

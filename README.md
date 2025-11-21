@@ -8,11 +8,29 @@ Vendibook is a Vite-powered React application that showcases a rental marketplac
    ```bash
    npm install
    ```
-2. **Start the development server**
+
+2. **Set up environment variables**
+   
+   Choose one of the following methods:
+
+   **Option A: Pull from Vercel (Recommended for team members)**
+   ```bash
+   npm run env:pull
+   ```
+   This will pull environment variables from Vercel and create a `.env.development.local` file.
+   
+   **Option B: Manual setup**
+   ```bash
+   cp .env.example .env.local
+   ```
+   Then edit `.env.local` with your actual values.
+
+3. **Start the development server**
    ```bash
    npm run dev
    ```
-3. **Create a production build**
+
+4. **Create a production build**
    ```bash
    npm run build
    ```
