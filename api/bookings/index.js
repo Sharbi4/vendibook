@@ -10,6 +10,11 @@ import {
   extractClerkId,
   createHttpError
 } from './shared.js';
+// import {
+//   notifyBookingCreated,
+//   notifyBookingStatusChanged,
+//   notifyBookingCancelled
+// } from '../../src/api/notifications/hooks.js'; // TODO: enable after notification wiring
 
 const CANCELLATION_ACTORS = new Set(['RENTER', 'HOST', 'SYSTEM']);
 
@@ -98,6 +103,8 @@ async function handlePost(req, res) {
     `;
 
     const booking = await fetchBookingById(inserted.id);
+
+    // TODO: notifyBookingCreated(booking);
 
     return res.status(201).json({
       success: true,
@@ -214,6 +221,11 @@ async function handlePatch(req, res) {
     }
 
     const booking = await fetchBookingById(rows[0].id);
+
+    // TODO: notifyBookingStatusChanged(booking);
+    // if (booking?.status === 'CANCELLED') {
+    //   notifyBookingCancelled(booking);
+    // }
 
     return res.status(200).json({
       success: true,

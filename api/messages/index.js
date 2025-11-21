@@ -11,6 +11,7 @@ import {
   updateThreadAfterMessage,
   createHttpError
 } from '../../src/api/messaging/shared.js';
+// import { notifyNewMessage } from '../../src/api/notifications/hooks.js'; // TODO: enable after notification wiring
 
 export default async function handler(req, res) {
   try {
@@ -90,6 +91,7 @@ async function handlePost(req, res) {
     });
 
     const updatedThread = await updateThreadAfterMessage(thread, senderUserId, message.body);
+    // TODO: notifyNewMessage(updatedThread, message);
 
     return res.status(201).json({
       success: true,

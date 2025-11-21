@@ -27,6 +27,7 @@ let userMetricsBootstrapPromise;
 let bookingsBootstrapPromise;
 let messageThreadsBootstrapPromise;
 let messagesBootstrapPromise;
+let notificationsBootstrapPromise;
 
 export function bootstrapListingsTable() {
   if (!listingsBootstrapPromise) {
@@ -333,4 +334,35 @@ export function bootstrapMessagesTable() {
   }
 
   return messagesBootstrapPromise;
+}
+
+export function bootstrapNotificationsTable() {
+  if (!notificationsBootstrapPromise) {
+    notificationsBootstrapPromise = (async () => {
+      await bootstrapUsersTable();
+      await bootstrapBookingsTable();
+      await bootstrapMessageThreadsTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS notifications (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          type TEXT NOT NULL,
+          title TEXT,
+          body TEXT,
+          booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
+          thread_id UUID REFERENCES message_threads(id) ON DELETE SET NULL,
+          is_read BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+    })().catch(error => {
+      notificationsBootstrapPromise = undefined;
+      console.error('Failed to bootstrap notifications table:', error);
+      throw error;
+    });
+  }
+
+  return notificationsBootstrapPromise;
 }

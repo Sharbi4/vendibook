@@ -1,8 +1,7 @@
 import {
   ensureNotificationsBootstrap,
-  createNotification,
   listNotifications,
-  markNotificationsRead,
+  markAllNotificationsRead,
   extractClerkId,
   resolveUserId,
   parsePagination,
@@ -21,10 +20,6 @@ export default async function handler(req, res) {
     });
   }
 
-  if (req.method === 'POST') {
-    return handlePost(req, res);
-  }
-
   if (req.method === 'GET') {
     return handleGet(req, res);
   }
@@ -36,52 +31,20 @@ export default async function handler(req, res) {
   return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
-async function handlePost(req, res) {
-  try {
-    const body = req.body || {};
-    const type = body.type;
-    let userId = body.userId || body.user_id || null;
-    const clerkId = extractClerkId(req) || body.clerkId || body.clerk_id;
-    if (!userId) {
-      userId = await resolveUserId({ clerkId, label: 'user' });
-    }
-
-    const notification = await createNotification({
-      userId,
-      type,
-      title: body.title,
-      body: body.body,
-      bookingId: body.bookingId || body.booking_id || null,
-      threadId: body.threadId || body.thread_id || null
-    });
-
-    return res.status(201).json({ success: true, data: notification });
-  } catch (error) {
-    return handleRouteError(res, error, 'Failed to create notification');
-  }
-}
-
 async function handleGet(req, res) {
   try {
-    const pagination = parsePagination(req.query || {});
-    let userId = req.query?.userId || req.query?.user_id || null;
-    const clerkId = extractClerkId(req) || req.query?.clerkId || req.query?.clerk_id;
-
-    if (!userId && clerkId) {
-      userId = await resolveUserId({ clerkId, label: 'user filter' });
+    const clerkId = extractClerkId(req);
+    if (!clerkId) {
+      throw createHttpError(400, 'Missing clerkId. Provide via x-clerk-id header or query parameter.');
     }
 
+    const userId = await resolveUserId({ clerkId, label: 'current user' });
+    const pagination = parsePagination(req.query || {});
     const filters = {
       userId,
       type: req.query?.type || null,
-      isRead: parseBoolean(req.query?.is_read ?? req.query?.isRead),
-      bookingId: req.query?.bookingId || req.query?.booking_id || null,
-      threadId: req.query?.threadId || req.query?.thread_id || null
+      isRead: parseBoolean(req.query?.is_read ?? req.query?.isRead)
     };
-
-    if (!filters.userId) {
-      throw createHttpError(400, 'userId or clerkId is required to list notifications');
-    }
 
     const { notifications, total } = await listNotifications(filters, pagination);
 
@@ -102,21 +65,16 @@ async function handleGet(req, res) {
 
 async function handlePatch(req, res) {
   try {
-    const body = req.body || {};
-    const notificationIds = body.notificationIds || body.notification_ids || [];
-    if (!Array.isArray(notificationIds) || !notificationIds.length) {
-      throw createHttpError(400, 'notificationIds array is required');
+    const clerkId = extractClerkId(req);
+    if (!clerkId) {
+      throw createHttpError(400, 'Missing clerkId. Provide via x-clerk-id header or query parameter.');
     }
-
-    const clerkId = extractClerkId(req) || body.clerkId || body.clerk_id;
     const userId = await resolveUserId({ clerkId, label: 'current user' });
-
-    const result = await markNotificationsRead(userId, notificationIds);
+    const updatedCount = await markAllNotificationsRead(userId);
 
     return res.status(200).json({
       success: true,
-      updated: result.updated,
-      data: result.notifications
+      updated: updatedCount
     });
   } catch (error) {
     return handleRouteError(res, error, 'Failed to mark notifications as read');
