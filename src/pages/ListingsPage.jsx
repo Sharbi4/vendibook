@@ -1,345 +1,255 @@
-import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Truck, Store, X } from 'lucide-react';
-import { LISTING_TYPES, getCategoriesByType } from '../data/listings';
-import { useSearchParams } from '../hooks/useSearchParams';
+import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ListingCard from '../components/ListingCard';
-import EmptyState from '../components/EmptyState';
-import { useListings } from '../hooks/useListings';
+import { useListingsQuery } from '../hooks/useListingsQuery';
+
+const LISTING_TYPE_OPTIONS = [
+  { label: 'All listing types', value: '' },
+  { label: 'For rent • mobile kitchens', value: 'RENT' },
+  { label: 'For sale inventory', value: 'SALE' },
+  { label: 'Event professionals', value: 'EVENT_PRO' },
+];
 
 function ListingsPage() {
-  const navigate = useNavigate();
-  const searchState = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const filters = useMemo(() => ({
-    page: searchState.page || 1,
-    listingType: searchState.listingType,
-    category: searchState.category !== 'all' ? searchState.category : undefined,
-    location: searchState.location,
-    priceMin: searchState.priceMin,
-    priceMax: searchState.priceMax,
-    deliveryOnly: searchState.deliveryOnly ? 'true' : undefined,
-    verifiedOnly: searchState.verifiedOnly ? 'true' : undefined
-  }), [searchState]);
+  const initialFilters = useMemo(() => ({
+    city: searchParams.get('city') || '',
+    state: searchParams.get('state') || '',
+    listingType: searchParams.get('listingType') || '',
+    page: Number(searchParams.get('page')) || 1,
+  }), [searchParams]);
 
-  const { listings, pagination, isLoading, error } = useListings(filters);
-  const totalResults = listings.length;
+  const [formFilters, setFormFilters] = useState({
+    city: initialFilters.city,
+    state: initialFilters.state,
+    listingType: initialFilters.listingType,
+  });
 
-  const ListingTypeTab = ({ type, label }) => {
-    const isActive = searchState.listingType === type;
-    return (
-      <button
-        onClick={() => searchState.updateSearch({ listingType: type, category: 'all' })}
-        style={{
-          padding: '12px 24px',
-          border: 'none',
-          borderBottom: isActive ? '3px solid #FF5124' : '3px solid transparent',
-          background: 'transparent',
-          color: isActive ? '#FF5124' : '#717171',
-          fontWeight: isActive ? '600' : '500',
-          fontSize: '15px',
-          cursor: 'pointer',
-          transition: 'all 0.2s'
-        }}
-      >
-        {label}
-      </button>
-    );
+  const {
+    listings,
+    pagination,
+    filters,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    setFilters,
+    setPage,
+  } = useListingsQuery(initialFilters);
+
+  const currentPage = pagination?.page || filters.page || 1;
+  const totalPages = pagination?.pages || 1;
+  const totalResults = pagination?.total ?? listings.length;
+
+  const handleFormChange = (event) => {
+    const { name } = event.target;
+    let { value } = event.target;
+
+    if (name === 'state') {
+      value = value.toUpperCase().slice(0, 2);
+    }
+
+    setFormFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  const CategoryButton = ({ label, isActive, onClick }) => (
-    <button
-      onClick={onClick}
-      style={{
-        padding: '8px 16px',
-        border: isActive ? '1px solid #FF5124' : '1px solid #EBEBEB',
-        background: isActive ? '#FFF3F0' : 'white',
-        color: isActive ? '#FF5124' : '#717171',
-        borderRadius: '6px',
-        fontSize: '13px',
-        fontWeight: isActive ? '600' : '500',
-        cursor: 'pointer',
-        transition: 'all 0.2s'
-      }}
-    >
-      {label}
-    </button>
-  );
+  const syncSearchParams = (next = {}) => {
+    const params = new URLSearchParams();
+    const merged = {
+      city: next.city ?? filters.city ?? '',
+      state: next.state ?? filters.state ?? '',
+      listingType: next.listingType ?? filters.listingType ?? '',
+      page: next.page ?? filters.page ?? 1,
+    };
 
-  const ActiveFilter = ({ label, onClear }) => (
-    <div style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '6px 12px',
-      background: '#F7F7F7',
-      borderRadius: '20px',
-      fontSize: '13px',
-      marginRight: '8px',
-      marginBottom: '8px'
-    }}>
-      <span>{label}</span>
-      <button
-        onClick={onClear}
-        style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          padding: '2px'
-        }}
-      >
-        <X style={{ width: '14px', height: '14px', color: '#717171' }} />
-      </button>
-    </div>
-  );
+    if (merged.city) params.set('city', merged.city);
+    if (merged.state) params.set('state', merged.state);
+    if (merged.listingType) params.set('listingType', merged.listingType);
+    if (merged.page && merged.page !== 1) params.set('page', String(merged.page));
+
+    setSearchParams(params, { replace: true });
+  };
+
+  const handleFilterSubmit = (event) => {
+    event.preventDefault();
+
+    const trimmedFilters = {
+      city: formFilters.city.trim(),
+      state: formFilters.state.trim(),
+      listingType: formFilters.listingType,
+    };
+
+    setFilters(trimmedFilters);
+    syncSearchParams({ ...trimmedFilters, page: 1 });
+  };
+
+  const handlePagination = (nextPage) => {
+    if (nextPage < 1 || nextPage > totalPages) return;
+    setPage(nextPage);
+    syncSearchParams({ page: nextPage });
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'white' }}>
-      {/* Header */}
-      <header style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        background: 'white',
-        borderBottom: '1px solid #EBEBEB',
-        boxShadow: '0 1px 0 rgba(0,0,0,0.05)'
-      }}>
-        <div style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '80px' }}>
-            <div
-              onClick={() => navigate('/')}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-            >
-              <div style={{
-                width: '32px',
-                height: '32px',
-                background: '#FF5124',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Truck style={{ width: '18px', height: '18px', color: 'white' }} />
-              </div>
-              <span style={{ fontSize: '20px', fontWeight: '700', color: '#FF5124' }}>
-                vendibook
-              </span>
-            </div>
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-              <button
-                onClick={() => navigate('/become-host')}
-                style={{ 
-                  background: 'none',
-                  border: 'none',
-                  color: '#343434', 
-                  fontSize: '14px', 
-                  fontWeight: '500', 
-                  cursor: 'pointer'
-                }}
-              >
-                Become a Host
-              </button>
-            </nav>
-          </div>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b border-gray-200">
+        <div className="mx-auto max-w-6xl px-4 py-10">
+          <p className="text-sm font-semibold uppercase tracking-wide text-orange-500">The marketplace</p>
+          <h1 className="mt-3 text-3xl font-bold text-gray-900">Browse available mobile food assets</h1>
+          <p className="mt-2 max-w-2xl text-base text-gray-600">
+            Filter by city, state, and business type to find trucks, trailers, kitchens, or event pros that fit your next activation.
+          </p>
         </div>
       </header>
 
-      {/* Listing Type Tabs */}
-      <section style={{ background: 'white', borderBottom: '1px solid #EBEBEB' }}>
-        <div style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px' }}>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <ListingTypeTab type={LISTING_TYPES.RENT} label="For Rent" />
-            <ListingTypeTab type={LISTING_TYPES.SALE} label="For Sale" />
-            <ListingTypeTab type={LISTING_TYPES.EVENT_PRO} label="Event Pros" />
-          </div>
+      <section className="bg-white shadow-sm">
+        <div className="mx-auto max-w-6xl px-4 py-6">
+          <form onSubmit={handleFilterSubmit} className="grid gap-4 md:grid-cols-[1fr_140px_200px_auto]">
+            <label className="flex flex-col gap-2 text-sm font-medium text-gray-700">
+              City
+              <input
+                type="text"
+                name="city"
+                value={formFilters.city}
+                onChange={handleFormChange}
+                placeholder="e.g., Phoenix"
+                className="rounded-lg border border-gray-300 px-3 py-2 text-base text-gray-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+              />
+            </label>
+
+            <label className="flex flex-col gap-2 text-sm font-medium text-gray-700">
+              State
+              <input
+                type="text"
+                name="state"
+                value={formFilters.state}
+                onChange={handleFormChange}
+                placeholder="AZ"
+                className="rounded-lg border border-gray-300 px-3 py-2 text-base uppercase tracking-wide text-gray-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                maxLength={2}
+              />
+            </label>
+
+            <label className="flex flex-col gap-2 text-sm font-medium text-gray-700">
+              Listing type
+              <select
+                name="listingType"
+                value={formFilters.listingType}
+                onChange={handleFormChange}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-base text-gray-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+              >
+                {LISTING_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="flex items-end">
+              <button
+                type="submit"
+                className="w-full rounded-lg bg-orange-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
+              >
+                Apply filters
+              </button>
+            </div>
+          </form>
         </div>
       </section>
 
-      {/* Category Filter */}
-      {searchState.listingType && (
-        <section style={{ background: '#FAFAFA', borderBottom: '1px solid #EBEBEB', padding: '16px 0' }}>
-          <div style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px' }}>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {getCategoriesByType(searchState.listingType).map(category => (
-                <CategoryButton
-                  key={category.id}
-                  label={category.name}
-                  isActive={searchState.category === category.id}
-                  onClick={() => searchState.updateSearch({ category: category.id })}
-                />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      <main className="mx-auto max-w-6xl px-4 py-10">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm font-medium text-gray-600">
+            Showing <span className="font-semibold text-gray-900">{totalResults}</span> listing{totalResults === 1 ? '' : 's'}
+          </p>
+          {pagination && (
+            <p className="text-sm text-gray-500">Page {currentPage} of {totalPages}</p>
+          )}
+        </div>
 
-      {/* Active Filters */}
-      {searchState.hasActiveFilters && (
-        <section style={{ background: '#FAFAFA', borderBottom: '1px solid #EBEBEB', padding: '16px 0' }}>
-          <div style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '14px', fontWeight: '600', marginRight: '8px' }}>Active filters:</span>
-              {searchState.location && (
-                <ActiveFilter
-                  label={`Location: ${searchState.location}`}
-                  onClear={() => searchState.clearFilter('location')}
-                />
-              )}
-              {searchState.category && searchState.category !== 'all' && (
-                <ActiveFilter
-                  label={`Category: ${searchState.category}`}
-                  onClear={() => searchState.clearFilter('category')}
-                />
-              )}
-              {(searchState.priceMin || searchState.priceMax) && (
-                <ActiveFilter
-                  label={`Price: $${searchState.priceMin || '0'} - $${searchState.priceMax || '∞'}`}
-                  onClear={() => searchState.clearFilter('price')}
-                />
-              )}
-              {searchState.deliveryOnly && (
-                <ActiveFilter
-                  label="Delivery Available"
-                  onClear={() => searchState.clearFilter('deliveryOnly')}
-                />
-              )}
-              {searchState.verifiedOnly && (
-                <ActiveFilter
-                  label="Verified Hosts"
-                  onClear={() => searchState.clearFilter('verifiedOnly')}
-                />
-              )}
+        <div className="mt-8">
+          {isLoading && (
+            <div className="rounded-xl border border-gray-200 bg-white p-10 text-center text-gray-600">Loading listings…</div>
+          )}
+
+          {!isLoading && isError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+              <p className="text-lg font-semibold text-red-700">Unable to load listings</p>
+              <p className="mt-2 text-sm text-red-600">{error?.message || 'Something went wrong. Please try again.'}</p>
               <button
-                onClick={() => searchState.resetSearch()}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#FF5124',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  textDecoration: 'underline'
-                }}
+                type="button"
+                onClick={refetch}
+                className="mt-4 inline-flex items-center justify-center rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
               >
-                Clear all
+                Retry
               </button>
             </div>
-          </div>
-        </section>
-      )}
+          )}
 
-      {/* Results Header */}
-      <section style={{ maxWidth: '1760px', margin: '0 auto', padding: '32px 40px 0' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: '600', color: '#343434', marginBottom: '8px' }}>
-          {isLoading ? 'Loading listings…' : `${totalResults} results`}
-        </h1>
-        {error && (
-          <div style={{
-            padding: '12px 16px',
-            background: '#FFF3F0',
-            border: '1px solid #FFDACD',
-            borderRadius: '8px',
-            color: '#FF5124',
-            fontSize: '13px',
-            fontWeight: 500,
-            maxWidth: '480px'
-          }}>
-            {error}
-          </div>
-        )}
-      </section>
-
-      {/* Listings Grid */}
-      <section style={{ maxWidth: '1760px', margin: '0 auto', padding: '32px 40px 80px' }}>
-        {isLoading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} style={{
-                height: '320px',
-                background: '#F5F5F5',
-                borderRadius: '16px',
-                animation: 'pulse 1.5s ease-in-out infinite'
-              }} />
-            ))}
-          </div>
-        ) : listings.length > 0 ? (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: '24px'
-          }}>
-            {listings.map(listing => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon={<Store style={{ width: '64px', height: '64px', color: '#717171' }} />}
-            title="No listings found"
-            description="Try adjusting your filters or search criteria"
-            action={
+          {!isLoading && !isError && listings.length === 0 && (
+            <div className="rounded-xl border border-dashed border-gray-200 bg-white p-12 text-center">
+              <p className="text-lg font-semibold text-gray-900">No listings match your filters</p>
+              <p className="mt-2 text-sm text-gray-600">Try adjusting your city, state, or type to broaden your search.</p>
               <button
-                onClick={() => searchState.resetSearch()}
-                style={{
-                  background: '#FF5124',
-                  color: 'white',
-                  border: 'none',
-                  padding: '12px 24px',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
+                type="button"
+                onClick={() => {
+                  setFormFilters({ city: '', state: '', listingType: '' });
+                  setFilters({ city: '', state: '', listingType: '' });
+                  syncSearchParams({ city: '', state: '', listingType: '', page: 1 });
                 }}
+                className="mt-4 inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
               >
                 Reset filters
               </button>
-            }
-          />
-        )}
-      </section>
+            </div>
+          )}
 
-      {/* Pagination */}
-      {pagination && pagination.pages > 1 && (
-        <section style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px 48px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {!isLoading && !isError && listings.length > 0 && (
+            <div className="grid gap-6 pt-2 sm:grid-cols-2 lg:grid-cols-3">
+              {listings.map((listing) => (
+                <ListingCard key={listing.id} listing={listing} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {pagination && totalPages > 1 && (
+          <div className="mt-10 flex flex-col items-center gap-4 border-t border-gray-200 pt-6 sm:flex-row sm:justify-between">
             <button
-              onClick={() => searchState.updateSearch({ page: Math.max(1, Number(filters.page) - 1) })}
-              disabled={Number(filters.page) <= 1}
-              style={{
-                padding: '12px 20px',
-                borderRadius: '8px',
-                border: '1px solid #EBEBEB',
-                background: Number(filters.page) <= 1 ? '#F5F5F5' : 'white',
-                color: '#343434',
-                fontWeight: 600,
-                cursor: Number(filters.page) <= 1 ? 'not-allowed' : 'pointer'
-              }}
+              type="button"
+              onClick={() => handlePagination(currentPage - 1)}
+              disabled={currentPage <= 1}
+              className={`inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+                currentPage <= 1
+                  ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
+                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+              }`}
             >
               Previous
             </button>
-            <span style={{ fontSize: '14px', color: '#717171' }}>
-              Page {filters.page} of {pagination.pages}
-            </span>
+
+            <p className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </p>
+
             <button
-              onClick={() => searchState.updateSearch({ page: Math.min(pagination.pages, Number(filters.page) + 1) })}
-              disabled={Number(filters.page) >= pagination.pages}
-              style={{
-                padding: '12px 20px',
-                borderRadius: '8px',
-                border: '1px solid #EBEBEB',
-                background: Number(filters.page) >= pagination.pages ? '#F5F5F5' : 'white',
-                color: '#343434',
-                fontWeight: 600,
-                cursor: Number(filters.page) >= pagination.pages ? 'not-allowed' : 'pointer'
-              }}
+              type="button"
+              onClick={() => handlePagination(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+              className={`inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+                currentPage >= totalPages
+                  ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
+                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+              }`}
             >
               Next
             </button>
           </div>
-        </section>
-      )}
+        )}
+      </main>
     </div>
   );
 }
