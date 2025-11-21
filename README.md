@@ -65,6 +65,50 @@ If you are working from a local machine and need to confirm that you are inside 
    ```
 3. After pushing, verify the update on GitHub and confirm that Vercel triggers a new deployment from the `main` branch.
 
+## Vercel Environment Variables
+
+This project uses Vercel for deployment and can pull environment variables directly from your Vercel project.
+
+For detailed setup instructions, see [VERCEL_SETUP.md](./VERCEL_SETUP.md).
+
+### Setup Steps:
+
+1. **Login to Vercel CLI**
+   ```bash
+   npx vercel login
+   ```
+
+2. **Link your local project to Vercel**
+   ```bash
+   npx vercel link
+   ```
+   This will prompt you to select your Vercel team and project.
+
+3. **Pull environment variables**
+   ```bash
+   npm run env:pull
+   ```
+   This creates `.env.development.local` with your development environment variables from Vercel.
+
+   For production variables:
+   ```bash
+   npm run env:pull:production
+   ```
+
+### Available Scripts:
+
+- `npm run env:pull` - Pull development environment variables from Vercel
+- `npm run env:pull:production` - Pull production environment variables from Vercel
+
+### Managing Environment Variables in Vercel:
+
+1. Go to your Vercel project dashboard
+2. Navigate to Settings → Environment Variables
+3. Add your variables for different environments (Development, Preview, Production)
+4. Pull them locally using the scripts above
+
+**Note:** The `.env.development.local` and `.env.production.local` files are gitignored and will not be committed to your repository.
+
 ## Project Structure Highlights
 
 - `src/App.jsx`: Registers React Router routes for home, listings, listing detail, and host flows.
