@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "env:pull": "vercel env pull .env.development.local",
+    "env:pull:production": "vercel env pull .env.production.local --environment=production"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
@@ -21,6 +23,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
+    "vercel": "^48.10.6",
     "vite": "^7.2.2"
   }
 }
