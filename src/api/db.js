@@ -17,11 +17,12 @@ if (!connectionString) {
 
 export const sql = neon(connectionString);
 
-let bootstrapPromise;
+let listingsBootstrapPromise;
+let usersBootstrapPromise;
 
 export function bootstrapListingsTable() {
-  if (!bootstrapPromise) {
-    bootstrapPromise = (async () => {
+  if (!listingsBootstrapPromise) {
+    listingsBootstrapPromise = (async () => {
       // Ensure pgcrypto extension exists for gen_random_uuid()
       await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
       await sql`
@@ -38,11 +39,42 @@ export function bootstrapListingsTable() {
         );
       `;
     })().catch(error => {
-      bootstrapPromise = undefined;
+      listingsBootstrapPromise = undefined;
       console.error('Failed to bootstrap listings table:', error);
       throw error;
     });
   }
 
-  return bootstrapPromise;
+  return listingsBootstrapPromise;
+}
+
+export function bootstrapUsersTable() {
+  if (!usersBootstrapPromise) {
+    usersBootstrapPromise = (async () => {
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS users (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          clerk_id TEXT UNIQUE NOT NULL,
+          email TEXT,
+          first_name TEXT,
+          last_name TEXT,
+          display_name TEXT,
+          business_name TEXT,
+          phone TEXT,
+          city TEXT,
+          state TEXT,
+          role TEXT NOT NULL DEFAULT 'renter',
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+    })().catch(error => {
+      usersBootstrapPromise = undefined;
+      console.error('Failed to bootstrap users table:', error);
+      throw error;
+    });
+  }
+
+  return usersBootstrapPromise;
 }
