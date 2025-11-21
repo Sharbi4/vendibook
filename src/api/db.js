@@ -25,6 +25,8 @@ let userSocialLinksBootstrapPromise;
 let userPayoutAccountsBootstrapPromise;
 let userMetricsBootstrapPromise;
 let bookingsBootstrapPromise;
+let messageThreadsBootstrapPromise;
+let messagesBootstrapPromise;
 
 export function bootstrapListingsTable() {
   if (!listingsBootstrapPromise) {
@@ -273,4 +275,62 @@ export function bootstrapBookingsTable() {
   }
 
   return bookingsBootstrapPromise;
+}
+
+export function bootstrapMessageThreadsTable() {
+  if (!messageThreadsBootstrapPromise) {
+    messageThreadsBootstrapPromise = (async () => {
+      await bootstrapBookingsTable();
+      await bootstrapUsersTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS message_threads (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
+          host_user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+          renter_user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+          last_message_at TIMESTAMPTZ,
+          last_message_preview TEXT,
+          host_unread_count INTEGER DEFAULT 0,
+          renter_unread_count INTEGER DEFAULT 0,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+    })().catch(error => {
+      messageThreadsBootstrapPromise = undefined;
+      console.error('Failed to bootstrap message_threads table:', error);
+      throw error;
+    });
+  }
+
+  return messageThreadsBootstrapPromise;
+}
+
+export function bootstrapMessagesTable() {
+  if (!messagesBootstrapPromise) {
+    messagesBootstrapPromise = (async () => {
+      await bootstrapMessageThreadsTable();
+      await bootstrapUsersTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS messages (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          thread_id UUID NOT NULL REFERENCES message_threads(id) ON DELETE CASCADE,
+          sender_user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+          body TEXT NOT NULL,
+          message_type TEXT NOT NULL DEFAULT 'text',
+          is_read BOOLEAN NOT NULL DEFAULT FALSE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+    })().catch(error => {
+      messagesBootstrapPromise = undefined;
+      console.error('Failed to bootstrap messages table:', error);
+      throw error;
+    });
+  }
+
+  return messagesBootstrapPromise;
 }

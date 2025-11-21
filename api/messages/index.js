@@ -1,77 +1,155 @@
-/**
- * POST /api/messages
- * Create a new message within a thread
- * 
- * Body: { threadId, recipientId, content }
- */
+import {
+  ensureMessagingBootstrap,
+  extractClerkId,
+  resolveUserId,
+  parsePagination,
+  listThreads,
+  findOrCreateThread,
+  fetchThreadById,
+  fetchBookingParticipants,
+  insertMessage,
+  updateThreadAfterMessage,
+  createHttpError
+} from '../../src/api/messaging/shared.js';
 
-const { getCurrentUser, requireAuth } = require('../auth-service');
-const db = require('../db');
-const { createMessageSchema } = require('../validation');
-
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   try {
-    // Check authentication
-    const user = await requireAuth(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    await ensureMessagingBootstrap();
+  } catch (error) {
+    console.error('Failed to initialize messaging subsystem:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Server error',
+      message: 'Failed to initialize messaging subsystem'
+    });
+  }
 
-    const { method } = req;
+  if (req.method === 'POST') {
+    return handlePost(req, res);
+  }
 
-    // POST - Create new message
-    if (method === 'POST') {
-      const { threadId, recipientId, content } = req.body;
+  if (req.method === 'GET') {
+    return handleGet(req, res);
+  }
 
-      // Validate input
-      const validation = createMessageSchema.safeParse({
-        threadId,
-        recipientId,
-        content
-      });
+  return res.status(405).json({ success: false, error: 'Method not allowed' });
+}
 
-      if (!validation.success) {
-        return res.status(400).json({ error: validation.error.errors });
+async function handlePost(req, res) {
+  try {
+    const body = req.body || {};
+    const threadIdInput = body.threadId || body.thread_id;
+    const bookingId = body.bookingId || body.booking_id || null;
+    const messageType = (body.messageType || body.message_type || 'text').toString();
+    const messageBody = body.body ?? body.content;
+
+    let thread = null;
+
+    let senderUserId = body.senderUserId || body.sender_user_id || null;
+    const senderClerkId = body.senderClerkId || body.sender_clerk_id || extractClerkId(req);
+    senderUserId = await resolveUserId({ userId: senderUserId, clerkId: senderClerkId, label: 'sender' });
+
+    if (threadIdInput) {
+      thread = await fetchThreadById(threadIdInput);
+      if (!thread) {
+        throw createHttpError(404, 'Thread not found');
       }
-
-      // Verify thread exists and user is participant
-      const thread = await db.prisma.messageThread.findUnique({
-        where: { id: threadId }
-      });
-
-      if (!thread || !thread.participantIds.includes(user.id)) {
-        return res.status(403).json({ error: 'Access denied to this thread' });
+      if (senderUserId !== thread.hostUserId && senderUserId !== thread.renterUserId) {
+        throw createHttpError(403, 'Sender must belong to this thread');
       }
+    } else {
+      let hostUserId = body.hostUserId || body.host_user_id || null;
+      let renterUserId = body.renterUserId || body.renter_user_id || null;
 
-      // Verify recipient is in thread
-      if (!thread.participantIds.includes(recipientId)) {
-        return res.status(400).json({ error: 'Recipient not in thread' });
-      }
-
-      // Create message
-      const message = await db.messages.createMessage(
-        threadId,
-        user.id,
-        recipientId,
-        content
-      );
-
-      // Create notification for recipient
-      await db.prisma.notification.create({
-        data: {
-          userId: recipientId,
-          type: 'MESSAGE_RECEIVED',
-          title: `New message from ${user.name}`,
-          message: content.substring(0, 100),
-          relatedId: threadId
+      if (bookingId) {
+        const booking = await fetchBookingParticipants(bookingId);
+        if (!booking) {
+          throw createHttpError(404, 'Booking not found');
         }
-      });
+        hostUserId = booking.host_user_id;
+        renterUserId = booking.renter_user_id;
+      } else {
+        const hostClerkId = body.hostClerkId || body.host_clerk_id;
+        const renterClerkId = body.renterClerkId || body.renter_clerk_id;
+        hostUserId = await resolveUserId({ userId: hostUserId, clerkId: hostClerkId, label: 'host' });
+        renterUserId = await resolveUserId({ userId: renterUserId, clerkId: renterClerkId, label: 'renter' });
+      }
 
-      return res.status(201).json(message);
+      thread = await findOrCreateThread({
+        bookingId,
+        hostUserId,
+        renterUserId
+      });
     }
 
-    // Method not allowed
-    res.status(405).json({ error: 'Method not allowed' });
+    const message = await insertMessage({
+      threadId: thread.id,
+      senderUserId,
+      body: messageBody,
+      messageType
+    });
+
+    const updatedThread = await updateThreadAfterMessage(thread, senderUserId, message.body);
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        message,
+        thread: updatedThread
+      }
+    });
   } catch (error) {
-    console.error('Messages endpoint error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return handleRouteError(res, error, 'Failed to create message');
   }
-};
+}
+
+async function handleGet(req, res) {
+  try {
+    const pagination = parsePagination(req.query || {});
+    const roleParam = String(req.query?.role || '').toLowerCase();
+    const role = roleParam === 'host' || roleParam === 'renter' ? roleParam : null;
+
+    let userId = req.query?.userId || req.query?.user_id || null;
+    const filterClerkId = req.query?.clerkId || req.query?.clerk_id || extractClerkId(req);
+
+    if (!userId && filterClerkId) {
+      userId = await resolveUserId({ clerkId: filterClerkId, label: 'user filter' });
+    }
+
+    if (!userId) {
+      throw createHttpError(400, 'userId or clerkId is required to list threads');
+    }
+
+    const { threads, total } = await listThreads({ userId, role, pagination });
+
+    return res.status(200).json({
+      success: true,
+      data: threads,
+      pagination: {
+        page: pagination.page,
+        limit: pagination.limit,
+        total,
+        pages: Math.max(Math.ceil(total / pagination.limit), 1)
+      }
+    });
+  } catch (error) {
+    return handleRouteError(res, error, 'Failed to fetch message threads');
+  }
+}
+
+function handleRouteError(res, error, fallbackMessage) {
+  if (error?.statusCode) {
+    return res.status(error.statusCode).json({
+      success: false,
+      error: fallbackMessage,
+      message: error.message
+    });
+  }
+
+  console.error(fallbackMessage, error);
+  return res.status(500).json({
+    success: false,
+    error: 'Server error',
+    message: fallbackMessage
+  });
+}
