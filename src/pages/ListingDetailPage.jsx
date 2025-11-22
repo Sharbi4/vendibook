@@ -142,7 +142,6 @@ function ListingDetailPage() {
       </div>
     );
   }
-  }
 
   // Main render
   const tags = listing.tags || [];
