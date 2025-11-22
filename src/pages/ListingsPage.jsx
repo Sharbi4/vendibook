@@ -38,9 +38,10 @@ function ListingsPage() {
     setPage,
   } = useListingsQuery(initialFilters);
 
+  const safeListings = Array.isArray(listings) ? listings : [];
   const currentPage = pagination?.page || filters.page || 1;
   const totalPages = pagination?.pages || 1;
-  const totalResults = pagination?.total ?? listings.length;
+  const totalResults = pagination?.total ?? safeListings.length;
 
   const handleFormChange = (event) => {
     const { name } = event.target;
@@ -189,7 +190,7 @@ function ListingsPage() {
             </div>
           )}
 
-          {!isLoading && !isError && listings.length === 0 && (
+          {!isLoading && !isError && safeListings.length === 0 && (
             <div className="rounded-xl border border-dashed border-gray-200 bg-white p-12 text-center">
               <p className="text-lg font-semibold text-gray-900">No listings match your filters</p>
               <p className="mt-2 text-sm text-gray-600">Try adjusting your city, state, or type to broaden your search.</p>
@@ -207,9 +208,9 @@ function ListingsPage() {
             </div>
           )}
 
-          {!isLoading && !isError && listings.length > 0 && (
+          {!isLoading && !isError && safeListings.length > 0 && (
             <div className="grid gap-6 pt-2 sm:grid-cols-2 lg:grid-cols-3">
-              {listings.map((listing) => (
+              {safeListings.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}
             </div>
