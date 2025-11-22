@@ -38,7 +38,6 @@ function ListingDetailPage() {
       fetchListing();
     }
   }, [id]);
-  }, [id]);
 
   // Helper functions
   const formatPrice = (price, unit = 'per day') => {
