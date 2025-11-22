@@ -79,10 +79,12 @@ export default async function handler(req, res) {
       dataParams
     );
 
-    const [{ total }] = await sql.unsafe(
+    const countResult = await sql.unsafe(
       `SELECT COUNT(*)::int AS total FROM listings ${whereClause}`,
       filterParams
     );
+
+    const total = countResult?.[0]?.total ?? 0;
 
     return res.status(200).json({
       success: true,
