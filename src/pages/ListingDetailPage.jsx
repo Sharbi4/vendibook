@@ -1,3 +1,7 @@
+export { default } from './ListingDetails';
+
+/* Legacy implementation retained for reference.
+
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { MapPin, Star, Check, ArrowLeft, Calendar, User, Truck, Shield } from 'lucide-react';
@@ -401,3 +405,5 @@ function ListingDetailPage() {
 }
 
 export default ListingDetailPage;
+
+*/
