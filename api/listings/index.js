@@ -70,21 +70,32 @@ export default async function handler(req, res) {
 
     const whereClause = filterConditions.length ? `WHERE ${filterConditions.join(' AND ')}` : '';
 
-    const dataParams = [...filterParams, pageSize, offset];
-    const limitPlaceholder = `$${filterParams.length + 1}`;
-    const offsetPlaceholder = `$${filterParams.length + 2}`;
+    // Use tagged template for safer queries
+    let listings;
+    let total = 0;
 
-    const listings = await sql.unsafe(
-      `SELECT * FROM listings ${whereClause} ORDER BY created_at DESC LIMIT ${limitPlaceholder} OFFSET ${offsetPlaceholder}`,
-      dataParams
-    );
+    if (filterConditions.length === 0) {
+      // No filters - simple query
+      listings = await sql`SELECT * FROM listings ORDER BY created_at DESC LIMIT ${pageSize} OFFSET ${offset}`;
+      const countResult = await sql`SELECT COUNT(*)::int AS total FROM listings`;
+      total = countResult[0]?.total ?? 0;
+    } else {
+      // With filters - use unsafe with proper array spreading
+      const dataParams = [...filterParams, pageSize, offset];
+      const limitPlaceholder = `$${filterParams.length + 1}`;
+      const offsetPlaceholder = `$${filterParams.length + 2}`;
 
-    const countResult = await sql.unsafe(
-      `SELECT COUNT(*)::int AS total FROM listings ${whereClause}`,
-      filterParams
-    );
+      listings = await sql.unsafe(
+        `SELECT * FROM listings ${whereClause} ORDER BY created_at DESC LIMIT ${limitPlaceholder} OFFSET ${offsetPlaceholder}`,
+        dataParams
+      );
 
-    const total = countResult?.[0]?.total ?? 0;
+      const countResult = await sql.unsafe(
+        `SELECT COUNT(*)::int AS total FROM listings ${whereClause}`,
+        filterParams
+      );
+      total = countResult[0]?.total ?? 0;
+    }
 
     return res.status(200).json({
       success: true,
