@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, MapPin, Star, Check, Shield, Truck, Calendar } from 'lucide-react';
+import { getListingById as getMockListingById } from '../data/listings';
 
 function ListingDetails() {
   const { id } = useParams();
@@ -31,6 +32,11 @@ function ListingDetails() {
           });
 
           if (response.ok) {
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+              throw new Error('Unexpected response format');
+            }
+
             const payload = await response.json();
             const collection = payload?.data || payload?.listings || [];
             if (Array.isArray(collection)) {
@@ -57,7 +63,23 @@ function ListingDetails() {
             throw new Error('Failed to load listing');
           }
 
-          record = await fallbackResponse.json();
+          const fallbackContentType = fallbackResponse.headers.get('content-type') || '';
+          if (!fallbackContentType.includes('application/json')) {
+            throw new Error('Listing not found');
+          }
+
+          try {
+            record = await fallbackResponse.json();
+          } catch (jsonError) {
+            throw new Error('Listing not found');
+          }
+        }
+
+        if (!record) {
+          const mockListing = getMockListingById(`${id}`);
+          if (mockListing) {
+            record = mockListing;
+          }
         }
 
         if (!record) {
