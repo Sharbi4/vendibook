@@ -1057,7 +1057,7 @@ function HomePage() {
                 </p>
 
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
-                  {listing.features.slice(0, 3).map((feature, idx) => (
+                  {(listing.features || []).slice(0, 3).map((feature, idx) => (
                     <span
                       key={idx}
                       style={{
