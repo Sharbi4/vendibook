@@ -19,31 +19,35 @@ const humanizeType = (type) => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-const truncate = (text = '', length = 160) => {
-  if (!text) return '';
-  return text.length > length ? `${text.slice(0, length - 3)}...` : text;
-};
-
 export default function ListingCard({ listing }) {
   const listingId = listing?.id;
-  const location = [listing?.city, listing?.state].filter(Boolean).join(', ');
-  const priceDisplay = formatCurrency(listing?.price);
+  const title = listing?.title || 'Untitled listing';
+  const location = [listing?.city || listing?.city_name, listing?.state || listing?.state_code]
+    .filter(Boolean)
+    .join(', ');
+  const priceDisplay = formatCurrency(listing?.price ?? listing?.price_per_day);
   const priceUnit = listing?.price_unit || listing?.priceUnit || 'per day';
   const typeLabel = humanizeType(listing?.listing_type || listing?.listingType);
-  const description = truncate(listing?.description);
+  const description = listing?.description || 'Details coming soon. Reach out to learn more about this asset.';
   const deliveryAvailable = Boolean(listing?.delivery_available ?? listing?.deliveryAvailable);
   const updatedAtRaw = listing?.updated_at || listing?.updatedAt;
   const updatedAtDate = updatedAtRaw ? new Date(updatedAtRaw) : null;
   const lastUpdatedLabel = updatedAtDate && !Number.isNaN(updatedAtDate.getTime())
     ? updatedAtDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
     : 'recently';
+  const descriptionClampStyles = {
+    display: '-webkit-box',
+    WebkitLineClamp: 3,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
+  };
 
   return (
     <article
       className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl focus-within:ring-2 focus-within:ring-orange-500"
       tabIndex={-1}
     >
-      <div className="relative h-40 w-full bg-gradient-to-br from-orange-100 via-white to-orange-200">
+      <div className="relative h-40 w-full overflow-hidden rounded-t-2xl bg-gradient-to-br from-orange-100 via-white to-orange-200">
         <span className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-orange-600 shadow-sm">
           {typeLabel}
         </span>
@@ -57,7 +61,7 @@ export default function ListingCard({ listing }) {
       <div className="flex flex-1 flex-col gap-4 p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">{listing?.title || 'Untitled listing'}</h3>
+            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
             <p className="mt-1 text-sm text-gray-600">{location || 'City & state coming soon'}</p>
           </div>
           {priceDisplay !== '—' && (
@@ -70,7 +74,9 @@ export default function ListingCard({ listing }) {
         </div>
 
         {description && (
-          <p className="text-sm leading-relaxed text-gray-600">{description}</p>
+          <p className="text-sm leading-relaxed text-gray-600" style={descriptionClampStyles}>
+            {description}
+          </p>
         )}
 
         <div className="mt-auto flex items-center justify-between text-xs font-medium uppercase tracking-wide text-gray-500">

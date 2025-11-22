@@ -105,9 +105,12 @@ function ListingsPage() {
         </div>
       </header>
 
-      <section className="bg-white shadow-sm">
+      <section className="bg-white/70">
         <div className="mx-auto max-w-6xl px-4 py-6">
-          <form onSubmit={handleFilterSubmit} className="grid gap-4 md:grid-cols-[1fr_140px_200px_auto]">
+          <form
+            onSubmit={handleFilterSubmit}
+            className="grid gap-4 rounded-2xl border border-gray-200 bg-white/90 p-4 shadow-sm md:grid-cols-[1fr_140px_200px_auto]"
+          >
             <label className="flex flex-col gap-2 text-sm font-medium text-gray-700">
               City
               <input
@@ -173,7 +176,9 @@ function ListingsPage() {
 
         <div className="mt-8">
           {isLoading && (
-            <div className="rounded-xl border border-gray-200 bg-white p-10 text-center text-gray-600">Loading listings…</div>
+            <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-gray-200 bg-white/90 p-10 text-center text-gray-600">
+              Loading listings…
+            </div>
           )}
 
           {!isLoading && isError && (
@@ -191,7 +196,7 @@ function ListingsPage() {
           )}
 
           {!isLoading && !isError && safeListings.length === 0 && (
-            <div className="rounded-xl border border-dashed border-gray-200 bg-white p-12 text-center">
+            <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center">
               <p className="text-lg font-semibold text-gray-900">No listings match your filters</p>
               <p className="mt-2 text-sm text-gray-600">Try adjusting your city, state, or type to broaden your search.</p>
               <button
@@ -210,8 +215,11 @@ function ListingsPage() {
 
           {!isLoading && !isError && safeListings.length > 0 && (
             <div className="grid gap-6 pt-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {safeListings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} />
+              {safeListings.map((listing, index) => (
+                <ListingCard
+                  key={listing.id ?? `${listing.title ?? 'listing'}-${listing.city ?? 'city'}-${index}`}
+                  listing={listing}
+                />
               ))}
             </div>
           )}
