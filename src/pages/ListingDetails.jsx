@@ -2,6 +2,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, MapPin, Star, Check, Shield, Truck, Calendar } from 'lucide-react';
 import { getListingById as getMockListingById } from '../data/listings';
+import { AvailabilityCalendar } from '../components/AvailabilityCalendar';
+import { useAuth } from '../hooks/useAuth';
 
 const normalizeValue = (value) => (value ? value.toString().toLowerCase() : '');
 
@@ -64,18 +66,68 @@ const buildEventProPackages = (listing) => {
   ];
 };
 
+const BOOKING_MODE_LABELS = {
+  daily: 'Daily rental',
+  'daily-with-time': 'Daily rental + times',
+  hourly: 'Hourly event',
+  package: 'Event package'
+};
+
+const formatTimePreset = (value) => {
+  if (!value) return '';
+  const parts = String(value).split(':');
+  const hours = parts[0]?.padStart(2, '0') || '00';
+  const minutes = parts[1]?.padStart(2, '0') || '00';
+  return `${hours}:${minutes}`;
+};
+
+const calculateSelectedDays = (start, end) => {
+  if (!start || !end) return 0;
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return 0;
+  const diff = endDate.getTime() - startDate.getTime();
+  return Math.max(Math.floor(diff / 86400000) + 1, 0);
+};
+
+const calculateSelectedHours = (date, startTime, endTime) => {
+  if (!date || !startTime || !endTime) return 0;
+  const start = new Date(`${date}T${startTime}:00`);
+  const end = new Date(`${date}T${endTime}:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+  const diff = (end.getTime() - start.getTime()) / 3600000;
+  return diff > 0 ? diff : 0;
+};
+
+const formatCurrency = (value) => {
+  if (!Number.isFinite(value)) return null;
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(value);
+};
+
+const extractHostUserId = (listing) =>
+  listing?.host_user_id || listing?.hostUserId || listing?.hostId || listing?.owner_id || listing?.ownerId || listing?.user_id || listing?.userId || null;
+
 function ListingDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const [listing, setListing] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [eventDate, setEventDate] = useState('');
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [pickupTime, setPickupTime] = useState('');
+  const [returnTime, setReturnTime] = useState('');
+  const [eventStartTime, setEventStartTime] = useState('');
   const [eventEndTime, setEventEndTime] = useState('');
+  const [bookingFeedback, setBookingFeedback] = useState(null);
 
   useEffect(() => {
     if (!id) return;
@@ -175,11 +227,14 @@ function ListingDetails() {
   }, [id, reloadKey]);
 
   useEffect(() => {
-    setStartDate('');
-    setEndDate('');
-    setEventDate('');
+    setStartDate(null);
+    setEndDate(null);
+    setPickupTime(formatTimePreset(listing?.default_start_time || listing?.defaultStartTime));
+    setReturnTime(formatTimePreset(listing?.default_end_time || listing?.defaultEndTime));
+    setEventStartTime('');
     setEventEndTime('');
-  }, [listing?.id]);
+    setBookingFeedback(null);
+  }, [listing?.id, listing?.default_start_time, listing?.defaultStartTime, listing?.default_end_time, listing?.defaultEndTime]);
 
   const formatPrice = (price, unit = 'per day') => {
     if (price === undefined || price === null || price === '') {
@@ -206,15 +261,82 @@ function ListingDetails() {
     setReloadKey((prev) => prev + 1);
   };
 
-  const handleBookNow = () => {
+  const handleBookNow = async () => {
+    if (!listing?.id) {
+      return;
+    }
+
+    const renterUserId = user?.id || user?._id || user?.userId;
+    if (!isAuthenticated || !renterUserId) {
+      setBookingFeedback({ type: 'error', message: 'Please sign in to request a booking.' });
+      return;
+    }
+
+    const hostUserId = extractHostUserId(listing);
+    if (!hostUserId) {
+      setBookingFeedback({ type: 'error', message: 'Host information is missing for this listing. Please contact support.' });
+      return;
+    }
+
+    if (!startDate || (!isHourlyMode && !endDate)) {
+      setBookingFeedback({ type: 'error', message: 'Select your dates before booking.' });
+      return;
+    }
+
+    if (isHourlyMode && (!eventStartTime || !eventEndTime)) {
+      setBookingFeedback({ type: 'error', message: 'Select your event start and end times.' });
+      return;
+    }
+
     setIsSubmitting(true);
-    setTimeout(() => {
-      alert('Booking request submitted! A host will reach out shortly.');
+    setBookingFeedback(null);
+
+    const payload = {
+      listingId: listing.id,
+      renterUserId,
+      hostUserId,
+      bookingMode,
+      startDate,
+      endDate: selectedEndDate,
+      pickupTime: !isHourlyMode ? pickupTime || null : null,
+      returnTime: !isHourlyMode ? returnTime || null : null,
+      eventDate: isHourlyMode ? startDate : null,
+      startTime: isHourlyMode ? eventStartTime : null,
+      endTime: isHourlyMode ? eventEndTime : null,
+      totalPrice: estimatedTotalValue || listing?.price || 0,
+      currency: listing?.currency || 'USD'
+    };
+
+    try {
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          setBookingFeedback({
+            type: 'error',
+            message: data.message || 'The selected dates are not available. Please adjust your selection.'
+          });
+          return;
+        }
+        throw new Error(data.message || data.error || 'Unable to submit booking right now.');
+      }
+
+      setBookingFeedback({ type: 'success', message: 'Booking request submitted! A host will reach out shortly.' });
+    } catch (submitError) {
+      setBookingFeedback({ type: 'error', message: submitError.message || 'Unable to submit booking right now.' });
+    } finally {
       setIsSubmitting(false);
-    }, 700);
+    }
   };
 
   const handleMessageHost = () => {
+    setBookingFeedback(null);
     alert('Messaging coming soon! For now, contact the host directly.');
   };
 
@@ -232,6 +354,11 @@ function ListingDetails() {
     normalizedType === 'event_pro' ||
     normalizedType === 'eventpro' ||
     normalizedType === 'event';
+  const bookingMode =
+    normalizeValue(listing?.booking_mode || listing?.bookingMode || (isEventPro ? 'hourly' : 'daily-with-time')) ||
+    'daily-with-time';
+  const isHourlyMode = bookingMode === 'hourly';
+  const bookingModeLabel = BOOKING_MODE_LABELS[bookingMode] || 'Daily rental';
 
   const categoryBadgeLabel = useMemo(
     () => formatCategoryBadge(rawType, listing?.category),
@@ -272,6 +399,8 @@ function ListingDetails() {
       });
     }
 
+    items.push({ label: 'Booking mode', value: bookingModeLabel });
+
     return items;
   }, [
     createdAt,
@@ -282,12 +411,27 @@ function ListingDetails() {
     listing?.price,
     listingTypeLabel,
     priceUnit,
+    bookingModeLabel,
   ]);
 
   const formattedPrice = useMemo(
     () => formatPrice(listing?.price, priceUnit),
     [listing?.price, priceUnit]
   );
+
+  const selectedEndDate = isHourlyMode ? startDate : endDate;
+  const rentalDays = !isHourlyMode && startDate && endDate ? calculateSelectedDays(startDate, endDate) : 0;
+  const durationHours = isHourlyMode && startDate && eventStartTime && eventEndTime ? calculateSelectedHours(startDate, eventStartTime, eventEndTime) : 0;
+  const nightlyRate = Number(listing?.price) || 0;
+  const estimatedTotalValue = isHourlyMode
+    ? durationHours > 0 && nightlyRate > 0
+      ? durationHours * nightlyRate
+      : null
+    : rentalDays > 0 && nightlyRate > 0
+      ? rentalDays * nightlyRate
+      : null;
+  const estimatedTotal = estimatedTotalValue ? formatCurrency(estimatedTotalValue) : null;
+  const canSubmit = Boolean(startDate && (isHourlyMode ? eventStartTime && eventEndTime : endDate)) && !isSubmitting;
 
   if (isLoading) {
     return (
@@ -507,24 +651,43 @@ function ListingDetails() {
                 </p>
               </div>
 
-              <div className="space-y-4">
-                {isEventPro ? (
-                  <div className="space-y-4">
+              <div className="space-y-5">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    {isHourlyMode ? 'Event availability' : 'Select your dates'}
+                  </p>
+                  <div className="mt-3">
+                    <AvailabilityCalendar
+                      listingId={listing.id}
+                      bookingMode={bookingMode}
+                      selectedStartDate={startDate}
+                      selectedEndDate={selectedEndDate}
+                      onChangeDates={(startSelection, endSelection) => {
+                        setBookingFeedback(null);
+                        setStartDate(startSelection);
+                        setEndDate(isHourlyMode ? startSelection : endSelection);
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {isHourlyMode ? (
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="event-date">
-                        Event date
+                      <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="event-start-time">
+                        Event start time
                       </label>
                       <input
-                        id="event-date"
-                        type="date"
-                        value={eventDate}
-                        onChange={(e) => setEventDate(e.target.value)}
+                        id="event-start-time"
+                        type="time"
+                        value={eventStartTime}
+                        onChange={(e) => setEventStartTime(e.target.value)}
                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="event-end-time">
-                        End time (optional)
+                        Event end time
                       </label>
                       <input
                         id="event-end-time"
@@ -536,39 +699,54 @@ function ListingDetails() {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="start-date">
-                        Start date
+                      <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="pickup-time">
+                        Pickup time
                       </label>
                       <input
-                        id="start-date"
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
+                        id="pickup-time"
+                        type="time"
+                        value={pickupTime}
+                        onChange={(e) => setPickupTime(e.target.value)}
                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="end-date">
-                        End date
+                      <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="return-time">
+                        Return time
                       </label>
                       <input
-                        id="end-date"
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
+                        id="return-time"
+                        type="time"
+                        value={returnTime}
+                        onChange={(e) => setReturnTime(e.target.value)}
                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
                   </div>
                 )}
+
+                <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                  <p>
+                    {isHourlyMode
+                      ? durationHours > 0
+                        ? `${durationHours.toFixed(1)} hrs selected`
+                        : 'Select a date and event times'
+                      : rentalDays > 0
+                        ? `${rentalDays} day${rentalDays === 1 ? '' : 's'} selected`
+                        : 'Select your trip dates'}
+                  </p>
+                  {estimatedTotal && (
+                    <p className="mt-1 text-base font-semibold text-slate-900">Estimated total {estimatedTotal}</p>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-3">
                 <button
                   onClick={handleBookNow}
-                  disabled={isSubmitting}
+                  disabled={!canSubmit}
                   className="w-full rounded-xl bg-gradient-to-r from-orange-500 via-orange-500 to-orange-600 px-6 py-4 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isSubmitting ? 'Submitting...' : 'Book Now'}
@@ -579,6 +757,15 @@ function ListingDetails() {
                 >
                   Message Host
                 </button>
+                {bookingFeedback && (
+                  <div
+                    className={`rounded-xl px-4 py-3 text-sm ${
+                      bookingFeedback.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'
+                    }`}
+                  >
+                    {bookingFeedback.message}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2 text-sm text-slate-600">

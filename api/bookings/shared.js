@@ -1,10 +1,17 @@
-import { sql, bootstrapBookingsTable } from '../../src/api/db.js';
+import {
+  sql,
+  bootstrapBookingsTable,
+  bootstrapAvailabilityBlocksTable
+} from '../../src/api/db.js';
 
 let bookingsBootstrapPromise;
 
 export function ensureBookingsBootstrap() {
   if (!bookingsBootstrapPromise) {
-    bookingsBootstrapPromise = bootstrapBookingsTable();
+    bookingsBootstrapPromise = Promise.all([
+      bootstrapBookingsTable(),
+      bootstrapAvailabilityBlocksTable()
+    ]);
   }
   return bookingsBootstrapPromise;
 }
@@ -23,6 +30,8 @@ export const VALID_BOOKING_STATUSES = new Set([
   'CANCELLED'
 ]);
 
+const VALID_BOOKING_MODES = new Set(['daily', 'daily-with-time', 'hourly', 'package']);
+
 const BOOKING_SELECT = `
   SELECT
     b.id,
@@ -31,6 +40,11 @@ const BOOKING_SELECT = `
     b.host_user_id,
     b.start_date,
     b.end_date,
+    b.start_datetime,
+    b.end_datetime,
+    b.booking_mode,
+    b.rental_days,
+    b.duration_hours,
     b.total_price,
     b.currency,
     b.status,
@@ -112,6 +126,11 @@ export function formatBookingRow(row = {}) {
     hostUserId: row.host_user_id,
     startDate: row.start_date,
     endDate: row.end_date,
+     startDateTime: row.start_datetime,
+     endDateTime: row.end_datetime,
+     bookingMode: row.booking_mode,
+     rentalDays: toNumber(row.rental_days),
+     durationHours: toNumber(row.duration_hours),
     totalPrice: toNumber(row.total_price),
     currency: row.currency,
     status: row.status ? row.status.toUpperCase() : 'PENDING',
@@ -125,6 +144,165 @@ export function formatBookingRow(row = {}) {
     renter,
     host
   };
+}
+
+export function normalizeBookingMode(mode, fallback = 'daily-with-time') {
+  const value = (mode || fallback || 'daily-with-time').toString().trim().toLowerCase();
+  if (!VALID_BOOKING_MODES.has(value)) {
+    throw createHttpError(400, `Invalid bookingMode "${mode}"`);
+  }
+  return value;
+}
+
+export async function fetchListingSchedulingConfig(listingId) {
+  const [row] = await sql`
+    SELECT id, booking_mode, default_start_time, default_end_time
+    FROM listings
+    WHERE id = ${listingId}
+    LIMIT 1;
+  `;
+
+  if (!row) {
+    throw createHttpError(404, 'Listing not found');
+  }
+
+  return {
+    id: row.id,
+    bookingMode: row.booking_mode || 'daily-with-time',
+    defaultStartTime: row.default_start_time || null,
+    defaultEndTime: row.default_end_time || null
+  };
+}
+
+export function calculateRentalDays(startDate, endDate) {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return null;
+  }
+  const diff = end.getTime() - start.getTime();
+  return Math.max(Math.floor(diff / 86400000) + 1, 1);
+}
+
+export function calculateDurationHours(startDateTime, endDateTime) {
+  if (!startDateTime || !endDateTime) {
+    return null;
+  }
+  const start = new Date(startDateTime);
+  const end = new Date(endDateTime);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return null;
+  }
+  const diff = end.getTime() - start.getTime();
+  return Math.max(diff / 3600000, 0);
+}
+
+function rangesOverlap(startA, endA, startB, endB) {
+  return startA < endB && startB < endA;
+}
+
+export async function checkBookingConflicts({ listingId, bookingMode, startDate, endDate, startDateTime, endDateTime }) {
+  // Blocks always prevent bookings
+  const [block] = await sql`
+    SELECT id, start_date, end_date
+    FROM availability_blocks
+    WHERE listing_id = ${listingId}
+      AND start_date <= ${endDate}
+      AND end_date >= ${startDate}
+    LIMIT 1;
+  `;
+
+  if (block) {
+    return {
+      type: 'AVAILABILITY_BLOCK',
+      details: {
+        blockId: block.id,
+        conflictingDates: { start: block.start_date, end: block.end_date }
+      }
+    };
+  }
+
+  // Non-hourly bookings are considered full-day blocks
+  const [fullDayBooking] = await sql`
+    SELECT id, start_date, end_date
+    FROM bookings
+    WHERE listing_id = ${listingId}
+      AND LOWER(COALESCE(booking_mode, 'daily-with-time')) <> 'hourly'
+      AND start_date <= ${endDate}
+      AND end_date >= ${startDate}
+    LIMIT 1;
+  `;
+
+  if (fullDayBooking) {
+    return {
+      type: 'BOOKING',
+      details: {
+        conflictingBookingId: fullDayBooking.id,
+        conflictingDates: { start: fullDayBooking.start_date, end: fullDayBooking.end_date }
+      }
+    };
+  }
+
+  if (bookingMode !== 'hourly') {
+    // An existing hourly booking blocks the day for full-day rentals
+    const [hourlyDay] = await sql`
+      SELECT id, start_date, end_date
+      FROM bookings
+      WHERE listing_id = ${listingId}
+        AND LOWER(COALESCE(booking_mode, '')) = 'hourly'
+        AND start_date <= ${endDate}
+        AND end_date >= ${startDate}
+      LIMIT 1;
+    `;
+
+    if (hourlyDay) {
+      return {
+        type: 'BOOKING',
+        details: {
+          conflictingBookingId: hourlyDay.id,
+          conflictingDates: { start: hourlyDay.start_date, end: hourlyDay.end_date }
+        }
+      };
+    }
+
+    return null;
+  }
+
+  // bookingMode === 'hourly' from here
+  const hourlyRows = await sql`
+    SELECT id, start_datetime, end_datetime
+    FROM bookings
+    WHERE listing_id = ${listingId}
+      AND LOWER(COALESCE(booking_mode, '')) = 'hourly'
+      AND start_date <= ${startDate}
+      AND end_date >= ${startDate};
+  `;
+
+  if (!hourlyRows.length || !startDateTime || !endDateTime) {
+    return null;
+  }
+
+  const desiredStart = new Date(startDateTime);
+  const desiredEnd = new Date(endDateTime);
+
+  for (const row of hourlyRows) {
+    if (!row.start_datetime || !row.end_datetime) {
+      continue;
+    }
+    const existingStart = new Date(row.start_datetime);
+    const existingEnd = new Date(row.end_datetime);
+    if (rangesOverlap(existingStart, existingEnd, desiredStart, desiredEnd)) {
+      return {
+        type: 'BOOKING',
+        details: {
+          conflictingBookingId: row.id,
+          conflictingDates: { start: row.start_datetime, end: row.end_datetime }
+        }
+      };
+    }
+  }
+
+  return null;
 }
 
 function buildWhereClause(filters = {}) {

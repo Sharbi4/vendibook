@@ -25,6 +25,8 @@ let userSocialLinksBootstrapPromise;
 let userPayoutAccountsBootstrapPromise;
 let userMetricsBootstrapPromise;
 let bookingsBootstrapPromise;
+let availabilityBlocksBootstrapPromise;
+let listingBookingRulesBootstrapPromise;
 let messageThreadsBootstrapPromise;
 let messagesBootstrapPromise;
 let notificationsBootstrapPromise;
@@ -46,6 +48,21 @@ export function bootstrapListingsTable() {
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
+      `;
+
+      await sql`
+        ALTER TABLE listings
+        ADD COLUMN IF NOT EXISTS booking_mode TEXT NOT NULL DEFAULT 'daily-with-time';
+      `;
+
+      await sql`
+        ALTER TABLE listings
+        ADD COLUMN IF NOT EXISTS default_start_time TIME NULL;
+      `;
+
+      await sql`
+        ALTER TABLE listings
+        ADD COLUMN IF NOT EXISTS default_end_time TIME NULL;
       `;
     })().catch(error => {
       listingsBootstrapPromise = undefined;
@@ -268,6 +285,31 @@ export function bootstrapBookingsTable() {
           CHECK (end_date >= start_date)
         );
       `;
+
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS start_datetime TIMESTAMPTZ NULL;
+      `;
+
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS end_datetime TIMESTAMPTZ NULL;
+      `;
+
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS rental_days INTEGER NULL;
+      `;
+
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS duration_hours NUMERIC NULL;
+      `;
+
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS booking_mode TEXT NULL;
+      `;
     })().catch(error => {
       bookingsBootstrapPromise = undefined;
       console.error('Failed to bootstrap bookings table:', error);
@@ -276,6 +318,61 @@ export function bootstrapBookingsTable() {
   }
 
   return bookingsBootstrapPromise;
+}
+
+export function bootstrapAvailabilityBlocksTable() {
+  if (!availabilityBlocksBootstrapPromise) {
+    availabilityBlocksBootstrapPromise = (async () => {
+      await bootstrapListingsTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS availability_blocks (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+          start_date DATE NOT NULL,
+          end_date DATE NOT NULL,
+          reason TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          CHECK (end_date >= start_date)
+        );
+      `;
+    })().catch(error => {
+      availabilityBlocksBootstrapPromise = undefined;
+      console.error('Failed to bootstrap availability_blocks table:', error);
+      throw error;
+    });
+  }
+
+  return availabilityBlocksBootstrapPromise;
+}
+
+export function bootstrapListingBookingRulesTable() {
+  if (!listingBookingRulesBootstrapPromise) {
+    listingBookingRulesBootstrapPromise = (async () => {
+      await bootstrapListingsTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS listing_booking_rules (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+          min_days_notice INTEGER DEFAULT 0,
+          max_future_days INTEGER DEFAULT 365,
+          min_rental_days INTEGER DEFAULT 1,
+          max_rental_days INTEGER DEFAULT 30,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (listing_id)
+        );
+      `;
+    })().catch(error => {
+      listingBookingRulesBootstrapPromise = undefined;
+      console.error('Failed to bootstrap listing_booking_rules table:', error);
+      throw error;
+    });
+  }
+
+  return listingBookingRulesBootstrapPromise;
 }
 
 export function bootstrapMessageThreadsTable() {

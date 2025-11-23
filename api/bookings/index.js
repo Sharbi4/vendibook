@@ -8,7 +8,12 @@ import {
   normalizeStatus,
   resolveUserId,
   extractClerkId,
-  createHttpError
+  createHttpError,
+  fetchListingSchedulingConfig,
+  normalizeBookingMode,
+  calculateRentalDays,
+  calculateDurationHours,
+  checkBookingConflicts
 } from './shared.js';
 // import {
 //   notifyBookingCreated,
@@ -17,6 +22,8 @@ import {
 // } from '../../src/api/notifications/hooks.js'; // TODO: enable after notification wiring
 
 const CANCELLATION_ACTORS = new Set(['RENTER', 'HOST', 'SYSTEM']);
+const DEFAULT_PICKUP_TIME = '08:00';
+const DEFAULT_RETURN_TIME = '22:00';
 
 export default async function handler(req, res) {
   try {
@@ -53,8 +60,6 @@ async function handlePost(req, res) {
     const renterClerkId = body.renterClerkId || body.renter_clerk_id || extractClerkId(req);
     const hostUserIdInput = body.hostUserId || body.host_user_id;
     const hostClerkId = body.hostClerkId || body.host_clerk_id;
-    const startDate = normalizeDateInput(body.startDate || body.start_date, 'startDate');
-    const endDate = normalizeDateInput(body.endDate || body.end_date, 'endDate');
     const totalPrice = parseTotalPrice(body.totalPrice ?? body.total_price);
     const currency = normalizeCurrency(body.currency);
     const status = normalizeStatus(body.status, 'PENDING');
@@ -64,17 +69,33 @@ async function handlePost(req, res) {
       throw createHttpError(400, 'listingId is required');
     }
 
-    if (endDate < startDate) {
-      throw createHttpError(400, 'endDate must be on or after startDate');
-    }
-
-    await ensureListingExists(listingId);
+    const listingConfig = await fetchListingSchedulingConfig(listingId);
+    const bookingMode = normalizeBookingMode(body.bookingMode || body.booking_mode || listingConfig.bookingMode);
+    const schedule = buildBookingSchedule({ bookingMode, listingConfig, body });
 
     const renterUserId = await resolveUserId({ userId: renterUserIdInput, clerkId: renterClerkId, label: 'renter' });
     const hostUserId = await resolveUserId({ userId: hostUserIdInput, clerkId: hostClerkId, label: 'host' });
 
     if (renterUserId === hostUserId) {
       throw createHttpError(400, 'Host and renter must be different users');
+    }
+
+    const conflict = await checkBookingConflicts({
+      listingId,
+      bookingMode,
+      startDate: schedule.startDate,
+      endDate: schedule.endDate,
+      startDateTime: schedule.startDateTime,
+      endDateTime: schedule.endDateTime
+    });
+
+    if (conflict) {
+      return res.status(409).json({
+        success: false,
+        error: 'DATE_RANGE_UNAVAILABLE',
+        message: 'The selected dates are not available',
+        details: conflict.details
+      });
     }
 
     const [inserted] = await sql`
@@ -87,17 +108,27 @@ async function handlePost(req, res) {
         total_price,
         currency,
         status,
-        notes
+        notes,
+        booking_mode,
+        start_datetime,
+        end_datetime,
+        rental_days,
+        duration_hours
       ) VALUES (
         ${listingId},
         ${renterUserId},
         ${hostUserId},
-        ${startDate},
-        ${endDate},
+        ${schedule.startDate},
+        ${schedule.endDate},
         ${totalPrice},
         ${currency},
         ${status},
-        ${notes}
+        ${notes},
+        ${bookingMode},
+        ${schedule.startDateTime},
+        ${schedule.endDateTime},
+        ${schedule.rentalDays},
+        ${schedule.durationHours}
       )
       RETURNING id;
     `;
@@ -236,6 +267,106 @@ async function handlePatch(req, res) {
   }
 }
 
+function buildBookingSchedule({ bookingMode, listingConfig, body }) {
+  const fallbackPickup = deriveTimeString(listingConfig.defaultStartTime, DEFAULT_PICKUP_TIME);
+  const fallbackReturn = deriveTimeString(listingConfig.defaultEndTime, DEFAULT_RETURN_TIME);
+
+  if (bookingMode === 'hourly') {
+    const eventDateInput = body.eventDate || body.event_date || body.startDate || body.start_date;
+    const eventDate = normalizeDateInput(eventDateInput, 'eventDate');
+    const startTime = normalizeTimeString(body.eventStartTime || body.startTime || body.start_time, 'startTime');
+    const endTime = normalizeTimeString(body.eventEndTime || body.endTime || body.end_time, 'endTime');
+
+    const startDateTime = combineDateAndTime(eventDate, startTime);
+    const endDateTime = combineDateAndTime(eventDate, endTime);
+
+    if (new Date(endDateTime) <= new Date(startDateTime)) {
+      throw createHttpError(400, 'endTime must be after startTime for hourly bookings');
+    }
+
+    return {
+      startDate: eventDate,
+      endDate: eventDate,
+      startDateTime,
+      endDateTime,
+      rentalDays: null,
+      durationHours: calculateDurationHours(startDateTime, endDateTime)
+    };
+  }
+
+  const startDate = normalizeDateInput(body.startDate || body.start_date, 'startDate');
+  const endDate = normalizeDateInput(body.endDate || body.end_date || startDate, 'endDate');
+
+  if (new Date(endDate) < new Date(startDate)) {
+    throw createHttpError(400, 'endDate must be on or after startDate');
+  }
+
+  const pickupTime = resolveTimeValue(body.pickupTime || body.pickup_time, 'pickupTime', fallbackPickup);
+  const returnTime = resolveTimeValue(body.returnTime || body.return_time, 'returnTime', fallbackReturn);
+
+  const startDateTime = combineDateAndTime(startDate, pickupTime);
+  const endDateTime = combineDateAndTime(endDate, returnTime);
+
+  if (new Date(endDateTime) <= new Date(startDateTime)) {
+    throw createHttpError(400, 'Return time must be after pickup time');
+  }
+
+  return {
+    startDate,
+    endDate,
+    startDateTime,
+    endDateTime,
+    rentalDays: calculateRentalDays(startDate, endDate),
+    durationHours: null
+  };
+}
+
+function deriveTimeString(value, fallback) {
+  if (!value) {
+    return fallback;
+  }
+  const parts = String(value).split(':');
+  if (parts.length < 2) {
+    return fallback;
+  }
+  const hours = parts[0].padStart(2, '0');
+  const minutes = parts[1].padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+function resolveTimeValue(input, label, fallback) {
+  if (input === null || input === undefined || input === '') {
+    return normalizeTimeString(fallback, label);
+  }
+  return normalizeTimeString(input, label);
+}
+
+function normalizeTimeString(value, label) {
+  if (!value && value !== 0) {
+    throw createHttpError(400, `${label} is required`);
+  }
+  const raw = String(value).trim();
+  const match = raw.match(/^([0-2]?\d):([0-5]\d)(?::([0-5]\d))?$/);
+  if (!match) {
+    throw createHttpError(400, `Invalid ${label}`);
+  }
+  const hour = parseInt(match[1], 10);
+  const minute = parseInt(match[2], 10);
+  if (hour > 23) {
+    throw createHttpError(400, `${label} hour must be between 00 and 23`);
+  }
+  return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+}
+
+function combineDateAndTime(dateStr, timeStr) {
+  const iso = `${dateStr}T${timeStr}:00`;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    throw createHttpError(400, 'Invalid date/time combination');
+  }
+  return date.toISOString();
+}
+
 function normalizeDateInput(value, label) {
   if (!value) {
     throw createHttpError(400, `${label} is required`);
@@ -276,14 +407,6 @@ function normalizeNotes(value) {
   }
   const text = String(value).trim();
   return text.length ? text : null;
-}
-
-async function ensureListingExists(listingId) {
-  const [listing] = await sql`SELECT id FROM listings WHERE id = ${listingId} LIMIT 1`;
-  if (!listing) {
-    throw createHttpError(404, 'Listing not found');
-  }
-  return listing.id;
 }
 
 function normalizeCancellationBy(value) {
