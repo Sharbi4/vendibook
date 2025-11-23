@@ -30,6 +30,7 @@ let listingBookingRulesBootstrapPromise;
 let messageThreadsBootstrapPromise;
 let messagesBootstrapPromise;
 let notificationsBootstrapPromise;
+let eventProPackagesBootstrapPromise;
 
 export function bootstrapListingsTable() {
   if (!listingsBootstrapPromise) {
@@ -438,6 +439,38 @@ export function bootstrapListingBookingRulesTable() {
   }
 
   return listingBookingRulesBootstrapPromise;
+}
+
+export function bootstrapEventProPackagesTable() {
+  if (!eventProPackagesBootstrapPromise) {
+    eventProPackagesBootstrapPromise = (async () => {
+      await bootstrapListingsTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      // event_pro_packages is the canonical source of truth for Event Pro offerings surfaced on listings and bookings.
+      await sql`
+        CREATE TABLE IF NOT EXISTS event_pro_packages (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          description TEXT,
+          base_price NUMERIC NOT NULL,
+          max_guests INTEGER NULL,
+          included_items TEXT NULL,
+          duration_hours NUMERIC NULL,
+          is_active BOOLEAN NOT NULL DEFAULT TRUE,
+          sort_order INTEGER NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+    })().catch(error => {
+      eventProPackagesBootstrapPromise = undefined;
+      console.error('Failed to bootstrap event_pro_packages table:', error);
+      throw error;
+    });
+  }
+
+  return eventProPackagesBootstrapPromise;
 }
 
 export function bootstrapMessageThreadsTable() {
