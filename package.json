@@ -10,6 +10,7 @@
     "env:pull": "npx vercel env pull .env.development.local"
   },
   "dependencies": {
+    "@clerk/clerk-react": "^5.56.2",
     "@neondatabase/serverless": "^1.0.2",
     "bcryptjs": "^3.0.3",
     "date-fns": "^4.1.0",
