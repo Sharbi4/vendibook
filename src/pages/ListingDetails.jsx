@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin, Star, Check, Shield, Truck, Calendar } from 'lucide-
 import { getListingById as getMockListingById } from '../data/listings';
 import { AvailabilityCalendar } from '../components/AvailabilityCalendar';
 import { useAuth } from '../hooks/useAuth';
+import { useAppStatus } from '../hooks/useAppStatus';
 
 const normalizeValue = (value) => (value ? value.toString().toLowerCase() : '');
 
@@ -123,7 +124,8 @@ const extractHostUserId = (listing) =>
 function ListingDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { user, token, isAuthenticated } = useAuth();
+  const { setGlobalLoading, setGlobalError } = useAppStatus();
   const [listing, setListing] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -136,6 +138,7 @@ function ListingDetails() {
   const [eventStartTime, setEventStartTime] = useState('');
   const [eventEndTime, setEventEndTime] = useState('');
   const [bookingFeedback, setBookingFeedback] = useState(null);
+  const [calendarNotice, setCalendarNotice] = useState(null);
 
   useEffect(() => {
     if (!id) return;
@@ -242,6 +245,7 @@ function ListingDetails() {
     setEventStartTime('');
     setEventEndTime('');
     setBookingFeedback(null);
+    setCalendarNotice(null);
   }, [listing?.id, listing?.default_start_time, listing?.defaultStartTime, listing?.default_end_time, listing?.defaultEndTime]);
 
   const formatPrice = (price, unit = 'per day') => {
@@ -275,19 +279,25 @@ function ListingDetails() {
     }
 
     const renterUserId = user?.id || user?._id || user?.userId;
+    const renterClerkId = user?.clerkId || user?.clerk_id || user?.clerkID || null;
+
     if (!isAuthenticated || !renterUserId) {
       setBookingFeedback({ type: 'error', message: 'Please sign in to request a booking.' });
       return;
     }
 
-    const hostUserId = extractHostUserId(listing);
     if (!hostUserId) {
       setBookingFeedback({ type: 'error', message: 'Host information is missing for this listing. Please contact support.' });
       return;
     }
 
-    if (!startDate || (!isHourlyMode && !endDate)) {
+    if (!startDate) {
       setBookingFeedback({ type: 'error', message: 'Select your dates before booking.' });
+      return;
+    }
+
+    if (!isHourlyMode && !selectedEndDate) {
+      setBookingFeedback({ type: 'error', message: 'Select your end date before booking.' });
       return;
     }
 
@@ -298,48 +308,84 @@ function ListingDetails() {
 
     setIsSubmitting(true);
     setBookingFeedback(null);
+    setCalendarNotice(null);
+    setGlobalLoading(true);
+
+    const nightlyRate = Number(listing?.price) || 0;
+    const fallbackPrice = nightlyRate > 0 ? nightlyRate : 1;
+    const totalPriceValue = estimatedTotalValue && estimatedTotalValue > 0 ? estimatedTotalValue : fallbackPrice;
 
     const payload = {
       listingId: listing.id,
       renterUserId,
       hostUserId,
       bookingMode,
-      startDate,
-      endDate: selectedEndDate,
-      pickupTime: !isHourlyMode ? pickupTime || null : null,
-      returnTime: !isHourlyMode ? returnTime || null : null,
-      eventDate: isHourlyMode ? startDate : null,
-      startTime: isHourlyMode ? eventStartTime : null,
-      endTime: isHourlyMode ? eventEndTime : null,
-      totalPrice: estimatedTotalValue || listing?.price || 0,
+      totalPrice: totalPriceValue,
       currency: listing?.currency || 'USD'
     };
 
+    const hostClerkId = listing?.host_clerk_id || listing?.hostClerkId || null;
+    if (renterClerkId) {
+      payload.renterClerkId = renterClerkId;
+    }
+    if (hostClerkId) {
+      payload.hostClerkId = hostClerkId;
+    }
+
+    if (isHourlyMode) {
+      payload.eventDate = startDate;
+      payload.eventStartTime = eventStartTime;
+      payload.eventEndTime = eventEndTime;
+      payload.startDate = startDate;
+      payload.endDate = startDate;
+    } else {
+      payload.startDate = startDate;
+      payload.endDate = selectedEndDate;
+      if (bookingMode === 'daily-with-time') {
+        payload.pickupTime = pickupTime || null;
+        payload.returnTime = returnTime || null;
+      }
+    }
+
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      if (renterClerkId) {
+        headers['x-clerk-id'] = renterClerkId;
+      }
+
       const response = await fetch('/api/bookings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload)
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        if (response.status === 409) {
-          setBookingFeedback({
-            type: 'error',
-            message: data.message || 'The selected dates are not available. Please adjust your selection.'
-          });
+        if (response.status === 409 && (data?.error === 'DATE_RANGE_UNAVAILABLE' || data?.message)) {
+          setCalendarNotice(data.message || 'The selected dates are not available. Please adjust your selection.');
           return;
         }
+
+        if (response.status === 401) {
+          setBookingFeedback({ type: 'error', message: 'Your session expired. Please sign in again.' });
+          return;
+        }
+
         throw new Error(data.message || data.error || 'Unable to submit booking right now.');
       }
 
-      setBookingFeedback({ type: 'success', message: 'Booking request submitted! A host will reach out shortly.' });
+      setBookingFeedback({ type: 'success', message: 'Booking request submitted! Redirecting to My Bookings...' });
+      setTimeout(() => navigate('/bookings'), 1000);
     } catch (submitError) {
       setBookingFeedback({ type: 'error', message: submitError.message || 'Unable to submit booking right now.' });
+      setGlobalError(submitError.message || 'Unable to submit booking right now.');
     } finally {
       setIsSubmitting(false);
+      setGlobalLoading(false);
     }
   };
 
@@ -353,6 +399,7 @@ function ListingDetails() {
   const isVerified = listing?.isVerified || listing?.is_verified;
   const tags = Array.isArray(listing?.tags) ? listing.tags : [];
   const highlights = Array.isArray(listing?.highlights) ? listing.highlights : [];
+  const hostUserId = extractHostUserId(listing);
   const createdAt = listing?.created_at || listing?.createdAt;
   const priceUnit = listing?.price_unit || listing?.priceUnit || 'per day';
   const rawType = listing?.listing_type || listing?.listingType || listing?.category;
@@ -439,7 +486,10 @@ function ListingDetails() {
       ? rentalDays * nightlyRate
       : null;
   const estimatedTotal = estimatedTotalValue ? formatCurrency(estimatedTotalValue) : null;
-  const canSubmit = Boolean(startDate && (isHourlyMode ? eventStartTime && eventEndTime : endDate)) && !isSubmitting;
+  const hasRequiredSelection = isHourlyMode
+    ? Boolean(startDate && eventStartTime && eventEndTime)
+    : Boolean(startDate && selectedEndDate);
+  const canSubmit = Boolean(hostUserId && isAuthenticated && hasRequiredSelection) && !isSubmitting;
 
   if (isLoading) {
     return (
@@ -672,10 +722,16 @@ function ListingDetails() {
                       selectedEndDate={selectedEndDate}
                       onChangeDates={(startSelection, endSelection) => {
                         setBookingFeedback(null);
+                        setCalendarNotice(null);
                         setStartDate(startSelection);
                         setEndDate(isHourlyMode ? startSelection : endSelection);
                       }}
                     />
+                    {calendarNotice && (
+                      <div className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {calendarNotice}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -689,7 +745,11 @@ function ListingDetails() {
                         id="event-start-time"
                         type="time"
                         value={eventStartTime}
-                        onChange={(e) => setEventStartTime(e.target.value)}
+                        onChange={(e) => {
+                          setEventStartTime(e.target.value);
+                          setBookingFeedback(null);
+                          setCalendarNotice(null);
+                        }}
                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
@@ -701,7 +761,11 @@ function ListingDetails() {
                         id="event-end-time"
                         type="time"
                         value={eventEndTime}
-                        onChange={(e) => setEventEndTime(e.target.value)}
+                        onChange={(e) => {
+                          setEventEndTime(e.target.value);
+                          setBookingFeedback(null);
+                          setCalendarNotice(null);
+                        }}
                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
@@ -716,7 +780,11 @@ function ListingDetails() {
                         id="pickup-time"
                         type="time"
                         value={pickupTime}
-                        onChange={(e) => setPickupTime(e.target.value)}
+                        onChange={(e) => {
+                          setPickupTime(e.target.value);
+                          setBookingFeedback(null);
+                          setCalendarNotice(null);
+                        }}
                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
@@ -728,7 +796,11 @@ function ListingDetails() {
                         id="return-time"
                         type="time"
                         value={returnTime}
-                        onChange={(e) => setReturnTime(e.target.value)}
+                        onChange={(e) => {
+                          setReturnTime(e.target.value);
+                          setBookingFeedback(null);
+                          setCalendarNotice(null);
+                        }}
                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
                     </div>
@@ -773,6 +845,11 @@ function ListingDetails() {
                   >
                     {bookingFeedback.message}
                   </div>
+                )}
+                {!isAuthenticated && (
+                  <p className="text-center text-xs font-medium text-slate-500">
+                    Sign in to request this listing and reserve your dates.
+                  </p>
                 )}
               </div>
 
