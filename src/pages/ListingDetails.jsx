@@ -218,6 +218,77 @@ function ListingDetails() {
     alert('Messaging coming soon! For now, contact the host directly.');
   };
 
+  const imageUrl = listing?.imageUrl || listing?.image_url;
+  const deliveryAvailable = listing?.deliveryAvailable || listing?.delivery_available;
+  const isVerified = listing?.isVerified || listing?.is_verified;
+  const tags = Array.isArray(listing?.tags) ? listing.tags : [];
+  const highlights = Array.isArray(listing?.highlights) ? listing.highlights : [];
+  const createdAt = listing?.created_at || listing?.createdAt;
+  const priceUnit = listing?.price_unit || listing?.priceUnit || 'per day';
+  const rawType = listing?.listing_type || listing?.listingType || listing?.category;
+  const normalizedType = normalizeValue(rawType);
+  const isEventPro =
+    normalizedType === 'event-pro' ||
+    normalizedType === 'event_pro' ||
+    normalizedType === 'eventpro' ||
+    normalizedType === 'event';
+
+  const categoryBadgeLabel = useMemo(
+    () => formatCategoryBadge(rawType, listing?.category),
+    [rawType, listing?.category]
+  );
+  const listingTypeLabel = useMemo(
+    () => formatListingType(rawType, listing?.category),
+    [rawType, listing?.category]
+  );
+  const eventProPackages = useMemo(
+    () => (isEventPro && listing ? buildEventProPackages(listing) : []),
+    [isEventPro, listing]
+  );
+  const detailItems = useMemo(() => {
+    const items = [
+      { label: 'Type', value: listingTypeLabel },
+      { label: 'Base price', value: formatPrice(listing?.price, priceUnit) },
+      { label: 'City', value: listing?.city },
+      { label: 'State', value: listing?.state },
+    ];
+
+    if (deliveryAvailable) {
+      items.push({ label: 'Delivery', value: 'Available upon request' });
+    }
+
+    if (isVerified) {
+      items.push({ label: 'Verified', value: 'Vendibook verified host' });
+    }
+
+    if (createdAt) {
+      items.push({
+        label: 'Listed',
+        value: new Date(createdAt).toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        }),
+      });
+    }
+
+    return items;
+  }, [
+    createdAt,
+    deliveryAvailable,
+    isVerified,
+    listing?.city,
+    listing?.state,
+    listing?.price,
+    listingTypeLabel,
+    priceUnit,
+  ]);
+
+  const formattedPrice = useMemo(
+    () => formatPrice(listing?.price, priceUnit),
+    [listing?.price, priceUnit]
+  );
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
@@ -261,53 +332,6 @@ function ListingDetails() {
       </div>
     );
   }
-
-  const imageUrl = listing.imageUrl || listing.image_url;
-  const deliveryAvailable = listing.deliveryAvailable || listing.delivery_available;
-  const isVerified = listing.isVerified || listing.is_verified;
-  const tags = Array.isArray(listing.tags) ? listing.tags : [];
-  const highlights = Array.isArray(listing.highlights) ? listing.highlights : [];
-  const createdAt = listing.created_at || listing.createdAt;
-  const priceUnit = listing.price_unit || listing.priceUnit || 'per day';
-  const rawType = listing.listing_type || listing.listingType || listing.category;
-
-  const normalizedType = normalizeValue(rawType);
-  const isEventPro = normalizedType === 'event-pro' || normalizedType === 'event_pro' || normalizedType === 'eventpro' || normalizedType === 'event';
-
-  const categoryBadgeLabel = useMemo(() => formatCategoryBadge(rawType, listing.category), [rawType, listing.category]);
-  const listingTypeLabel = useMemo(() => formatListingType(rawType, listing.category), [rawType, listing.category]);
-  const eventProPackages = useMemo(() => (isEventPro ? buildEventProPackages(listing) : []), [isEventPro, listing]);
-  const detailItems = useMemo(() => {
-    const items = [
-      { label: 'Type', value: listingTypeLabel },
-      { label: 'Base price', value: formatPrice(listing.price, priceUnit) },
-      { label: 'City', value: listing.city },
-      { label: 'State', value: listing.state },
-    ];
-
-    if (deliveryAvailable) {
-      items.push({ label: 'Delivery', value: 'Available upon request' });
-    }
-
-    if (isVerified) {
-      items.push({ label: 'Verified', value: 'Vendibook verified host' });
-    }
-
-    if (createdAt) {
-      items.push({
-        label: 'Listed',
-        value: new Date(createdAt).toLocaleDateString(undefined, {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        }),
-      });
-    }
-
-    return items;
-  }, [createdAt, deliveryAvailable, isVerified, listing.city, listing.state, listing.price, listingTypeLabel, priceUnit]);
-
-  const formattedPrice = useMemo(() => formatPrice(listing.price, priceUnit), [listing.price, priceUnit]);
 
   return (
     <div className="min-h-screen bg-[#F5F5F5]">
