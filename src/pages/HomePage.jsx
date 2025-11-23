@@ -1,20 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useListings } from '../hooks/useListings.js';
 import { useNavigate } from 'react-router-dom';
-import { Search, MapPin, Calendar, ChevronRight, Truck, Users, UtensilsCrossed, Store, ShoppingCart, Menu, X, ChevronDown, ChevronUp, Star, Check, DollarSign, Zap, Coffee } from 'lucide-react';
+import { Truck, Star, Check, Store, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
+import HeroSearch from '../components/home/HeroSearch.jsx';
+import { CATEGORY_OPTIONS, CATEGORY_MAP, DEFAULT_CATEGORY } from '../config/categories.js';
 
 function HomePage() {
   const navigate = useNavigate();
-  // Search modal state
-  const [searchModalOpen, setSearchModalOpen] = useState(false);
-  const [listingType, setListingType] = useState('rent'); // 'rent', 'sale', 'event-pro'
-  const [location, setLocation] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Filters state
   const [showFilters, setShowFilters] = useState(false);
@@ -28,7 +21,7 @@ function HomePage() {
   const [appliedSearch, setAppliedSearch] = useState({
     listingType: 'all',
     location: '',
-    category: 'all',
+    category: DEFAULT_CATEGORY.value,
     startDate: '',
     endDate: '',
     priceMin: '',
@@ -37,43 +30,6 @@ function HomePage() {
     deliveryOnly: false,
     verifiedOnly: false
   });
-
-  // All categories for top navigation
-  const allCategories = [
-    { id: 'all', name: 'All', icon: Store, color: '#FF5124', emoji: '🏪' },
-    { id: 'food-trucks', name: 'Food Trucks', icon: Truck, color: '#FF5124', emoji: '🚚' },
-    { id: 'trailers', name: 'Trailers', icon: Truck, color: '#FF8C42', emoji: '🚐' },
-    { id: 'ghost-kitchens', name: 'Ghost Kitchens', icon: UtensilsCrossed, color: '#FFA500', emoji: '🍴' },
-    { id: 'vending-lots', name: 'Vending Lots', icon: MapPin, color: '#FFB84D', emoji: '📍' },
-    { id: 'event-pros', name: 'Event Pros', icon: Users, color: '#FFC966', emoji: '👥' },
-    { id: 'for-sale', name: 'For Sale', icon: ShoppingCart, color: '#FF5124', emoji: '🛒' }
-  ];
-
-  // Categories by listing type (for search modal)
-  const categoriesByType = {
-    rent: [
-      { id: 'all', name: 'All', icon: Store, color: '#FF5124', emoji: '🏪' },
-      { id: 'food-trucks', name: 'Food Trucks', icon: Truck, color: '#FF5124', emoji: '🚚' },
-      { id: 'trailers', name: 'Trailers', icon: Truck, color: '#FF8C42', emoji: '🚐' },
-      { id: 'ghost-kitchens', name: 'Ghost Kitchens', icon: UtensilsCrossed, color: '#FFA500', emoji: '🍴' },
-      { id: 'vending-lots', name: 'Vending Lots', icon: MapPin, color: '#FFB84D', emoji: '📍' }
-    ],
-    sale: [
-      { id: 'all', name: 'All', icon: Store, color: '#FF5124', emoji: '🏪' },
-      { id: 'for-sale', name: 'Food Trucks', icon: ShoppingCart, color: '#FF5124', emoji: '🚚' },
-      { id: 'trailers-sale', name: 'Trailers', icon: ShoppingCart, color: '#FFA500', emoji: '🚐' },
-      { id: 'equipment', name: 'Equipment', icon: ShoppingCart, color: '#FF8C42', emoji: '⚙️' }
-    ],
-    'event-pro': [
-      { id: 'all', name: 'All', icon: Users, color: '#FF5124', emoji: '👥' },
-      { id: 'chefs', name: 'Chefs', icon: Users, color: '#FFC966', emoji: '👨‍🍳' },
-      { id: 'caterers', name: 'Caterers', icon: Users, color: '#FFB84D', emoji: '🍽️' },
-      { id: 'baristas', name: 'Baristas', icon: Coffee, color: '#FFA500', emoji: '☕' },
-      { id: 'event-staff', name: 'Event Staff', icon: Users, color: '#FF8C42', emoji: '🎉' }
-    ]
-  };
-
-  const currentCategories = categoriesByType[listingType] || categoriesByType.rent;
 
   const amenitiesList = ['Power', 'Water', 'Propane', 'Full Kitchen', 'Storage', 'WiFi'];
 
@@ -262,22 +218,71 @@ function HomePage() {
     return true;
   });
 
-  const handleSearch = () => {
-    // Build query string for navigation
+  const heroCategoryLabel = CATEGORY_MAP[appliedSearch.category]?.label || CATEGORY_MAP[DEFAULT_CATEGORY.value].label;
+  const heroLocationLabel = appliedSearch.location || 'Anywhere';
+  const heroDateLabel = appliedSearch.startDate
+    ? appliedSearch.endDate
+      ? `${appliedSearch.startDate} → ${appliedSearch.endDate}`
+      : `${appliedSearch.startDate} (flexible)`
+    : 'Flexible dates';
+
+  const parseLocationInput = (value = '') => {
+    const trimmed = value.trim();
+    if (!trimmed) return { city: '', state: '' };
+    const [cityPart = '', statePart = ''] = trimmed.split(',').map((part) => part.trim());
+    return {
+      city: cityPart,
+      state: statePart ? statePart.slice(0, 2).toUpperCase() : ''
+    };
+  };
+
+  const formatListingTypeParam = (intent) => {
+    if (!intent || intent === 'all') return '';
+    if (intent === 'event-pro') return 'EVENT_PRO';
+    return intent.toUpperCase();
+  };
+
+  const handleSearch = (nextValues = {}) => {
+    const {
+      location: rawLocation = appliedSearch.location || '',
+      startDate: nextStartDate = appliedSearch.startDate || '',
+      endDate: nextEndDate = appliedSearch.endDate || '',
+      category: nextCategory = appliedSearch.category || DEFAULT_CATEGORY.value,
+      listingIntent = appliedSearch.listingType || 'all',
+      listingType = undefined,
+    } = nextValues;
+
+    const listingTypeParam = listingType ?? formatListingTypeParam(listingIntent);
+    const { city, state } = parseLocationInput(rawLocation);
+
     const params = new URLSearchParams();
-    if (listingType && listingType !== 'rent') params.set('type', listingType.toUpperCase());
-    if (location) params.set('location', location);
-    if (selectedCategory && selectedCategory !== 'all') params.set('category', selectedCategory);
-    if (startDate) params.set('startDate', startDate);
-    if (endDate) params.set('endDate', endDate);
+    if (city) params.set('city', city);
+    if (state) params.set('state', state);
+    if (listingTypeParam) params.set('listingType', listingTypeParam);
+    if (nextCategory && nextCategory !== 'all') params.set('category', nextCategory);
+    if (nextStartDate) params.set('startDate', nextStartDate);
+    if (nextEndDate) params.set('endDate', nextEndDate);
     if (priceMin) params.set('priceMin', priceMin);
     if (priceMax) params.set('priceMax', priceMax);
     if (selectedAmenities.length > 0) params.set('amenities', selectedAmenities.join(','));
     if (deliveryOnly) params.set('deliveryOnly', 'true');
     if (verifiedOnly) params.set('verifiedOnly', 'true');
 
-    // Navigate to listings page with search params
-    navigate(`/listings?${params.toString()}`);
+    navigate(params.toString() ? `/listings?${params.toString()}` : '/listings');
+
+    setAppliedSearch((prev) => ({
+      ...prev,
+      listingType: listingIntent,
+      location: rawLocation,
+      category: nextCategory,
+      startDate: nextStartDate,
+      endDate: nextEndDate,
+      priceMin,
+      priceMax,
+      amenities: selectedAmenities,
+      deliveryOnly,
+      verifiedOnly,
+    }));
   };
 
   const handleBookNow = (listing) => {
@@ -296,145 +301,6 @@ function HomePage() {
     }
   };
 
-  // Simple calendar component (can be replaced with a library if needed)
-  const SimpleDatePicker = () => {
-    const today = new Date();
-    const [currentMonth, setCurrentMonth] = useState(today.getMonth());
-    const [currentYear, setCurrentYear] = useState(today.getFullYear());
-
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-
-    const monthNames = ["January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"];
-
-    const handleDateClick = (day) => {
-      const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
-      if (!startDate || (startDate && endDate)) {
-        // Set start date
-        setStartDate(dateStr);
-        setEndDate('');
-      } else if (startDate && !endDate) {
-        // Set end date
-        if (new Date(dateStr) >= new Date(startDate)) {
-          setEndDate(dateStr);
-          setShowCalendar(false);
-        } else {
-          // If selected date is before start, reset
-          setStartDate(dateStr);
-          setEndDate('');
-        }
-      }
-    };
-
-    const prevMonth = () => {
-      if (currentMonth === 0) {
-        setCurrentMonth(11);
-        setCurrentYear(currentYear - 1);
-      } else {
-        setCurrentMonth(currentMonth - 1);
-      }
-    };
-
-    const nextMonth = () => {
-      if (currentMonth === 11) {
-        setCurrentMonth(0);
-        setCurrentYear(currentYear + 1);
-      } else {
-        setCurrentMonth(currentMonth + 1);
-      }
-    };
-
-    const isSelected = (day) => {
-      const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      return dateStr === startDate || dateStr === endDate;
-    };
-
-    const isInRange = (day) => {
-      if (!startDate || !endDate) return false;
-      const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const date = new Date(dateStr);
-      return date > new Date(startDate) && date < new Date(endDate);
-    };
-
-    return (
-      <div style={{
-        position: 'absolute',
-        top: '100%',
-        left: 0,
-        marginTop: '8px',
-        background: 'white',
-        border: '1px solid #DDD',
-        borderRadius: '12px',
-        padding: '16px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        zIndex: 1000,
-        minWidth: '300px'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <button onClick={prevMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>←</button>
-          <div style={{ fontWeight: '600', fontSize: '15px' }}>{monthNames[currentMonth]} {currentYear}</div>
-          <button onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>→</button>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '8px' }}>
-          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-            <div key={day} style={{ textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#717171' }}>{day}</div>
-          ))}
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
-          {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-            <div key={`empty-${i}`} />
-          ))}
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day = i + 1;
-            const selected = isSelected(day);
-            const inRange = isInRange(day);
-            return (
-              <button
-                key={day}
-                onClick={() => handleDateClick(day)}
-                style={{
-                  padding: '8px',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  background: selected ? '#FF5124' : inRange ? '#FFF3F0' : 'transparent',
-                  color: selected ? 'white' : '#222',
-                  fontWeight: selected ? '600' : '400'
-                }}
-              >
-                {day}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  // Close modal on Escape key
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape' && searchModalOpen) {
-        setSearchModalOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [searchModalOpen]);
-
-  // Prevent body scroll when modal is open
-  useEffect(() => {
-    if (searchModalOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-  }, [searchModalOpen]);
 
   return (
     <div style={{ minHeight: '100vh', background: 'white' }}>
@@ -603,369 +469,202 @@ function HomePage() {
             From food trucks to ghost kitchens—start your mobile business today
           </p>
 
-          {/* Simplified Search Trigger */}
-          <div
-            onClick={() => setSearchModalOpen(true)}
-            style={{
-              background: 'white',
-              borderRadius: '16px',
-              padding: '24px 32px',
-              boxShadow: '0 16px 48px rgba(0,0,0,0.2)',
-              maxWidth: '900px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              transition: 'transform 0.2s',
-            }}
-            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-          >
-            <div>
-              <div style={{ fontSize: '15px', fontWeight: '600', color: '#222', marginBottom: '4px' }}>
-                Search for rentals, sales, or event pros
-              </div>
-              <div style={{ fontSize: '14px', color: '#717171' }}>
-                {appliedSearch.location || 'Any location'} • {appliedSearch.category !== 'all' ? allCategories.find(c => c.id === appliedSearch.category)?.name : 'All categories'} • {appliedSearch.startDate ? `${appliedSearch.startDate} to ${appliedSearch.endDate || '...'}` : 'Any dates'}
-              </div>
-            </div>
-            <div style={{
-              background: '#FF5124',
-              color: 'white',
-              padding: '12px 24px',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontWeight: '600',
-              fontSize: '15px'
-            }}>
-              <Search style={{ width: '18px', height: '18px' }} />
-              Search
+          <div className="space-y-4" style={{ maxWidth: '960px' }}>
+            <HeroSearch
+              initialValues={{
+                location: appliedSearch.location,
+                startDate: appliedSearch.startDate,
+                endDate: appliedSearch.endDate,
+                category: appliedSearch.category,
+              }}
+              onSubmit={handleSearch}
+            />
+            <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-white/80">
+              <span>{heroLocationLabel}</span>
+              <span>•</span>
+              <span>{heroCategoryLabel}</span>
+              <span>•</span>
+              <span>{heroDateLabel}</span>
             </div>
           </div>
         </div>
       </section>
-
-      {/* Search Modal */}
-      {searchModalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: '20px'
-          }}
-          onClick={() => setSearchModalOpen(false)}
-        >
-          <div
-            style={{
-              background: 'white',
-              borderRadius: '16px',
-              maxWidth: '900px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div style={{ padding: '24px', borderBottom: '1px solid #EBEBEB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#222' }}>Search Vendibook</h2>
-              <button
-                onClick={() => setSearchModalOpen(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '8px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <X style={{ width: '24px', height: '24px', color: '#717171' }} />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div style={{ padding: '24px' }}>
-              {/* Listing Type Segmented Control */}
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  I'm looking to
-                </label>
-                <div style={{ display: 'flex', gap: '8px', background: '#F7F7F7', padding: '4px', borderRadius: '12px' }}>
-                  {[
-                    { id: 'rent', label: 'Rent Equipment' },
-                    { id: 'sale', label: 'Buy Equipment' },
-                    { id: 'event-pro', label: 'Book Event Pro' }
-                  ].map(type => (
-                    <button
-                      key={type.id}
-                      onClick={() => {
-                        setListingType(type.id);
-                        setSelectedCategory('all');
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '12px',
-                        border: 'none',
-                        borderRadius: '8px',
-                        background: listingType === type.id ? 'white' : 'transparent',
-                        color: listingType === type.id ? '#FF5124' : '#717171',
-                        fontWeight: listingType === type.id ? '600' : '500',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        boxShadow: listingType === type.id ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                      }}
-                    >
-                      {type.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Location */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Location
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <MapPin style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: '#717171' }} />
-                  <input
-                    type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Phoenix, AZ"
-                    style={{
-                      width: '100%',
-                      padding: '14px 14px 14px 44px',
-                      border: '1px solid #DDD',
-                      borderRadius: '8px',
-                      fontSize: '15px',
-                      outline: 'none',
-                      transition: 'border-color 0.2s'
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Category */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Category
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px' }}>
-                    {currentCategories.find(c => c.id === selectedCategory)?.emoji || '🏪'}
-                  </span>
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '14px 14px 14px 44px',
-                      border: '1px solid #DDD',
-                      borderRadius: '8px',
-                      fontSize: '15px',
-                      outline: 'none',
-                      cursor: 'pointer',
-                      appearance: 'none',
-                      background: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23717171' d='M6 9L1 4h10z'/%3E%3C/svg%3E") no-repeat right 14px center`,
-                      backgroundColor: 'white'
-                    }}
-                  >
-                    {currentCategories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Date Range */}
-              <div style={{ marginBottom: '20px', position: 'relative' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Dates
-                </label>
-                <div
-                  onClick={() => setShowCalendar(!showCalendar)}
-                  style={{
-                    padding: '14px 14px 14px 44px',
-                    border: '1px solid #DDD',
-                    borderRadius: '8px',
-                    fontSize: '15px',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    background: 'white'
-                  }}
-                >
-                  <Calendar style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: '#717171' }} />
-                  {startDate && endDate ? (
-                    <span style={{ color: '#222' }}>{startDate} to {endDate}</span>
-                  ) : startDate ? (
-                    <span style={{ color: '#222' }}>{startDate} (select end date)</span>
-                  ) : (
-                    <span style={{ color: '#717171' }}>Select dates</span>
-                  )}
-                </div>
-                {showCalendar && <SimpleDatePicker />}
-              </div>
-
-              {/* More Filters Toggle */}
+      <section style={{ background: 'white', padding: '32px 40px 16px', borderBottom: '1px solid #F2F2F2' }}>
+        <div style={{ maxWidth: '1180px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#222' }}>Dial in your search</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <p style={{ fontSize: '14px', color: '#717171' }}>Refine pricing, amenities, and delivery preferences</p>
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #DDD',
-                  borderRadius: '8px',
-                  background: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#222',
-                  marginBottom: '20px'
-                }}
-              >
-                <span>More filters</span>
-                {showFilters ? <ChevronUp style={{ width: '18px', height: '18px' }} /> : <ChevronDown style={{ width: '18px', height: '18px' }} />}
-              </button>
-
-              {/* Filters Panel */}
-              {showFilters && (
-                <div style={{ padding: '20px', background: '#F7F7F7', borderRadius: '12px', marginBottom: '20px' }}>
-                  {/* Price Range */}
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Price Range
-                    </label>
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                      <input
-                        type="number"
-                        value={priceMin}
-                        onChange={(e) => setPriceMin(e.target.value)}
-                        placeholder="Min"
-                        style={{
-                          flex: 1,
-                          padding: '12px',
-                          border: '1px solid #DDD',
-                          borderRadius: '8px',
-                          fontSize: '15px',
-                          outline: 'none'
-                        }}
-                      />
-                      <input
-                        type="number"
-                        value={priceMax}
-                        onChange={(e) => setPriceMax(e.target.value)}
-                        placeholder="Max"
-                        style={{
-                          flex: 1,
-                          padding: '12px',
-                          border: '1px solid #DDD',
-                          borderRadius: '8px',
-                          fontSize: '15px',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Amenities */}
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Amenities
-                    </label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {amenitiesList.map(amenity => (
-                        <button
-                          key={amenity}
-                          onClick={() => toggleAmenity(amenity)}
-                          style={{
-                            padding: '8px 16px',
-                            border: `2px solid ${selectedAmenities.includes(amenity) ? '#FF5124' : '#DDD'}`,
-                            borderRadius: '20px',
-                            background: selectedAmenities.includes(amenity) ? '#FFF3F0' : 'white',
-                            color: selectedAmenities.includes(amenity) ? '#FF5124' : '#717171',
-                            fontSize: '13px',
-                            fontWeight: selectedAmenities.includes(amenity) ? '600' : '500',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          {selectedAmenities.includes(amenity) && <Check style={{ width: '14px', height: '14px' }} />}
-                          {amenity}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Toggles */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={deliveryOnly}
-                        onChange={(e) => setDeliveryOnly(e.target.checked)}
-                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                      />
-                      <span style={{ fontSize: '14px', fontWeight: '500', color: '#222' }}>Delivery Available only</span>
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={verifiedOnly}
-                        onChange={(e) => setVerifiedOnly(e.target.checked)}
-                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                      />
-                      <span style={{ fontSize: '14px', fontWeight: '500', color: '#222' }}>Verified Hosts only</span>
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {/* Search Button */}
-              <button
-                onClick={handleSearch}
-                style={{
-                  width: '100%',
-                  background: '#FF5124',
-                  color: 'white',
-                  border: 'none',
-                  padding: '16px',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
                   gap: '8px',
-                  boxShadow: '0 4px 12px rgba(255, 81, 36, 0.4)'
+                  border: '1px solid #E0E0E0',
+                  borderRadius: '999px',
+                  padding: '10px 18px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  background: 'white',
+                  cursor: 'pointer'
                 }}
               >
-                <Search style={{ width: '20px', height: '20px' }} />
-                {listingType === 'rent' ? 'Find Rentals' : listingType === 'sale' ? 'Find Equipment' : 'Find Event Pros'}
+                <Sparkles style={{ width: '16px', height: '16px', color: '#FF5124' }} />
+                {showFilters ? 'Hide advanced filters' : 'Show advanced filters'}
+                {showFilters ? <ChevronUp style={{ width: '16px', height: '16px' }} /> : <ChevronDown style={{ width: '16px', height: '16px' }} />}
               </button>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Quick Category Filter (existing sticky nav) */}
+          {showFilters && (
+            <div style={{
+              border: '1px solid #EBEBEB',
+              borderRadius: '24px',
+              padding: '24px',
+              background: '#FCFCFC',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '24px'
+            }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Price Range
+                  </label>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <input
+                      type="number"
+                      value={priceMin}
+                      onChange={(e) => setPriceMin(e.target.value)}
+                      placeholder="Min"
+                      style={{
+                        flex: 1,
+                        padding: '12px',
+                        border: '1px solid #DDD',
+                        borderRadius: '12px',
+                        fontSize: '15px',
+                        outline: 'none'
+                      }}
+                    />
+                    <input
+                      type="number"
+                      value={priceMax}
+                      onChange={(e) => setPriceMax(e.target.value)}
+                      placeholder="Max"
+                      style={{
+                        flex: 1,
+                        padding: '12px',
+                        border: '1px solid #DDD',
+                        borderRadius: '12px',
+                        fontSize: '15px',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Amenities
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {amenitiesList.map((amenity) => {
+                    const active = selectedAmenities.includes(amenity);
+                    return (
+                      <button
+                        key={amenity}
+                        onClick={() => toggleAmenity(amenity)}
+                        style={{
+                          padding: '8px 16px',
+                          border: `2px solid ${active ? '#FF5124' : '#DDD'}`,
+                          borderRadius: '999px',
+                          background: active ? '#FFF3F0' : 'white',
+                          color: active ? '#FF5124' : '#717171',
+                          fontSize: '13px',
+                          fontWeight: active ? '600' : '500',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        {active && <Check style={{ width: '14px', height: '14px' }} />}
+                        {amenity}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '16px', borderRadius: '16px', background: 'white', border: '1px solid #EEE' }}>
+                  <input
+                    type="checkbox"
+                    checked={deliveryOnly}
+                    onChange={(e) => setDeliveryOnly(e.target.checked)}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '14px', fontWeight: '500', color: '#222' }}>Delivery available only</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '16px', borderRadius: '16px', background: 'white', border: '1px solid #EEE' }}>
+                  <input
+                    type="checkbox"
+                    checked={verifiedOnly}
+                    onChange={(e) => setVerifiedOnly(e.target.checked)}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: '14px', fontWeight: '500', color: '#222' }}>Verified hosts only</span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPriceMin('');
+                    setPriceMax('');
+                    setSelectedAmenities([]);
+                    setDeliveryOnly(false);
+                    setVerifiedOnly(false);
+                  }}
+                  style={{
+                    border: '1px solid #E0E0E0',
+                    background: 'white',
+                    borderRadius: '999px',
+                    padding: '12px 20px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Reset filters
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSearch()}
+                  style={{
+                    background: '#FF5124',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '999px',
+                    padding: '12px 24px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    boxShadow: '0 6px 18px rgba(255, 81, 36, 0.25)'
+                  }}
+                >
+                  Apply search
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Quick Category Filter */}
       <section style={{
         borderBottom: '1px solid #EBEBEB',
         background: 'white',
@@ -976,24 +675,22 @@ function HomePage() {
       }}>
         <div style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px' }}>
           <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', padding: '24px 0' }}>
-            {allCategories.map((cat) => {
-              const Icon = cat.icon;
-              const isActive = appliedSearch.category === cat.id;
+            {CATEGORY_OPTIONS.map((option) => {
+              const Icon = option.icon;
+              const isActive = appliedSearch.category === option.value;
               return (
                 <button
-                  key={cat.id}
-                  onClick={() => {
-                    setAppliedSearch({ ...appliedSearch, category: cat.id });
-                  }}
+                  key={option.value}
+                  onClick={() => handleSearch({ category: option.value })}
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '8px',
                     padding: '12px 16px',
-                    border: isActive ? `2px solid ${cat.color}` : '2px solid transparent',
+                    border: isActive ? `2px solid ${option.color}` : '2px solid transparent',
                     borderRadius: '12px',
-                    background: isActive ? `${cat.color}10` : 'transparent',
+                    background: isActive ? `${option.color}10` : 'transparent',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
                     minWidth: '100px',
@@ -1003,15 +700,15 @@ function HomePage() {
                   <Icon style={{
                     width: '24px',
                     height: '24px',
-                    color: isActive ? cat.color : '#717171'
+                    color: isActive ? option.color : '#717171'
                   }} />
                   <span style={{
                     fontSize: '12px',
                     fontWeight: isActive ? '600' : '500',
-                    color: isActive ? cat.color : '#222',
+                    color: isActive ? option.color : '#222',
                     whiteSpace: 'nowrap'
                   }}>
-                    {cat.name}
+                    {option.label}
                   </span>
                 </button>
               );
@@ -1027,7 +724,9 @@ function HomePage() {
             {filteredListings.length} {appliedSearch.listingType === 'event-pro' ? 'event pros' : appliedSearch.listingType === 'sale' ? 'listings for sale' : 'rentals'} in Arizona
           </h2>
           <p style={{ fontSize: '15px', color: '#717171' }}>
-            {appliedSearch.category !== 'all' ? allCategories.find(c => c.id === appliedSearch.category)?.name : 'All categories'}
+            {appliedSearch.category !== 'all'
+              ? CATEGORY_MAP[appliedSearch.category]?.label
+              : 'All categories'}
           </p>
         </div>
 
@@ -1279,7 +978,7 @@ function HomePage() {
           </p>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button
-              onClick={() => setSearchModalOpen(true)}
+              onClick={() => handleSearch()}
               style={{
                 background: 'white',
                 color: '#FF5124',
@@ -1294,16 +993,19 @@ function HomePage() {
             >
               Browse Equipment
             </button>
-            <button style={{
-              background: 'rgba(0,0,0,0.2)',
-              color: 'white',
-              border: '2px solid white',
-              padding: '16px 32px',
-              borderRadius: '12px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}>
+            <button
+              onClick={() => navigate('/become-host')}
+              style={{
+                background: 'rgba(0,0,0,0.2)',
+                color: 'white',
+                border: '2px solid white',
+                padding: '16px 32px',
+                borderRadius: '12px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
               Become a Host
             </button>
           </div>
