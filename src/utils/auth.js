@@ -161,28 +161,37 @@ export async function authenticatedFetch(url, options = {}) {
  * @param {string} name - User full name
  * @returns {Promise<object>} - {user, token}
  */
-export async function registerUser(email, password, name) {
+export async function registerUser(payloadOrEmail, password, name) {
+  const body =
+    typeof payloadOrEmail === 'object'
+      ? payloadOrEmail
+      : { email: payloadOrEmail, password, firstName: name };
+
   const response = await fetch('/api/auth/register', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ email, password, name })
+    body: JSON.stringify(body)
   });
-  
-  const data = await response.json();
-  
-  if (!response.ok) {
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data.success === false) {
     throw new Error(data.message || data.error || 'Registration failed');
   }
-  
-  // Store token and user
-  if (data.token) {
-    setAuthToken(data.token);
-    setStoredUser(data.user);
+
+  const user = data.data?.user || data.user;
+  const token = data.data?.token || data.token;
+
+  if (token) {
+    setAuthToken(token);
   }
-  
-  return data;
+  if (user) {
+    setStoredUser(user);
+  }
+
+  return { user, token };
 }
 
 /**
@@ -191,28 +200,37 @@ export async function registerUser(email, password, name) {
  * @param {string} password - User password
  * @returns {Promise<object>} - {user, token}
  */
-export async function loginUser(email, password) {
+export async function loginUser(credentialsOrEmail, password) {
+  const body =
+    typeof credentialsOrEmail === 'object'
+      ? credentialsOrEmail
+      : { email: credentialsOrEmail, password };
+
   const response = await fetch('/api/auth/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify(body)
   });
-  
-  const data = await response.json();
-  
-  if (!response.ok) {
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data.success === false) {
     throw new Error(data.message || data.error || 'Login failed');
   }
-  
-  // Store token and user
-  if (data.token) {
-    setAuthToken(data.token);
-    setStoredUser(data.user);
+
+  const user = data.data?.user || data.user;
+  const token = data.data?.token || data.token;
+
+  if (token) {
+    setAuthToken(token);
   }
-  
-  return data;
+  if (user) {
+    setStoredUser(user);
+  }
+
+  return { user, token };
 }
 
 /**
@@ -225,22 +243,25 @@ export async function getCurrentUser() {
       method: 'GET',
       headers: getAuthHeaders()
     });
-    
-    if (!response.ok) {
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || data.success === false) {
       if (response.status === 401) {
         clearAuthToken();
+        setStoredUser(null);
         return null;
       }
-      throw new Error('Failed to fetch current user');
+
+      throw new Error(data.message || data.error || 'Failed to fetch current user');
     }
-    
-    const data = await response.json();
-    if (data.user) {
-      setStoredUser(data.user);
-      return data.user;
+
+    const user = data.data?.user || data.user || null;
+    if (user) {
+      setStoredUser(user);
     }
-    
-    return null;
+
+    return user;
   } catch (error) {
     console.error('Error fetching current user:', error);
     return null;

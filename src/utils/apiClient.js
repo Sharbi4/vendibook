@@ -75,38 +75,56 @@ async function apiRequest(path, options = {}) {
  * Register a new user account
  * POST /api/auth/register
  */
-export async function registerUser(email, password, name) {
-  const data = await apiRequest('/api/auth/register', {
+export async function registerUser(detailsOrEmail, password, name) {
+  const payload =
+    typeof detailsOrEmail === 'object'
+      ? detailsOrEmail
+      : { email: detailsOrEmail, password, firstName: name };
+
+  const response = await apiRequest('/api/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ email, password, name })
+    body: JSON.stringify(payload)
   });
-  
-  // Store token and user
-  if (data.token) {
-    authUtil.setAuthToken(data.token);
-    authUtil.setStoredUser(data.user);
+
+  const user = response.data?.user || response.user;
+  const token = response.data?.token || response.token;
+
+  if (token) {
+    authUtil.setAuthToken(token);
   }
-  
-  return data;
+  if (user) {
+    authUtil.setStoredUser(user);
+  }
+
+  return { user, token };
 }
 
 /**
  * Login with email and password
  * POST /api/auth/login
  */
-export async function loginUser(email, password) {
-  const data = await apiRequest('/api/auth/login', {
+export async function loginUser(credentialsOrEmail, password) {
+  const payload =
+    typeof credentialsOrEmail === 'object'
+      ? credentialsOrEmail
+      : { email: credentialsOrEmail, password };
+
+  const response = await apiRequest('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify(payload)
   });
-  
-  // Store token and user
-  if (data.token) {
-    authUtil.setAuthToken(data.token);
-    authUtil.setStoredUser(data.user);
+
+  const user = response.data?.user || response.user;
+  const token = response.data?.token || response.token;
+
+  if (token) {
+    authUtil.setAuthToken(token);
   }
-  
-  return data;
+  if (user) {
+    authUtil.setStoredUser(user);
+  }
+
+  return { user, token };
 }
 
 /**
@@ -119,9 +137,10 @@ export async function getCurrentUser() {
       method: 'GET'
     });
     
-    if (data.user) {
-      authUtil.setStoredUser(data.user);
-      return data.user;
+    const user = data.data?.user || data.user;
+    if (user) {
+      authUtil.setStoredUser(user);
+      return user;
     }
     
     return null;

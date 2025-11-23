@@ -255,6 +255,11 @@ function ListingDetails() {
   };
 
   const handleBookNow = async () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: `/listing/${listing?.id || id}` } });
+      return;
+    }
+
     if (!listing?.id) {
       return;
     }
@@ -262,8 +267,8 @@ function ListingDetails() {
     const renterUserId = user?.id || user?._id || user?.userId;
     const renterClerkId = user?.clerkId || user?.clerk_id || user?.clerkID || null;
 
-    if (!isAuthenticated || !renterUserId) {
-      setBookingFeedback({ type: 'error', message: 'Please sign in to request a booking.' });
+    if (!renterUserId) {
+      setBookingFeedback({ type: 'error', message: 'Account data incomplete. Please sign out and back in.' });
       return;
     }
 

@@ -89,7 +89,7 @@ function HostDashboard() {
     <PageShell
       title="Host Dashboard"
       subtitle="Manage your listings and monitor performance"
-      action={{ label: 'Create Listing', onClick: () => navigate('/host/onboarding'), icon: Plus }}
+      action={{ label: 'Create Listing', onClick: () => navigate('/host/create-listing'), icon: Plus }}
     >
       <section className="space-y-10">
         {/* Metrics */}
@@ -117,7 +117,7 @@ function HostDashboard() {
             description="Create your first listing to start earning"
             action={{
               label: 'Create Your First Listing',
-              onClick: () => navigate('/host/onboarding')
+              onClick: () => navigate('/host/create-listing')
             }}
           />
         ) : (

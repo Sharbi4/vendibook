@@ -1,32 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { isAuthenticated } from '../api/client';
+import React from 'react';
+import PropTypes from 'prop-types';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth.js';
 
-/**
- * ProtectedRoute - Redirects to login if not authenticated
- */
 export default function ProtectedRoute({ children }) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
-  
-  useEffect(() => {
-    // Check if user is authenticated
-    const authenticated = isAuthenticated();
-    setAuthenticated(authenticated);
-    setIsLoading(false);
-  }, []);
-  
+  const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
+
   if (isLoading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p>Loading...</p>
+      <div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-600">
+        Checking your access…
       </div>
     );
   }
-  
-  if (!authenticated) {
-    return <Navigate to="/login" replace />;
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
   }
-  
+
   return children;
 }
+
+ProtectedRoute.propTypes = {
+  children: PropTypes.node,
+};

@@ -127,8 +127,9 @@ export function bootstrapUsersTable() {
       await sql`
         CREATE TABLE IF NOT EXISTS users (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          clerk_id TEXT UNIQUE NOT NULL,
-          email TEXT,
+          clerk_id TEXT UNIQUE,
+          email TEXT UNIQUE NOT NULL,
+          password_hash TEXT,
           first_name TEXT,
           last_name TEXT,
           display_name TEXT,
@@ -141,6 +142,53 @@ export function bootstrapUsersTable() {
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
       `;
+
+      try {
+        await sql`
+          ALTER TABLE users
+          ALTER COLUMN email SET NOT NULL;
+        `;
+      } catch (constraintError) {
+        console.warn('Unable to enforce NOT NULL on users.email:', constraintError?.message || constraintError);
+      }
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS password_hash TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS first_name TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS last_name TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS phone TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+      `;
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+      `;
+
+      try {
+        await sql`
+          CREATE UNIQUE INDEX IF NOT EXISTS users_email_key ON users(email);
+        `;
+      } catch (indexError) {
+        console.warn('Unable to ensure unique index on users.email:', indexError?.message || indexError);
+      }
     })().catch(error => {
       usersBootstrapPromise = undefined;
       console.error('Failed to bootstrap users table:', error);

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useListings } from '../hooks/useListings.js';
 import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, Calendar, ChevronRight, Truck, Users, UtensilsCrossed, Store, ShoppingCart, Menu, X, ChevronDown, ChevronUp, Star, Check, DollarSign, Zap, Coffee } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth.js';
 
 function HomePage() {
   const navigate = useNavigate();
@@ -76,13 +77,15 @@ function HomePage() {
 
   const amenitiesList = ['Power', 'Water', 'Propane', 'Full Kitchen', 'Storage', 'WiFi'];
 
-  const navLinks = [
+  const { isAuthenticated } = useAuth();
+
+  const baseNavLinks = [
     { label: 'Rent Equipment', path: '/listings' },
     { label: 'Buy Equipment', path: '/listings' },
     { label: 'Become a Host', path: '/become-host' },
-    { label: 'Community', path: '/community' },
-    { label: 'Profile', path: '/profile' }
+    { label: 'Community', path: '/community' }
   ];
+  const navLinks = isAuthenticated ? [...baseNavLinks, { label: 'Profile', path: '/profile' }] : baseNavLinks;
 
   // Fetch dynamic listings from API (Neon) and merge with legacy mock data until fully migrated
   const { listings: dynamicListings, loading: listingsLoading } = useListings(appliedSearch);
@@ -490,33 +493,61 @@ function HomePage() {
             </nav>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <button style={{
-                color: '#222',
-                fontSize: '14px',
-                fontWeight: '600',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '8px 16px',
-                borderRadius: '22px',
-                transition: 'background 0.2s'
-              }}>
-                Sign In
-              </button>
-              <button style={{
-                background: '#FF5124',
-                color: 'white',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '24px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(255, 81, 36, 0.3)',
-                transition: 'transform 0.2s, box-shadow 0.2s'
-              }}>
-                Sign Up
-              </button>
+              {!isAuthenticated ? (
+                <>
+                  <button
+                    onClick={() => navigate('/login')}
+                    style={{
+                      color: '#222',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '8px 16px',
+                      borderRadius: '22px',
+                      transition: 'background 0.2s'
+                    }}
+                  >
+                    Log in
+                  </button>
+                  <button
+                    onClick={() => navigate('/signup')}
+                    style={{
+                      background: '#FF5124',
+                      color: 'white',
+                      border: 'none',
+                      padding: '12px 24px',
+                      borderRadius: '24px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(255, 81, 36, 0.3)',
+                      transition: 'transform 0.2s, box-shadow 0.2s'
+                    }}
+                  >
+                    Get started
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => navigate('/profile')}
+                  style={{
+                    background: '#FF5124',
+                    color: 'white',
+                    border: 'none',
+                    padding: '12px 24px',
+                    borderRadius: '24px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(255, 81, 36, 0.3)',
+                    transition: 'transform 0.2s, box-shadow 0.2s'
+                  }}
+                >
+                  My profile
+                </button>
+              )}
             </div>
           </div>
         </div>
