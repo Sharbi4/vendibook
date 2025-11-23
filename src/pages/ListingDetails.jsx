@@ -110,7 +110,15 @@ const formatCurrency = (value) => {
 };
 
 const extractHostUserId = (listing) =>
-  listing?.host_user_id || listing?.hostUserId || listing?.hostId || listing?.owner_id || listing?.ownerId || listing?.user_id || listing?.userId || null;
+  listing?.host_id ||
+  listing?.host_user_id ||
+  listing?.hostUserId ||
+  listing?.hostId ||
+  listing?.owner_id ||
+  listing?.ownerId ||
+  listing?.user_id ||
+  listing?.userId ||
+  null;
 
 function ListingDetails() {
   const { id } = useParams();

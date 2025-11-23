@@ -22,12 +22,58 @@
 import { sql, bootstrapListingsTable } from '../../src/api/db.js';
 
 let bootstrapPromise;
+let hostColumnPromise;
 
 function ensureBootstrap() {
   if (!bootstrapPromise) {
     bootstrapPromise = bootstrapListingsTable();
   }
   return bootstrapPromise;
+}
+
+async function resolveHostColumnName() {
+  if (!hostColumnPromise) {
+    hostColumnPromise = (async () => {
+      const preferredColumns = ['host_id', 'host_user_id', 'owner_id', 'user_id'];
+      const rows = await sql`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'listings';
+      `;
+
+      const column = preferredColumns.find((name) => rows.some((row) => row.column_name === name)) || null;
+      return column;
+    })().catch((error) => {
+      hostColumnPromise = undefined;
+      console.error('Failed to resolve host_id column for listings:', error);
+      throw error;
+    });
+  }
+
+  return hostColumnPromise;
+}
+
+function attachHostId(listing, hostColumnName) {
+  if (!listing) {
+    return listing;
+  }
+
+  const hostId =
+    listing.host_id ??
+    listing.hostId ??
+    (hostColumnName ? listing[hostColumnName] : undefined) ??
+    listing.host_user_id ??
+    listing.owner_id ??
+    listing.user_id ??
+    listing.ownerId ??
+    listing.userId ??
+    null;
+
+  return {
+    ...listing,
+    host_id: hostId ?? null,
+  };
 }
 
 export default async function handler(req, res) {
@@ -37,6 +83,7 @@ export default async function handler(req, res) {
 
   try {
     await ensureBootstrap();
+    const hostColumnName = await resolveHostColumnName();
 
     const {
       page = '1',
@@ -97,9 +144,13 @@ export default async function handler(req, res) {
       total = countResult[0]?.total ?? 0;
     }
 
+    const normalizedListings = Array.isArray(listings)
+      ? listings.map((row) => attachHostId(row, hostColumnName))
+      : [];
+
     return res.status(200).json({
       success: true,
-      data: listings,
+      data: normalizedListings,
       pagination: {
         page: pageNum,
         limit: pageSize,
