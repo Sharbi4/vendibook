@@ -76,6 +76,47 @@ function attachHostId(listing, hostColumnName) {
   };
 }
 
+function toPublicListing(listing, hostColumnName) {
+  const listingWithHost = attachHostId(listing, hostColumnName);
+  if (!listingWithHost) {
+    return listingWithHost;
+  }
+
+  const {
+    full_street_address,
+    postal_code,
+    latitude,
+    longitude,
+    display_city,
+    display_state,
+    display_zone_label,
+    service_zone_type,
+    service_radius_miles,
+    city,
+    state,
+    ...rest
+  } = listingWithHost;
+
+  const safeCity = display_city || city || null;
+  const safeState = display_state || state || null;
+
+  return {
+    ...rest,
+    city: safeCity,
+    state: safeState,
+    service_zone: {
+      type: service_zone_type || 'radius',
+      radius_miles:
+        typeof service_radius_miles === 'number'
+          ? service_radius_miles
+          : service_radius_miles != null
+            ? Number(service_radius_miles)
+            : 15,
+      label: display_zone_label || null,
+    }
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -90,8 +131,25 @@ export default async function handler(req, res) {
       limit = '20',
       city,
       state,
-      listing_type: listingType
+      listing_type: listingType,
+      id
     } = req.query;
+
+    if (id) {
+      const listingRows = await sql`
+        SELECT * FROM listings WHERE id = ${id} LIMIT 1
+      `;
+      const listing = Array.isArray(listingRows) && listingRows.length
+        ? toPublicListing(listingRows[0], hostColumnName)
+        : null;
+
+      if (!listing) {
+        return res.status(404).json({ success: false, error: 'Listing not found' });
+      }
+
+      // TODO: Expose secure detail endpoint post-booking to return full address + coordinates.
+      return res.status(200).json({ success: true, data: listing });
+    }
 
     const pageNum = Math.max(parseInt(page, 10) || 1, 1);
     const pageSize = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
@@ -145,7 +203,7 @@ export default async function handler(req, res) {
     }
 
     const normalizedListings = Array.isArray(listings)
-      ? listings.map((row) => attachHostId(row, hostColumnName))
+      ? listings.map((row) => toPublicListing(row, hostColumnName))
       : [];
 
     return res.status(200).json({

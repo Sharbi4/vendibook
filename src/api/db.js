@@ -64,6 +64,51 @@ export function bootstrapListingsTable() {
         ALTER TABLE listings
         ADD COLUMN IF NOT EXISTS default_end_time TIME NULL;
       `;
+
+      await sql`
+        ALTER TABLE listings
+        ADD COLUMN IF NOT EXISTS full_street_address TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE listings
+        ADD COLUMN IF NOT EXISTS postal_code TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE listings
+        ADD COLUMN IF NOT EXISTS latitude NUMERIC NULL;
+      `;
+
+      await sql`
+        ALTER TABLE listings
+        ADD COLUMN IF NOT EXISTS longitude NUMERIC NULL;
+      `;
+
+      await sql`
+        ALTER TABLE listings
+        ADD COLUMN IF NOT EXISTS display_city TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE listings
+        ADD COLUMN IF NOT EXISTS display_state TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE listings
+        ADD COLUMN IF NOT EXISTS display_zone_label TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE listings
+        ADD COLUMN IF NOT EXISTS service_zone_type TEXT NOT NULL DEFAULT 'radius';
+      `;
+
+      await sql`
+        ALTER TABLE listings
+        ADD COLUMN IF NOT EXISTS service_radius_miles NUMERIC NOT NULL DEFAULT 15;
+      `;
     })().catch(error => {
       listingsBootstrapPromise = undefined;
       console.error('Failed to bootstrap listings table:', error);
@@ -309,6 +354,26 @@ export function bootstrapBookingsTable() {
       await sql`
         ALTER TABLE bookings
         ADD COLUMN IF NOT EXISTS booking_mode TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS event_city TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS event_state TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS event_postal_code TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS event_full_address TEXT NULL;
       `;
     })().catch(error => {
       bookingsBootstrapPromise = undefined;

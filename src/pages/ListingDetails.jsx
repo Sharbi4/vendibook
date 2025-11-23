@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, MapPin, Star, Check, Shield, Truck, Calendar } from 'lucide-react';
 import { getListingById as getMockListingById } from '../data/listings';
 import { AvailabilityCalendar } from '../components/AvailabilityCalendar';
+import { ListingMapPlaceholder } from '../components/ListingMapPlaceholder';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStatus } from '../hooks/useAppStatus';
 
@@ -166,9 +167,11 @@ function ListingDetails() {
             }
 
             const payload = await response.json();
-            const collection = payload?.data || payload?.listings || [];
+            const collection = payload?.data ?? payload?.listings ?? null;
             if (Array.isArray(collection)) {
               record = collection.find((item) => `${item?.id}` === `${id}`) || null;
+            } else if (collection && typeof collection === 'object') {
+              record = collection;
             }
           }
         } catch (queryError) {
@@ -321,8 +324,13 @@ function ListingDetails() {
       hostUserId,
       bookingMode,
       totalPrice: totalPriceValue,
-      currency: listing?.currency || 'USD'
+      currency: listing?.currency || 'USD',
+      eventCity: null,
+      eventState: null,
+      eventPostalCode: null,
+      eventFullAddress: null,
     };
+    // TODO: Collect renter-supplied event address details and populate the fields above before validating service radius.
 
     const hostClerkId = listing?.host_clerk_id || listing?.hostClerkId || null;
     if (renterClerkId) {
@@ -399,6 +407,72 @@ function ListingDetails() {
   const isVerified = listing?.isVerified || listing?.is_verified;
   const tags = Array.isArray(listing?.tags) ? listing.tags : [];
   const highlights = Array.isArray(listing?.highlights) ? listing.highlights : [];
+  const safeCity =
+    listing?.display_city ||
+    listing?.displayCity ||
+    listing?.city ||
+    listing?.location_city ||
+    listing?.locationCity ||
+    null;
+  const safeState =
+    listing?.display_state ||
+    listing?.displayState ||
+    listing?.state ||
+    listing?.location_state ||
+    listing?.locationState ||
+    null;
+  const locationSummary = useMemo(() => {
+    if (!safeCity && !safeState) {
+      return null;
+    }
+    if (safeCity && safeState) {
+      return `${safeCity}, ${safeState}`;
+    }
+    return safeCity || safeState || null;
+  }, [safeCity, safeState]);
+  const serviceZone = useMemo(() => {
+    if (!listing) {
+      return null;
+    }
+    const zone = listing.service_zone || listing.serviceZone || null;
+    const type = zone?.type || listing?.service_zone_type || listing?.serviceZoneType || 'radius';
+    const radiusValue =
+      zone?.radius_miles ??
+      zone?.radiusMiles ??
+      listing?.service_radius_miles ??
+      listing?.serviceRadiusMiles ??
+      null;
+    const label = zone?.label || listing?.display_zone_label || listing?.displayZoneLabel || null;
+
+    return {
+      type: type || 'radius',
+      radiusMiles:
+        typeof radiusValue === 'number'
+          ? radiusValue
+          : radiusValue != null && !Number.isNaN(Number(radiusValue))
+            ? Number(radiusValue)
+            : null,
+      label: label || null,
+    };
+  }, [listing]);
+  const serviceAreaDescription = useMemo(() => {
+    if (serviceZone?.type === 'city_only') {
+      return locationSummary
+        ? `Serves events across ${locationSummary} and nearby neighborhoods.`
+        : 'Serves events within the listed city.';
+    }
+    if (serviceZone?.radiusMiles && locationSummary) {
+      return `Serves locations within ${serviceZone.radiusMiles} miles of ${locationSummary}.`;
+    }
+    if (serviceZone?.radiusMiles) {
+      return `Serves locations within ${serviceZone.radiusMiles} miles of the host base location.`;
+    }
+    if (locationSummary) {
+      return `Serves locations near ${locationSummary}.`;
+    }
+    return 'Service area details will be confirmed after booking.';
+  }, [serviceZone, locationSummary]);
+  // TODO: Once renters provide event addresses, validate them against the service zone before confirming availability.
   const hostUserId = extractHostUserId(listing);
   const createdAt = listing?.created_at || listing?.createdAt;
   const priceUnit = listing?.price_unit || listing?.priceUnit || 'per day';
@@ -431,8 +505,8 @@ function ListingDetails() {
     const items = [
       { label: 'Type', value: listingTypeLabel },
       { label: 'Base price', value: formatPrice(listing?.price, priceUnit) },
-      { label: 'City', value: listing?.city },
-      { label: 'State', value: listing?.state },
+      { label: 'City', value: safeCity || 'Shared after booking' },
+      { label: 'State', value: safeState || 'Shared after booking' },
     ];
 
     if (deliveryAvailable) {
@@ -456,17 +530,26 @@ function ListingDetails() {
 
     items.push({ label: 'Booking mode', value: bookingModeLabel });
 
+    const serviceRadiusLabel =
+      serviceZone?.type === 'city_only'
+        ? 'City-wide coverage'
+        : serviceZone?.radiusMiles
+          ? `${serviceZone.radiusMiles} mile radius`
+          : 'Contact host';
+    items.push({ label: 'Service radius', value: serviceRadiusLabel });
+
     return items;
   }, [
     createdAt,
     deliveryAvailable,
     isVerified,
-    listing?.city,
-    listing?.state,
     listing?.price,
     listingTypeLabel,
     priceUnit,
     bookingModeLabel,
+    safeCity,
+    safeState,
+    serviceZone,
   ]);
 
   const formattedPrice = useMemo(
@@ -606,7 +689,7 @@ function ListingDetails() {
                 <div className="flex flex-wrap items-center gap-4 text-slate-600 text-sm">
                   <span className="inline-flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
-                    {listing.city}, {listing.state}
+                    {locationSummary || 'Location shared after booking'}
                   </span>
                   {(listing.rating || listing.reviewCount || listing.review_count) && (
                     <span className="inline-flex items-center gap-2 text-slate-700">
@@ -680,6 +763,25 @@ function ListingDetails() {
               </section>
             </article>
 
+            <article className="rounded-3xl bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-8">
+              <section>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <h2 className="text-lg font-semibold text-slate-900">Service area</h2>
+                  {serviceZone?.label && (
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                      Service area, {serviceZone.label}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-3 text-sm text-slate-600">{serviceAreaDescription}</p>
+                <p className="mt-1 text-xs text-slate-500">Exact depot address is shared after booking confirmation.</p>
+                {/* TODO: Capture renter event address and validate it against this service zone before confirming requests. */}
+                <div className="mt-5">
+                  <ListingMapPlaceholder city={safeCity} state={safeState} radiusMiles={serviceZone?.radiusMiles} />
+                </div>
+              </section>
+            </article>
+
             {highlights.length > 0 && (
               <article className="rounded-3xl bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-8">
                 <section>
@@ -707,6 +809,12 @@ function ListingDetails() {
                 <p className="mt-1 text-sm text-slate-500">
                   {isEventPro ? 'Custom quotes available for larger activations.' : `Base rate ${priceUnit}`}
                 </p>
+                {locationSummary && (
+                  <p className="mt-2 text-sm font-semibold text-slate-700">Pickup near {locationSummary}</p>
+                )}
+                {serviceZone?.radiusMiles && (
+                  <p className="text-xs text-slate-500">Delivery available within {serviceZone.radiusMiles} miles</p>
+                )}
               </div>
 
               <div className="space-y-5">
@@ -837,6 +945,9 @@ function ListingDetails() {
                 >
                   Message Host
                 </button>
+                <p className="text-center text-xs text-slate-500">
+                  Exact address and access instructions are shared after booking is confirmed.
+                </p>
                 {bookingFeedback && (
                   <div
                     className={`rounded-xl px-4 py-3 text-sm ${
