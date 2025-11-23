@@ -61,7 +61,10 @@ export default async function handler(req, res) {
     const insertedRows = await sql`
       INSERT INTO users (email, password_hash, first_name, last_name, phone, role)
       VALUES (${normalizedEmail}, ${passwordHash}, ${firstName || null}, ${lastName || null}, ${phone || null}, 'renter')
-      RETURNING id, email, first_name, last_name, phone, role, created_at, updated_at, is_verified, verification_sent_at, verified_at;
+      RETURNING id, email, first_name, last_name, phone, role, created_at, updated_at,
+                is_verified, verification_sent_at, verified_at,
+                stripe_connect_account_id, stripe_identity_verification_id,
+                is_host_verified, host_verification_status, host_verification_updated_at;
     `;
 
     const user = insertedRows[0];

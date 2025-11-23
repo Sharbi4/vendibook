@@ -18,6 +18,8 @@ function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
+  const [isStartingConnect, setIsStartingConnect] = useState(false);
+  const [isStartingIdentity, setIsStartingIdentity] = useState(false);
 
   const applyAuthState = useCallback((authResult) => {
     if (!authResult) {
@@ -140,13 +142,84 @@ function AuthProvider({ children }) {
     [refreshUserProfile, user?.email]
   );
 
+  const authorizedFetch = useCallback(
+    async (path, options = {}) => {
+      if (!token) {
+        throw new Error('You must be signed in to continue.');
+      }
+
+      const headers = {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${token}`,
+      };
+
+      const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+      if (!headers['Content-Type'] && !isFormData) {
+        headers['Content-Type'] = 'application/json';
+      }
+
+      const response = await fetch(path, { ...options, headers });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || data.error || 'Request failed');
+      }
+
+      return data;
+    },
+    [token]
+  );
+
+  const startConnectOnboarding = useCallback(async () => {
+    setIsStartingConnect(true);
+    try {
+      const accountResponse = await authorizedFetch('/api/stripe/create-connect-account', {
+        method: 'POST',
+      });
+      const accountId =
+        accountResponse.data?.accountId ||
+        accountResponse.accountId ||
+        accountResponse?.account?.id;
+
+      if (!accountId) {
+        throw new Error('Unable to determine Stripe account id.');
+      }
+
+      const linkResponse = await authorizedFetch('/api/stripe/create-account-link', {
+        method: 'POST',
+        body: JSON.stringify({ connectAccountId: accountId }),
+      });
+
+      await refreshUserProfile();
+      return linkResponse.data?.url || linkResponse.url;
+    } finally {
+      setIsStartingConnect(false);
+    }
+  }, [authorizedFetch, refreshUserProfile]);
+
+  const startIdentityVerification = useCallback(async () => {
+    setIsStartingIdentity(true);
+    try {
+      const response = await authorizedFetch('/api/stripe/create-identity-session', {
+        method: 'POST',
+      });
+      await refreshUserProfile();
+      return response.data?.url || response.url;
+    } finally {
+      setIsStartingIdentity(false);
+    }
+  }, [authorizedFetch, refreshUserProfile]);
+
   const value = useMemo(
     () => ({
       user,
       token,
       isAuthenticated: Boolean(user && token),
-       isVerified: Boolean(user?.is_verified),
-       needsVerification: Boolean(user && !user?.is_verified),
+      isVerified: Boolean(user?.is_verified),
+      needsVerification: Boolean(user && !user?.is_verified),
+      isHostVerified: Boolean(user?.is_host_verified),
+      needsHostVerification: Boolean(user && !user?.is_host_verified),
+      hostVerificationStatus: user?.host_verification_status || null,
       isLoading,
       error,
       login: handleLogin,
@@ -156,6 +229,10 @@ function AuthProvider({ children }) {
       setUser,
       sendVerification: handleSendVerification,
       isSendingVerification,
+      startConnectOnboarding,
+      startIdentityVerification,
+      isStartingConnect,
+      isStartingIdentity,
     }),
     [
       user,
@@ -168,6 +245,10 @@ function AuthProvider({ children }) {
       refreshUserProfile,
       handleSendVerification,
       isSendingVerification,
+      startConnectOnboarding,
+      startIdentityVerification,
+      isStartingConnect,
+      isStartingIdentity,
     ]
   );
 

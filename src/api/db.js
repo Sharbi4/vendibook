@@ -21,6 +21,7 @@ let listingsBootstrapPromise;
 let usersBootstrapPromise;
 let verificationTokensBootstrapPromise;
 let userVerificationsBootstrapPromise;
+let userVerificationEventsBootstrapPromise;
 let userSettingsBootstrapPromise;
 let userSocialLinksBootstrapPromise;
 let userPayoutAccountsBootstrapPromise;
@@ -175,6 +176,16 @@ export function bootstrapUsersTable() {
 
       await sql`
         ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS stripe_connect_account_id TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS stripe_identity_verification_id TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE users
         ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT FALSE;
       `;
 
@@ -186,6 +197,21 @@ export function bootstrapUsersTable() {
       await sql`
         ALTER TABLE users
         ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ NULL;
+      `;
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS is_host_verified BOOLEAN NOT NULL DEFAULT FALSE;
+      `;
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS host_verification_status TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS host_verification_updated_at TIMESTAMPTZ NULL;
       `;
 
       await sql`
@@ -301,6 +327,30 @@ export function bootstrapUserSettingsTable() {
   }
 
   return userSettingsBootstrapPromise;
+}
+
+export function bootstrapUserVerificationEventsTable() {
+  if (!userVerificationEventsBootstrapPromise) {
+    userVerificationEventsBootstrapPromise = (async () => {
+      await bootstrapUsersTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS user_verification_events (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          event_type TEXT NOT NULL,
+          event_payload JSONB NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+    })().catch(error => {
+      userVerificationEventsBootstrapPromise = undefined;
+      console.error('Failed to bootstrap user_verification_events table:', error);
+      throw error;
+    });
+  }
+
+  return userVerificationEventsBootstrapPromise;
 }
 
 export function bootstrapUserSocialLinksTable() {

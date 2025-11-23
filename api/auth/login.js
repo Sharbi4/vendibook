@@ -41,7 +41,9 @@ export default async function handler(req, res) {
   try {
     const users = await sql`
       SELECT id, email, password_hash, first_name, last_name, phone, role,
-             created_at, updated_at, is_verified, verification_sent_at, verified_at
+             created_at, updated_at, is_verified, verification_sent_at, verified_at,
+             stripe_connect_account_id, stripe_identity_verification_id,
+             is_host_verified, host_verification_status, host_verification_updated_at
       FROM users
       WHERE email = ${normalizedEmail}
       LIMIT 1;
