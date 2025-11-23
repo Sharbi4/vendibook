@@ -1,7 +1,68 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, MapPin, Star, Check, Shield, Truck, Calendar } from 'lucide-react';
 import { getListingById as getMockListingById } from '../data/listings';
+
+const normalizeValue = (value) => (value ? value.toString().toLowerCase() : '');
+
+const formatListingType = (type, category) => {
+  const normalizedType = normalizeValue(type || category);
+
+  switch (normalizedType) {
+    case 'food-truck':
+    case 'food_truck':
+    case 'foodtrucks':
+      return 'Food truck rental';
+    case 'trailer':
+    case 'trailers':
+      return 'Food trailer rental';
+    case 'ghost-kitchen':
+    case 'ghost_kitchen':
+      return 'Ghost kitchen access';
+    case 'event-pro':
+    case 'event_pro':
+    case 'eventpro':
+      return 'Event Pro – Catering / Service';
+    case 'vending-lots':
+    case 'vending_lots':
+      return 'Vending location rental';
+    case 'for-sale':
+    case 'for_sale':
+      return 'Listing for sale';
+    default:
+      return (type || category || 'Listing').toString();
+  }
+};
+
+const formatCategoryBadge = (type, category) => {
+  const label = (type || category || 'Listing').toString();
+  return label.replace(/[_\s]+/g, '-').toUpperCase();
+};
+
+const buildEventProPackages = (listing) => {
+  const baseName = listing?.title?.split(' ')?.slice(0, 3).join(' ') || 'Signature';
+
+  return [
+    {
+      name: `${baseName} Tasting Experience`,
+      description:
+        'Curated tasting menu with 3 chef-selected entrées, seasonal sides, and dessert service. Includes staffing and setup.',
+      price: '$1,200 flat • up to 40 guests',
+    },
+    {
+      name: 'Catering Package – Up to 75 guests',
+      description:
+        'Includes 2 entrée options, 2 sides, beverages, and dessert. Perfect for corporate lunches or private events.',
+      price: '$1,950 flat • up to 3 hours service',
+    },
+    {
+      name: 'Full-Service Event',
+      description:
+        'Custom menu design, staffing, rentals coordination, and onsite execution. Ideal for weddings and large celebrations.',
+      price: 'Custom quote • 4 hour minimum',
+    },
+  ];
+};
 
 function ListingDetails() {
   const { id } = useParams();
@@ -11,6 +72,10 @@ function ListingDetails() {
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const [eventEndTime, setEventEndTime] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -109,6 +174,13 @@ function ListingDetails() {
     };
   }, [id, reloadKey]);
 
+  useEffect(() => {
+    setStartDate('');
+    setEndDate('');
+    setEventDate('');
+    setEventEndTime('');
+  }, [listing?.id]);
+
   const formatPrice = (price, unit = 'per day') => {
     if (price === undefined || price === null || price === '') {
       return 'Contact for pricing';
@@ -197,171 +269,297 @@ function ListingDetails() {
   const highlights = Array.isArray(listing.highlights) ? listing.highlights : [];
   const createdAt = listing.created_at || listing.createdAt;
   const priceUnit = listing.price_unit || listing.priceUnit || 'per day';
+  const rawType = listing.listing_type || listing.listingType || listing.category;
+
+  const normalizedType = normalizeValue(rawType);
+  const isEventPro = normalizedType === 'event-pro' || normalizedType === 'event_pro' || normalizedType === 'eventpro' || normalizedType === 'event';
+
+  const categoryBadgeLabel = useMemo(() => formatCategoryBadge(rawType, listing.category), [rawType, listing.category]);
+  const listingTypeLabel = useMemo(() => formatListingType(rawType, listing.category), [rawType, listing.category]);
+  const eventProPackages = useMemo(() => (isEventPro ? buildEventProPackages(listing) : []), [isEventPro, listing]);
+  const detailItems = useMemo(() => {
+    const items = [
+      { label: 'Type', value: listingTypeLabel },
+      { label: 'Base price', value: formatPrice(listing.price, priceUnit) },
+      { label: 'City', value: listing.city },
+      { label: 'State', value: listing.state },
+    ];
+
+    if (deliveryAvailable) {
+      items.push({ label: 'Delivery', value: 'Available upon request' });
+    }
+
+    if (isVerified) {
+      items.push({ label: 'Verified', value: 'Vendibook verified host' });
+    }
+
+    if (createdAt) {
+      items.push({
+        label: 'Listed',
+        value: new Date(createdAt).toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        }),
+      });
+    }
+
+    return items;
+  }, [createdAt, deliveryAvailable, isVerified, listing.city, listing.state, listing.price, listingTypeLabel, priceUnit]);
+
+  const formattedPrice = useMemo(() => formatPrice(listing.price, priceUnit), [listing.price, priceUnit]);
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center px-4 sm:px-6 lg:px-8 py-4">
+    <div className="min-h-screen bg-[#F5F5F5]">
+      <header className="border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center px-4 py-4 sm:px-6">
           <button
             onClick={() => navigate('/listings')}
-            className="flex items-center gap-2 text-sm font-semibold text-gray-600 transition hover:text-gray-900"
+            className="flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-slate-900"
           >
             <ArrowLeft className="h-5 w-5" />
             Back to listings
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="relative mb-10 overflow-hidden rounded-3xl bg-gradient-to-br from-orange-100 via-white to-orange-200">
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={listing.title}
-              className="h-[500px] w-full object-cover"
-              onError={(event) => {
-                event.currentTarget.style.display = 'none';
-                const fallback = event.currentTarget.nextElementSibling;
-                if (fallback) fallback.removeAttribute('hidden');
-              }}
-            />
-          ) : null}
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
+        <section className="mb-8">
+          <div className="relative flex h-64 items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-[#FFF4E0] to-[#FFE7C2] p-6 sm:h-80 lg:h-96">
+            <span className="absolute left-6 top-6 inline-flex items-center rounded-full bg-slate-900/80 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white shadow-lg">
+              {categoryBadgeLabel}
+            </span>
 
-          <div
-            hidden={Boolean(imageUrl)}
-            className="flex h-[500px] w-full items-center justify-center text-7xl"
-          >
-            🚚
-          </div>
+            <div className="absolute right-6 top-6 flex flex-wrap justify-end gap-2">
+              {isVerified && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-emerald-600 shadow">
+                  <Shield className="h-3.5 w-3.5" /> Verified
+                </span>
+              )}
+              {deliveryAvailable && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-green-600 shadow">
+                  <Truck className="h-3.5 w-3.5" /> Delivery
+                </span>
+              )}
+            </div>
 
-          <div className="absolute left-6 top-6 flex items-center gap-3">
-            <div className="rounded-xl bg-black/70 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-white shadow">
-              {listing.listing_type || listing.listingType || 'Listing'}
+            <div className="relative flex h-full w-full items-center justify-center">
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt={listing.title}
+                  className="h-44 w-44 rounded-3xl object-cover shadow-[0_18px_40px_rgba(15,23,42,0.18)] ring-4 ring-white/70"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                    const fallback = event.currentTarget.nextElementSibling;
+                    if (fallback) fallback.removeAttribute('hidden');
+                  }}
+                />
+              ) : null}
+
+              <div
+                hidden={Boolean(imageUrl)}
+                className="flex h-32 w-32 items-center justify-center rounded-3xl bg-white/80 text-5xl shadow-[0_18px_40px_rgba(15,23,42,0.18)]"
+              >
+                🚚
+              </div>
             </div>
           </div>
+        </section>
 
-          <div className="absolute right-6 top-6 flex gap-2">
-            {isVerified && (
-              <span className="flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-emerald-600 backdrop-blur">
-                <Shield className="h-3.5 w-3.5" /> Verified
-              </span>
-            )}
-            {deliveryAvailable && (
-              <span className="flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-green-600 backdrop-blur">
-                <Truck className="h-3.5 w-3.5" /> Delivery
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-3 lg:gap-12">
-          <div className="lg:col-span-2">
-            <header className="mb-8">
-              <h1 className="mb-3 text-3xl font-bold text-gray-900 sm:text-4xl">
-                {listing.title}
-              </h1>
-              <div className="flex flex-wrap items-center gap-4 text-gray-600">
-                <span className="flex items-center gap-1 text-sm font-medium">
-                  <MapPin className="h-5 w-5" />
-                  {listing.city}, {listing.state}
-                </span>
-                {(listing.rating || listing.reviewCount || listing.review_count) && (
-                  <span className="flex items-center gap-1 text-sm font-medium text-gray-700">
-                    <Star className="h-5 w-5 fill-orange-500 text-orange-500" />
-                    {listing.rating || '5.0'}
-                    {(listing.reviewCount || listing.review_count) && (
-                      <span className="text-gray-500">
-                        ({listing.reviewCount || listing.review_count} reviews)
-                      </span>
-                    )}
+        <section className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start">
+          <div className="space-y-8">
+            <article className="rounded-3xl bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-8">
+              <header className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{listingTypeLabel}</p>
+                  <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">
+                    {listing.title}
+                  </h1>
+                </div>
+                <div className="flex flex-wrap items-center gap-4 text-slate-600 text-sm">
+                  <span className="inline-flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    {listing.city}, {listing.state}
                   </span>
-                )}
-              </div>
-            </header>
+                  {(listing.rating || listing.reviewCount || listing.review_count) && (
+                    <span className="inline-flex items-center gap-2 text-slate-700">
+                      <Star className="h-4 w-4 fill-orange-500 text-orange-500" />
+                      {listing.rating || '5.0'}
+                      {(listing.reviewCount || listing.review_count) && (
+                        <span className="text-slate-500">
+                          ({listing.reviewCount || listing.review_count} reviews)
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </div>
+              </header>
 
-            {tags.length > 0 && (
-              <div className="mb-10 flex flex-wrap gap-2">
-                {tags.map((tag, index) => (
-                  <span
-                    key={`${tag}-${index}`}
-                    className="rounded-full bg-[#F7F7F7] px-3 py-1 text-xs font-medium text-[#717171]"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
+              {tags.length > 0 && (
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {tags.map((tag, index) => (
+                    <span
+                      key={`${tag}-${index}`}
+                      className="rounded-full bg-[#F7F7F7] px-3 py-1 text-xs font-medium text-[#717171]"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <section className="mt-6 space-y-3">
+                <h2 className="text-lg font-semibold text-slate-900">Description</h2>
+                <p className="text-base leading-relaxed text-slate-700 whitespace-pre-line">
+                  {listing.description || 'Details coming soon. Contact the host to learn more about this listing.'}
+                </p>
+              </section>
+            </article>
+
+            {isEventPro && (
+              <article className="rounded-3xl bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-8">
+                <section>
+                  <h2 className="text-lg font-semibold text-slate-900">Packages & Menu</h2>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Tailored experiences to match your event size and style. Choose a starting point and we&apos;ll customize the menu for you.
+                  </p>
+                  <div className="mt-6 space-y-4">
+                    {eventProPackages.map((pkg) => (
+                      <div
+                        key={pkg.name}
+                        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
+                      >
+                        <p className="text-sm font-semibold text-slate-900">{pkg.name}</p>
+                        <p className="mt-1 text-sm text-slate-600">{pkg.description}</p>
+                        <p className="mt-2 text-sm font-medium text-slate-900">{pkg.price}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              </article>
             )}
 
-            <section className="border-t border-gray-200 pt-8">
-              <h2 className="mb-4 text-2xl font-semibold text-gray-900">
-                Description
-              </h2>
-              <p className="text-base leading-relaxed text-gray-700 whitespace-pre-line">
-                {listing.description || 'Details coming soon. Contact the host to learn more about this listing.'}
-              </p>
-            </section>
+            <article className="rounded-3xl bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-8">
+              <section>
+                <h2 className="text-lg font-semibold text-slate-900">Details</h2>
+                <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {detailItems.map((item) => (
+                    <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5">
+                      <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{item.label}</dt>
+                      <dd className="mt-2 text-sm font-semibold text-slate-900">{item.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            </article>
 
             {highlights.length > 0 && (
-              <section className="mt-10 border-t border-gray-200 pt-8">
-                <h2 className="mb-5 text-2xl font-semibold text-gray-900">
-                  Highlights
-                </h2>
-                <ul className="space-y-4">
-                  {highlights.map((highlight, index) => (
-                    <li key={`${highlight}-${index}`} className="flex gap-3">
-                      <Check className="mt-1 h-6 w-6 flex-shrink-0 text-orange-500" />
-                      <span className="text-gray-800">{highlight}</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              <article className="rounded-3xl bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-8">
+                <section>
+                  <h2 className="text-lg font-semibold text-slate-900">Highlights</h2>
+                  <ul className="mt-5 space-y-4">
+                    {highlights.map((highlight, index) => (
+                      <li key={`${highlight}-${index}`} className="flex gap-3">
+                        <Check className="mt-1 h-5 w-5 flex-shrink-0 text-orange-500" />
+                        <span className="text-sm text-slate-700">{highlight}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              </article>
             )}
-
-            <section className="mt-10 border-t border-gray-200 pt-8">
-              <h2 className="mb-5 text-2xl font-semibold text-gray-900">Details</h2>
-              <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl bg-gray-50 p-5">
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Type</dt>
-                  <dd className="text-base font-semibold text-gray-900">
-                    {listing.category || listing.listing_type || listing.listingType || 'Marketplace Listing'}
-                  </dd>
-                </div>
-                <div className="rounded-2xl bg-gray-50 p-5">
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">City</dt>
-                  <dd className="text-base font-semibold text-gray-900">{listing.city}</dd>
-                </div>
-                <div className="rounded-2xl bg-gray-50 p-5">
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">State</dt>
-                  <dd className="text-base font-semibold text-gray-900">{listing.state}</dd>
-                </div>
-                {createdAt && (
-                  <div className="rounded-2xl bg-gray-50 p-5">
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">Listed</dt>
-                    <dd className="text-base font-semibold text-gray-900">
-                      {new Date(createdAt).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </dd>
-                  </div>
-                )}
-              </dl>
-            </section>
           </div>
 
-          <aside className="lg:col-span-1">
-            <div className="sticky top-24 rounded-3xl border border-gray-200 bg-white p-6 shadow-2xl">
-              <div className="mb-6 border-b border-gray-200 pb-6">
-                <p className="text-sm font-medium text-gray-500">Starting at</p>
-                <p className="mt-2 text-3xl font-bold text-gray-900">
-                  {formatPrice(listing.price, priceUnit)}
+          <aside className="w-full lg:max-w-sm">
+            <div className="sticky top-24 space-y-6 rounded-3xl bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.12)] sm:p-7">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  {isEventPro ? 'Starting package at' : 'Starting at'}
+                </p>
+                <p className="mt-2 text-3xl font-bold text-slate-900">{formattedPrice}</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  {isEventPro ? 'Custom quotes available for larger activations.' : `Base rate ${priceUnit}`}
                 </p>
               </div>
 
-              <div className="mb-6 border-b border-gray-200 pb-6 space-y-3 text-sm text-gray-600">
+              <div className="space-y-4">
+                {isEventPro ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="event-date">
+                        Event date
+                      </label>
+                      <input
+                        id="event-date"
+                        type="date"
+                        value={eventDate}
+                        onChange={(e) => setEventDate(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="event-end-time">
+                        End time (optional)
+                      </label>
+                      <input
+                        id="event-end-time"
+                        type="time"
+                        value={eventEndTime}
+                        onChange={(e) => setEventEndTime(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="start-date">
+                        Start date
+                      </label>
+                      <input
+                        id="start-date"
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="end-date">
+                        End date
+                      </label>
+                      <input
+                        id="end-date"
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={handleBookNow}
+                  disabled={isSubmitting}
+                  className="w-full rounded-xl bg-gradient-to-r from-orange-500 via-orange-500 to-orange-600 px-6 py-4 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Book Now'}
+                </button>
+                <button
+                  onClick={handleMessageHost}
+                  className="w-full rounded-xl border-2 border-orange-500 px-6 py-3 text-sm font-semibold text-orange-500 transition hover:bg-orange-50"
+                >
+                  Message Host
+                </button>
+              </div>
+
+              <div className="space-y-2 text-sm text-slate-600">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-400" />
+                  <Calendar className="h-4 w-4 text-slate-400" />
                   Flexible scheduling available
                 </div>
                 {deliveryAvailable && (
@@ -377,26 +575,10 @@ function ListingDetails() {
                   </div>
                 )}
               </div>
-
-              <div className="space-y-3">
-                <button
-                  onClick={handleBookNow}
-                  disabled={isSubmitting}
-                  className="w-full rounded-xl bg-gradient-to-r from-orange-500 via-orange-500 to-orange-600 px-6 py-4 text-sm font-semibold text-white shadow-xl transition hover:shadow-2xl disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Book Now'}
-                </button>
-                <button
-                  onClick={handleMessageHost}
-                  className="w-full rounded-xl border-2 border-orange-500 px-6 py-3 text-sm font-semibold text-orange-500 transition hover:bg-orange-50"
-                >
-                  Message Host
-                </button>
-              </div>
             </div>
           </aside>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }
