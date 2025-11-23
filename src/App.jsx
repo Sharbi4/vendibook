@@ -15,12 +15,15 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import CommunityPage from './pages/CommunityPage';
 import ProfilePage from './pages/ProfilePage';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import VerificationBanner from './components/VerificationBanner.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
+import VerifyEmailPage from './pages/VerifyEmailPage.jsx';
 
 function App() {
   return (
     <Router>
+      <VerificationBanner />
       <Routes>
         {/* Main Pages */}
         <Route path="/" element={<HomePage />} />
@@ -109,6 +112,7 @@ function App() {
         {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
       </Routes>
     </Router>
   );

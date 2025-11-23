@@ -101,7 +101,14 @@ const extractHostUserId = (listing) =>
 function ListingDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, token, isAuthenticated } = useAuth();
+  const {
+    user,
+    token,
+    isAuthenticated,
+    needsVerification,
+    sendVerification,
+    isSendingVerification,
+  } = useAuth();
   const { setGlobalLoading, setGlobalError } = useAppStatus();
   const [listing, setListing] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -117,6 +124,7 @@ function ListingDetails() {
   const [bookingFeedback, setBookingFeedback] = useState(null);
   const [calendarNotice, setCalendarNotice] = useState(null);
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [verificationNotice, setVerificationNotice] = useState(null);
 
   useEffect(() => {
     if (!id) return;
@@ -229,6 +237,12 @@ function ListingDetails() {
     setSelectedPackage(null);
   }, [listing?.id, listing?.default_start_time, listing?.defaultStartTime, listing?.default_end_time, listing?.defaultEndTime]);
 
+  useEffect(() => {
+    if (!needsVerification) {
+      setVerificationNotice(null);
+    }
+  }, [needsVerification]);
+
   const formatPrice = (price, unit = 'per day') => {
     if (price === undefined || price === null || price === '') {
       return 'Contact for pricing';
@@ -257,6 +271,12 @@ function ListingDetails() {
   const handleBookNow = async () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: `/listing/${listing?.id || id}` } });
+      return;
+    }
+
+    if (needsVerification) {
+      setBookingFeedback({ type: 'error', message: 'Please verify your email to complete this booking.' });
+      setVerificationNotice({ type: 'error', message: 'Verify your email to finish booking. Check your inbox for the link.' });
       return;
     }
 
@@ -381,13 +401,30 @@ function ListingDetails() {
   };
 
   const handleMessageHost = () => {
+    if (needsVerification) {
+      setBookingFeedback({ type: 'error', message: 'Verify your email to message hosts on Vendibook.' });
+      setVerificationNotice({ type: 'error', message: 'Verify your email to start messaging hosts.' });
+      return;
+    }
+
     setBookingFeedback(null);
     alert('Messaging coming soon! For now, contact the host directly.');
   };
 
+  const handleResendVerification = async () => {
+    if (!needsVerification) return;
+    setVerificationNotice(null);
+    try {
+      await sendVerification();
+      setVerificationNotice({ type: 'success', message: 'Verification email sent. Please check your inbox.' });
+    } catch (err) {
+      setVerificationNotice({ type: 'error', message: err.message || 'Unable to send verification email right now.' });
+    }
+  };
+
   const imageUrl = listing?.imageUrl || listing?.image_url;
   const deliveryAvailable = listing?.deliveryAvailable || listing?.delivery_available;
-  const isVerified = listing?.isVerified || listing?.is_verified;
+  const listingIsVerified = listing?.isVerified || listing?.is_verified;
   const tags = Array.isArray(listing?.tags) ? listing.tags : [];
   const highlights = Array.isArray(listing?.highlights) ? listing.highlights : [];
   const safeCity =
@@ -505,7 +542,7 @@ function ListingDetails() {
       items.push({ label: 'Delivery', value: 'Available upon request' });
     }
 
-    if (isVerified) {
+    if (listingIsVerified) {
       items.push({ label: 'Verified', value: 'Vendibook verified host' });
     }
 
@@ -534,7 +571,7 @@ function ListingDetails() {
   }, [
     createdAt,
     deliveryAvailable,
-    isVerified,
+    listingIsVerified,
     listing?.price,
     listingTypeLabel,
     priceUnit,
@@ -564,7 +601,8 @@ function ListingDetails() {
   const hasRequiredSelection = isHourlyMode
     ? Boolean(startDate && eventStartTime && eventEndTime)
     : Boolean(startDate && selectedEndDate);
-  const canSubmit = Boolean(hostUserId && isAuthenticated && hasRequiredSelection) && !isSubmitting;
+  const canSubmit =
+    Boolean(hostUserId && isAuthenticated && hasRequiredSelection && !needsVerification) && !isSubmitting;
 
   if (isLoading) {
     return (
@@ -632,7 +670,7 @@ function ListingDetails() {
             </span>
 
             <div className="absolute right-6 top-6 flex flex-wrap justify-end gap-2">
-              {isVerified && (
+              {listingIsVerified && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-emerald-600 shadow">
                   <Shield className="h-3.5 w-3.5" /> Verified
                 </span>
@@ -923,6 +961,32 @@ function ListingDetails() {
                 </div>
               </div>
 
+              {isAuthenticated && needsVerification && (
+                <div className="rounded-2xl border border-orange-200 bg-white p-4 text-sm text-orange-800 shadow-sm">
+                  <p className="font-semibold">Please verify your email to complete booking on Vendibook.</p>
+                  <p className="mt-1 text-xs text-orange-700">
+                    Check your inbox for the verification email or resend a new link.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    className="mt-3 inline-flex items-center justify-center rounded-full border border-orange-200 px-4 py-2 text-xs font-semibold text-orange-600 transition hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isSendingVerification}
+                  >
+                    {isSendingVerification ? 'Sending…' : 'Resend verification email'}
+                  </button>
+                  {verificationNotice && (
+                    <p
+                      className={`mt-2 text-xs ${
+                        verificationNotice.type === 'error' ? 'text-red-600' : 'text-emerald-600'
+                      }`}
+                    >
+                      {verificationNotice.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-3">
                 <button
                   onClick={handleBookNow}
@@ -933,7 +997,8 @@ function ListingDetails() {
                 </button>
                 <button
                   onClick={handleMessageHost}
-                  className="w-full rounded-xl border-2 border-orange-500 px-6 py-3 text-sm font-semibold text-orange-500 transition hover:bg-orange-50"
+                  disabled={needsVerification}
+                  className="w-full rounded-xl border-2 border-orange-500 px-6 py-3 text-sm font-semibold text-orange-500 transition hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   Message Host
                 </button>
@@ -967,7 +1032,7 @@ function ListingDetails() {
                     Delivery available upon request
                   </div>
                 )}
-                {isVerified && (
+                {listingIsVerified && (
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4 text-emerald-600" />
                     Verified host

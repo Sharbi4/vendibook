@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { MessageThread } from '../components/MessageBubble';
 import PageShell from '../components/layout/PageShell';
+import VerificationRequired from '../components/VerificationRequired.jsx';
+import { useAuth } from '../hooks/useAuth.js';
 
 /**
  * MessageDetailPage - Display and manage a specific message thread
@@ -10,6 +12,7 @@ import PageShell from '../components/layout/PageShell';
 export function MessageDetailPage() {
   const { threadId } = useParams();
   const navigate = useNavigate();
+  const { needsVerification } = useAuth();
   const [thread, setThread] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -20,6 +23,11 @@ export function MessageDetailPage() {
   const pollIntervalRef = useRef(null);
 
   useEffect(() => {
+    if (needsVerification) {
+      setIsLoading(false);
+      return;
+    }
+
     const loadData = async () => {
       try {
         // Get current user
@@ -76,7 +84,7 @@ export function MessageDetailPage() {
         clearInterval(pollIntervalRef.current);
       }
     };
-  }, [threadId, navigate]);
+  }, [threadId, navigate, needsVerification]);
 
   useEffect(() => {
     // Auto-scroll to bottom
@@ -112,6 +120,22 @@ export function MessageDetailPage() {
   };
 
   const otherParticipant = thread?.participants?.find(p => currentUser && p.id !== currentUser.id);
+
+  if (needsVerification) {
+    return (
+      <PageShell
+        title="Messages"
+        subtitle="Email verification required"
+        maxWidth="max-w-3xl"
+        action={{ label: 'Back to inbox', onClick: () => navigate('/messages') }}
+      >
+        <VerificationRequired
+          title="Verify your email to continue"
+          description="Messaging hosts keeps everyone accountable. Verify your email to unlock the inbox."
+        />
+      </PageShell>
+    );
+  }
 
   if (isLoading) {
     return (

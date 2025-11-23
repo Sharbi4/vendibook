@@ -19,6 +19,7 @@ export const sql = neon(connectionString);
 
 let listingsBootstrapPromise;
 let usersBootstrapPromise;
+let verificationTokensBootstrapPromise;
 let userVerificationsBootstrapPromise;
 let userSettingsBootstrapPromise;
 let userSocialLinksBootstrapPromise;
@@ -174,6 +175,21 @@ export function bootstrapUsersTable() {
 
       await sql`
         ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT FALSE;
+      `;
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS verification_sent_at TIMESTAMPTZ NULL;
+      `;
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ NULL;
+      `;
+
+      await sql`
+        ALTER TABLE users
         ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
       `;
 
@@ -197,6 +213,30 @@ export function bootstrapUsersTable() {
   }
 
   return usersBootstrapPromise;
+}
+
+export function bootstrapVerificationTokensTable() {
+  if (!verificationTokensBootstrapPromise) {
+    verificationTokensBootstrapPromise = (async () => {
+      await bootstrapUsersTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS verification_tokens (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token TEXT NOT NULL UNIQUE,
+          expires_at TIMESTAMPTZ NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+    })().catch(error => {
+      verificationTokensBootstrapPromise = undefined;
+      console.error('Failed to bootstrap verification_tokens table:', error);
+      throw error;
+    });
+  }
+
+  return verificationTokensBootstrapPromise;
 }
 
 export function bootstrapUserVerificationsTable() {

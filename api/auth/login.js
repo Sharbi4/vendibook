@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { sql, bootstrapUsersTable } from '../../src/api/db.js';
 import { createToken } from '../../src/api/auth/jwt.js';
+import { sanitizeUser } from '../../src/api/auth/verificationService.js';
 
 let bootstrapPromise;
 
@@ -12,12 +13,6 @@ async function ensureBootstrap() {
     });
   }
   return bootstrapPromise;
-}
-
-function sanitizeUser(user) {
-  if (!user) return null;
-  const { password_hash, ...rest } = user;
-  return rest;
 }
 
 function normalizeEmail(value) {
@@ -44,7 +39,13 @@ export default async function handler(req, res) {
   const normalizedEmail = normalizeEmail(email);
 
   try {
-    const users = await sql`SELECT id, email, password_hash, first_name, last_name, phone, role, created_at, updated_at FROM users WHERE email = ${normalizedEmail} LIMIT 1;`;
+    const users = await sql`
+      SELECT id, email, password_hash, first_name, last_name, phone, role,
+             created_at, updated_at, is_verified, verification_sent_at, verified_at
+      FROM users
+      WHERE email = ${normalizedEmail}
+      LIMIT 1;
+    `;
     const user = users[0];
 
     if (!user) {

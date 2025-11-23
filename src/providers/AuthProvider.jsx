@@ -9,6 +9,7 @@ import {
   registerUser,
   clearAuthToken,
   setStoredUser,
+  requestVerificationEmail,
 } from '../utils/auth.js';
 
 function AuthProvider({ children }) {
@@ -16,6 +17,7 @@ function AuthProvider({ children }) {
   const [token, setToken] = useState(() => getAuthToken());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
 
   const applyAuthState = useCallback((authResult) => {
     if (!authResult) {
@@ -36,29 +38,42 @@ function AuthProvider({ children }) {
     setToken(null);
   }, []);
 
+  const refreshUserProfile = useCallback(async () => {
+    try {
+      const current = await getCurrentUser();
+      if (current) {
+        setStoredUser(current);
+        setUser(current);
+        return current;
+      }
+
+      resetSession();
+      return null;
+    } catch (err) {
+      console.error('Error refreshing auth profile:', err);
+      setError(err);
+      resetSession();
+      throw err;
+    }
+  }, [resetSession]);
+
   const bootstrap = useCallback(async () => {
     if (!token) {
       setUser(null);
       setIsLoading(false);
-      return;
+      return null;
     }
 
     setIsLoading(true);
     try {
-      const current = await getCurrentUser();
-      if (current) {
-        setUser(current);
-      } else {
-        resetSession();
-      }
+      return await refreshUserProfile();
     } catch (err) {
-      console.error('Error bootstrapping auth:', err);
-      setError(err);
-      resetSession();
+      // refreshUserProfile already handled logging/reset
+      return null;
     } finally {
       setIsLoading(false);
     }
-  }, [token, resetSession]);
+  }, [token, refreshUserProfile]);
 
   useEffect(() => {
     bootstrap();
@@ -70,7 +85,9 @@ function AuthProvider({ children }) {
       setError(null);
       try {
         const result = await loginUser(credentials);
-        return applyAuthState(result);
+        const applied = applyAuthState(result);
+        await refreshUserProfile();
+        return applied;
       } catch (err) {
         setError(err);
         throw err;
@@ -78,7 +95,7 @@ function AuthProvider({ children }) {
         setIsLoading(false);
       }
     },
-    [applyAuthState]
+    [applyAuthState, refreshUserProfile]
   );
 
   const handleSignup = useCallback(
@@ -87,7 +104,9 @@ function AuthProvider({ children }) {
       setError(null);
       try {
         const result = await registerUser(payload);
-        return applyAuthState(result);
+        const applied = applyAuthState(result);
+        await refreshUserProfile();
+        return applied;
       } catch (err) {
         setError(err);
         throw err;
@@ -95,27 +114,61 @@ function AuthProvider({ children }) {
         setIsLoading(false);
       }
     },
-    [applyAuthState]
+    [applyAuthState, refreshUserProfile]
   );
 
   const handleLogout = useCallback(() => {
     resetSession();
   }, [resetSession]);
 
+  const handleSendVerification = useCallback(
+    async (targetEmail) => {
+      const email = targetEmail || user?.email;
+      if (!email) {
+        throw new Error('Email address required to send verification.');
+      }
+
+      setIsSendingVerification(true);
+      try {
+        await requestVerificationEmail(email);
+        await refreshUserProfile();
+        return { success: true };
+      } finally {
+        setIsSendingVerification(false);
+      }
+    },
+    [refreshUserProfile, user?.email]
+  );
+
   const value = useMemo(
     () => ({
       user,
       token,
       isAuthenticated: Boolean(user && token),
+       isVerified: Boolean(user?.is_verified),
+       needsVerification: Boolean(user && !user?.is_verified),
       isLoading,
       error,
       login: handleLogin,
       signup: handleSignup,
       logout: handleLogout,
-      refreshUser: bootstrap,
+      refreshUser: refreshUserProfile,
       setUser,
+      sendVerification: handleSendVerification,
+      isSendingVerification,
     }),
-    [user, token, isLoading, error, handleLogin, handleSignup, handleLogout, bootstrap]
+    [
+      user,
+      token,
+      isLoading,
+      error,
+      handleLogin,
+      handleSignup,
+      handleLogout,
+      refreshUserProfile,
+      handleSendVerification,
+      isSendingVerification,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

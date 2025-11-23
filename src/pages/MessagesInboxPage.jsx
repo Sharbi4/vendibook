@@ -5,17 +5,25 @@ import { MessageThreadList } from '../components/MessageThreadCard';
 import EmptyState from '../components/EmptyState';
 import PageShell from '../components/layout/PageShell';
 import ListSkeleton from '../components/ListSkeleton';
+import VerificationRequired from '../components/VerificationRequired.jsx';
+import { useAuth } from '../hooks/useAuth.js';
 
 /**
  * MessagesInboxPage - Display user's message threads
  */
 export function MessagesInboxPage() {
   const navigate = useNavigate();
+  const { needsVerification } = useAuth();
   const [threads, setThreads] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
+    if (needsVerification) {
+      setIsLoading(false);
+      return;
+    }
+
     const loadData = async () => {
       try {
         setIsLoading(true);
@@ -54,12 +62,27 @@ export function MessagesInboxPage() {
     };
 
     loadData();
-  }, [navigate]);
+  }, [navigate, needsVerification]);
 
   const handleNewMessage = () => {
     // TODO: Open modal to start new conversation
     console.log('Start new message');
   };
+
+  if (needsVerification) {
+    return (
+      <PageShell
+        title="Messages"
+        subtitle="Verify your email to message hosts"
+        maxWidth="max-w-3xl"
+      >
+        <VerificationRequired
+          title="Email verification required"
+          description="To protect our community, messaging is available only after you verify your email."
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell

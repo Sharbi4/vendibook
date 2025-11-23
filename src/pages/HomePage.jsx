@@ -77,7 +77,7 @@ function HomePage() {
 
   const amenitiesList = ['Power', 'Water', 'Propane', 'Full Kitchen', 'Storage', 'WiFi'];
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, needsVerification } = useAuth();
 
   const baseNavLinks = [
     { label: 'Rent Equipment', path: '/listings' },
@@ -542,10 +542,26 @@ function HomePage() {
                     fontWeight: '600',
                     cursor: 'pointer',
                     boxShadow: '0 2px 8px rgba(255, 81, 36, 0.3)',
-                    transition: 'transform 0.2s, box-shadow 0.2s'
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px'
                   }}
                 >
-                  My profile
+                  <span>My profile</span>
+                  {needsVerification && (
+                    <span style={{
+                      background: '#FFD8BF',
+                      color: '#A0420F',
+                      borderRadius: '999px',
+                      padding: '2px 10px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      textTransform: 'uppercase'
+                    }}>
+                      Unverified
+                    </span>
+                  )}
                 </button>
               )}
             </div>

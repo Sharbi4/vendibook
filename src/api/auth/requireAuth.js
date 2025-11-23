@@ -16,7 +16,13 @@ export async function requireAuth(req, res) {
       throw new Error('Invalid token payload');
     }
 
-    const result = await sql`SELECT id, email, first_name, last_name, phone, role, created_at, updated_at FROM users WHERE id = ${payload.user_id} LIMIT 1;`;
+    const result = await sql`
+      SELECT id, email, first_name, last_name, phone, role,
+             created_at, updated_at, is_verified, verification_sent_at, verified_at
+      FROM users
+      WHERE id = ${payload.user_id}
+      LIMIT 1;
+    `;
     const user = result[0];
 
     if (!user) {

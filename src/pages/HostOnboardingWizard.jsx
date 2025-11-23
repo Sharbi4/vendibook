@@ -9,9 +9,12 @@ import FormField from '../components/FormField';
 import StepNavigation from '../components/StepNavigation';
 import PageShell from '../components/layout/PageShell';
 import WizardLayout from '../components/layout/WizardLayout';
+import VerificationRequired from '../components/VerificationRequired.jsx';
+import { useAuth } from '../hooks/useAuth.js';
 
 function HostOnboardingWizard() {
   const navigate = useNavigate();
+  const { needsVerification } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [listingData, setListingData] = useState({
@@ -208,6 +211,22 @@ function HostOnboardingWizard() {
         return null;
     }
   };
+
+  if (needsVerification) {
+    return (
+      <PageShell
+        title="Create a New Listing"
+        subtitle="Email verification required"
+        maxWidth="max-w-4xl"
+        action={{ label: 'Back home', onClick: () => navigate('/') }}
+      >
+        <VerificationRequired
+          title="Verify your email before creating listings"
+          description="We sent you a verification link. Once you confirm your email, you can start creating listings and earning on Vendibook."
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell
