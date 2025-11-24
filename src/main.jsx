@@ -10,7 +10,8 @@ import GlobalLoadingOverlay from './components/GlobalLoadingOverlay.jsx';
 import AppStatusProvider from './providers/AppStatusProvider.jsx';
 import AuthProvider from './providers/AuthProvider.jsx';
 import { useAppStatus } from './hooks/useAppStatus.js';
-import { clerkConfig } from './config/clerkConfig.js';
+import './config/clerkConfig';
+import { clerkFrontendApi, clerkPublishableKey } from './config/clerkConfig.js';
 
 // Wrapper component that connects GlobalLoadingOverlay to AppStatusProvider
 function AppWithStatus() {
@@ -40,7 +41,8 @@ function ClerkProviderWithRouter({ children }) {
   const navigate = useNavigate();
   return (
     <ClerkProvider
-      publishableKey={clerkConfig.publishableKey}
+      publishableKey={clerkPublishableKey}
+      frontendApi={clerkFrontendApi}
       routerPush={navigate}
       routerReplace={(to) => navigate(to, { replace: true })}
       afterSignOutUrl="/"
@@ -54,8 +56,20 @@ ClerkProviderWithRouter.propTypes = {
   children: PropTypes.node,
 };
 
-if (!clerkConfig.publishableKey) {
-  throw new Error('VITE_CLERK_PUBLISHABLE_KEY is required for Clerk to function. Add it to your environment config.');
+function MissingClerkConfig() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-8 text-center text-slate-800">
+      <div className="max-w-xl space-y-4 rounded-lg bg-white p-8 shadow-md">
+        <h1 className="text-2xl font-semibold">Clerk configuration missing</h1>
+        <p className="text-sm text-slate-600">
+          Add <code className="font-mono">VITE_CLERK_PUBLISHABLE_KEY</code> (and optionally
+          <code className="font-mono"> VITE_CLERK_FRONTEND_API</code>) to your environment variables. Update
+          your <code className="font-mono">.env.local</code> for local development and Vercel project settings
+          for deployment, then redeploy.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 // Add error logging
@@ -67,9 +81,13 @@ if (!rootElement) {
     ReactDOM.createRoot(rootElement).render(
       <React.StrictMode>
         <BrowserRouter>
-          <ClerkProviderWithRouter>
-            <Root />
-          </ClerkProviderWithRouter>
+          {clerkPublishableKey ? (
+            <ClerkProviderWithRouter>
+              <Root />
+            </ClerkProviderWithRouter>
+          ) : (
+            <MissingClerkConfig />
+          )}
         </BrowserRouter>
       </React.StrictMode>,
     );
