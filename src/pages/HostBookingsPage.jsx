@@ -252,13 +252,7 @@ export function HostBookingsPage() {
           }
           action={{
             label: isAuthenticated ? 'View Listings' : 'Sign In',
-              onClick: () => {
-                if (isAuthenticated) {
-                  navigate('/host/dashboard');
-                } else {
-                  navigate(`/signin?redirectTo=${encodeURIComponent('/host/bookings')}`);
-                }
-              }
+            onClick: () => navigate(isAuthenticated ? '/host/dashboard' : '/login')
           }}
         />
       );

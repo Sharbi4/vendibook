@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-export { default } from './RequireAuth.jsx';
-=======
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { isAuthenticated } from '../api/client';
@@ -33,4 +30,3 @@ export default function ProtectedRoute({ children }) {
   
   return children;
 }
->>>>>>> parent of aea4d91 (feat: implement authentication system)

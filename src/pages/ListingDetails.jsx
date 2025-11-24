@@ -1,10 +1,10 @@
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import PropTypes from 'prop-types';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, MapPin, Star, Check, Shield, Truck, Calendar } from 'lucide-react';
 import { getListingById as getMockListingById } from '../data/listings';
 import { AvailabilityCalendar } from '../components/AvailabilityCalendar';
 import { ListingMapPlaceholder } from '../components/ListingMapPlaceholder';
+import { useEventProPackages } from '../hooks/useEventProPackages';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStatus } from '../hooks/useAppStatus';
 
@@ -18,9 +18,6 @@ const formatListingType = (type, category) => {
     case 'food_truck':
     case 'foodtrucks':
       return 'Food truck rental';
-    case 'food-trailer':
-    case 'food_trailer':
-    case 'foodtrailers':
     case 'trailer':
     case 'trailers':
       return 'Food trailer rental';
@@ -33,10 +30,6 @@ const formatListingType = (type, category) => {
       return 'Event Pro – Catering / Service';
     case 'vending-lots':
     case 'vending_lots':
-    case 'lot':
-    case 'lots':
-    case 'vending-lot':
-    case 'vending_lot':
       return 'Vending location rental';
     case 'for-sale':
     case 'for_sale':
@@ -49,31 +42,6 @@ const formatListingType = (type, category) => {
 const formatCategoryBadge = (type, category) => {
   const label = (type || category || 'Listing').toString();
   return label.replace(/[_\s]+/g, '-').toUpperCase();
-};
-
-const buildEventProPackages = (listing) => {
-  const baseName = listing?.title?.split(' ')?.slice(0, 3).join(' ') || 'Signature';
-
-  return [
-    {
-      name: `${baseName} Tasting Experience`,
-      description:
-        'Curated tasting menu with 3 chef-selected entrées, seasonal sides, and dessert service. Includes staffing and setup.',
-      price: '$1,200 flat • up to 40 guests',
-    },
-    {
-      name: 'Catering Package – Up to 75 guests',
-      description:
-        'Includes 2 entrée options, 2 sides, beverages, and dessert. Perfect for corporate lunches or private events.',
-      price: '$1,950 flat • up to 3 hours service',
-    },
-    {
-      name: 'Full-Service Event',
-      description:
-        'Custom menu design, staffing, rentals coordination, and onsite execution. Ideal for weddings and large celebrations.',
-      price: 'Custom quote • 4 hour minimum',
-    },
-  ];
 };
 
 const BOOKING_MODE_LABELS = {
@@ -130,18 +98,10 @@ const extractHostUserId = (listing) =>
   listing?.userId ||
   null;
 
-function ListingDetails({ bookingIntent = null }) {
+function ListingDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
-  const {
-    user,
-    token,
-    isAuthenticated,
-    needsVerification,
-    sendVerification,
-    isSendingVerification,
-  } = useAuth();
+  const { user, token, isAuthenticated } = useAuth();
   const { setGlobalLoading, setGlobalError } = useAppStatus();
   const [listing, setListing] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -156,42 +116,7 @@ function ListingDetails({ bookingIntent = null }) {
   const [eventEndTime, setEventEndTime] = useState('');
   const [bookingFeedback, setBookingFeedback] = useState(null);
   const [calendarNotice, setCalendarNotice] = useState(null);
-<<<<<<< HEAD
-<<<<<<< HEAD
   const [selectedPackage, setSelectedPackage] = useState(null);
-  const [verificationNotice, setVerificationNotice] = useState(null);
-  const bookingPanelRef = useRef(null);
-
-  const redirectTarget = useMemo(() => {
-    const target = `${location.pathname || ''}${location.search || ''}${location.hash || ''}`;
-    return target && target !== '' ? target : `/listing/${id}`;
-  }, [id, location.hash, location.pathname, location.search]);
-
-  const redirectQuery = redirectTarget && redirectTarget !== '/' ? `?redirectTo=${encodeURIComponent(redirectTarget)}` : '';
-  const signinRedirectUrl = `/signin${redirectQuery}`;
-  const bookingIntentActive = useMemo(() => {
-    if (bookingIntent === 'book') {
-      return true;
-    }
-    const params = new URLSearchParams(location.search || '');
-    if (params.get('intent') === 'book') {
-      return true;
-    }
-    if ((location.hash || '').replace('#', '') === 'book') {
-      return true;
-    }
-    return false;
-  }, [bookingIntent, location.hash, location.search]);
-
-  useEffect(() => {
-    if (bookingIntentActive && bookingPanelRef.current) {
-      bookingPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [bookingIntentActive, redirectTarget]);
-=======
->>>>>>> parent of a296a08 (feat: add event pro packages)
-=======
->>>>>>> parent of a296a08 (feat: add event pro packages)
 
   useEffect(() => {
     if (!id) return;
@@ -301,13 +226,8 @@ function ListingDetails({ bookingIntent = null }) {
     setEventEndTime('');
     setBookingFeedback(null);
     setCalendarNotice(null);
+    setSelectedPackage(null);
   }, [listing?.id, listing?.default_start_time, listing?.defaultStartTime, listing?.default_end_time, listing?.defaultEndTime]);
-
-  useEffect(() => {
-    if (!needsVerification) {
-      setVerificationNotice(null);
-    }
-  }, [needsVerification]);
 
   const formatPrice = (price, unit = 'per day') => {
     if (price === undefined || price === null || price === '') {
@@ -335,20 +255,6 @@ function ListingDetails({ bookingIntent = null }) {
   };
 
   const handleBookNow = async () => {
-<<<<<<< HEAD
-    if (!isAuthenticated) {
-      navigate(signinRedirectUrl);
-      return;
-    }
-
-    if (needsVerification) {
-      setBookingFeedback({ type: 'error', message: 'Please verify your email to complete this booking.' });
-      setVerificationNotice({ type: 'error', message: 'Verify your email to finish booking. Check your inbox for the link.' });
-      return;
-    }
-
-=======
->>>>>>> parent of aea4d91 (feat: implement authentication system)
     if (!listing?.id) {
       return;
     }
@@ -470,35 +376,13 @@ function ListingDetails({ bookingIntent = null }) {
   };
 
   const handleMessageHost = () => {
-    if (!isAuthenticated) {
-      navigate(signinRedirectUrl);
-      return;
-    }
-
-    if (needsVerification) {
-      setBookingFeedback({ type: 'error', message: 'Verify your email to message hosts on Vendibook.' });
-      setVerificationNotice({ type: 'error', message: 'Verify your email to start messaging hosts.' });
-      return;
-    }
-
     setBookingFeedback(null);
     alert('Messaging coming soon! For now, contact the host directly.');
   };
 
-  const handleResendVerification = async () => {
-    if (!needsVerification) return;
-    setVerificationNotice(null);
-    try {
-      await sendVerification();
-      setVerificationNotice({ type: 'success', message: 'Verification email sent. Please check your inbox.' });
-    } catch (err) {
-      setVerificationNotice({ type: 'error', message: err.message || 'Unable to send verification email right now.' });
-    }
-  };
-
   const imageUrl = listing?.imageUrl || listing?.image_url;
   const deliveryAvailable = listing?.deliveryAvailable || listing?.delivery_available;
-  const listingIsVerified = listing?.isVerified || listing?.is_verified;
+  const isVerified = listing?.isVerified || listing?.is_verified;
   const tags = Array.isArray(listing?.tags) ? listing.tags : [];
   const highlights = Array.isArray(listing?.highlights) ? listing.highlights : [];
   const safeCity =
@@ -582,6 +466,19 @@ function ListingDetails({ bookingIntent = null }) {
     'daily-with-time';
   const isHourlyMode = bookingMode === 'hourly';
   const bookingModeLabel = BOOKING_MODE_LABELS[bookingMode] || 'Daily rental';
+  const { packages: eventProPackages = [] } = useEventProPackages(isEventPro && listing?.id ? listing.id : null);
+
+  useEffect(() => {
+    if (!selectedPackage) {
+      return;
+    }
+    const stillExists = Array.isArray(eventProPackages)
+      ? eventProPackages.some((pkg) => pkg.id === selectedPackage.id)
+      : false;
+    if (!stillExists) {
+      setSelectedPackage(null);
+    }
+  }, [eventProPackages, selectedPackage]);
 
   const categoryBadgeLabel = useMemo(
     () => formatCategoryBadge(rawType, listing?.category),
@@ -590,10 +487,6 @@ function ListingDetails({ bookingIntent = null }) {
   const listingTypeLabel = useMemo(
     () => formatListingType(rawType, listing?.category),
     [rawType, listing?.category]
-  );
-  const eventProPackages = useMemo(
-    () => (isEventPro && listing ? buildEventProPackages(listing) : []),
-    [isEventPro, listing]
   );
   const detailItems = useMemo(() => {
     const items = [
@@ -607,7 +500,7 @@ function ListingDetails({ bookingIntent = null }) {
       items.push({ label: 'Delivery', value: 'Available upon request' });
     }
 
-    if (listingIsVerified) {
+    if (isVerified) {
       items.push({ label: 'Verified', value: 'Vendibook verified host' });
     }
 
@@ -636,7 +529,7 @@ function ListingDetails({ bookingIntent = null }) {
   }, [
     createdAt,
     deliveryAvailable,
-    listingIsVerified,
+    isVerified,
     listing?.price,
     listingTypeLabel,
     priceUnit,
@@ -666,8 +559,7 @@ function ListingDetails({ bookingIntent = null }) {
   const hasRequiredSelection = isHourlyMode
     ? Boolean(startDate && eventStartTime && eventEndTime)
     : Boolean(startDate && selectedEndDate);
-  const bookingSubmissionReady = Boolean(hostUserId && hasRequiredSelection && !needsVerification);
-  const bookButtonDisabled = isAuthenticated ? !bookingSubmissionReady || isSubmitting : false;
+  const canSubmit = Boolean(hostUserId && isAuthenticated && hasRequiredSelection) && !isSubmitting;
 
   if (isLoading) {
     return (
@@ -735,7 +627,7 @@ function ListingDetails({ bookingIntent = null }) {
             </span>
 
             <div className="absolute right-6 top-6 flex flex-wrap justify-end gap-2">
-              {listingIsVerified && (
+              {isVerified && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-emerald-600 shadow">
                   <Shield className="h-3.5 w-3.5" /> Verified
                 </span>
@@ -1026,44 +918,17 @@ function ListingDetails({ bookingIntent = null }) {
                 </div>
               </div>
 
-              {isAuthenticated && needsVerification && (
-                <div className="rounded-2xl border border-orange-200 bg-white p-4 text-sm text-orange-800 shadow-sm">
-                  <p className="font-semibold">Please verify your email to complete booking on Vendibook.</p>
-                  <p className="mt-1 text-xs text-orange-700">
-                    Check your inbox for the verification email or resend a new link.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleResendVerification}
-                    className="mt-3 inline-flex items-center justify-center rounded-full border border-orange-200 px-4 py-2 text-xs font-semibold text-orange-600 transition hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60"
-                    disabled={isSendingVerification}
-                  >
-                    {isSendingVerification ? 'Sending…' : 'Resend verification email'}
-                  </button>
-                  {verificationNotice && (
-                    <p
-                      className={`mt-2 text-xs ${
-                        verificationNotice.type === 'error' ? 'text-red-600' : 'text-emerald-600'
-                      }`}
-                    >
-                      {verificationNotice.message}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <div ref={bookingPanelRef} className="space-y-3" id="booking-panel">
+              <div className="space-y-3">
                 <button
                   onClick={handleBookNow}
-                  disabled={bookButtonDisabled}
+                  disabled={!canSubmit}
                   className="w-full rounded-xl bg-gradient-to-r from-orange-500 via-orange-500 to-orange-600 px-6 py-4 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isSubmitting ? 'Submitting...' : 'Book Now'}
                 </button>
                 <button
                   onClick={handleMessageHost}
-                  disabled={needsVerification}
-                  className="w-full rounded-xl border-2 border-orange-500 px-6 py-3 text-sm font-semibold text-orange-500 transition hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="w-full rounded-xl border-2 border-orange-500 px-6 py-3 text-sm font-semibold text-orange-500 transition hover:bg-orange-50"
                 >
                   Message Host
                 </button>
@@ -1097,7 +962,7 @@ function ListingDetails({ bookingIntent = null }) {
                     Delivery available upon request
                   </div>
                 )}
-                {listingIsVerified && (
+                {isVerified && (
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4 text-emerald-600" />
                     Verified host
@@ -1111,9 +976,5 @@ function ListingDetails({ bookingIntent = null }) {
     </div>
   );
 }
-
-ListingDetails.propTypes = {
-  bookingIntent: PropTypes.string,
-};
 
 export default ListingDetails;

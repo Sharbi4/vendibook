@@ -1,11 +1,11 @@
 import {
   ensureMessagingBootstrap,
+  extractClerkId,
   resolveUserId,
   parsePagination,
   listThreads,
   createHttpError
 } from '../../src/api/messaging/shared.js';
-import { requireClerkUserId } from '../_clerk.js';
 
 export default async function handler(req, res) {
   try {
@@ -28,7 +28,10 @@ export default async function handler(req, res) {
     const roleParam = String(req.query?.role || '').toLowerCase();
     const role = roleParam === 'host' || roleParam === 'renter' ? roleParam : null;
 
-    const clerkId = requireClerkUserId(req);
+    const clerkId = extractClerkId(req);
+    if (!clerkId) {
+      throw createHttpError(400, 'Missing clerkId. Provide via x-clerk-id header or query parameter.');
+    }
 
     const userId = await resolveUserId({ clerkId, label: 'current user' });
 

@@ -1,5 +1,6 @@
 import {
   ensureMessagingBootstrap,
+  extractClerkId,
   resolveUserId,
   parsePagination,
   listThreads,
@@ -10,7 +11,6 @@ import {
   updateThreadAfterMessage,
   createHttpError
 } from '../../src/api/messaging/shared.js';
-import { extractClerkUserId } from '../_clerk.js';
 // import { notifyNewMessage } from '../../src/api/notifications/hooks.js'; // TODO: enable after notification wiring
 
 export default async function handler(req, res) {
@@ -47,7 +47,7 @@ async function handlePost(req, res) {
     let thread = null;
 
     let senderUserId = body.senderUserId || body.sender_user_id || null;
-    const senderClerkId = body.senderClerkId || body.sender_clerk_id || extractClerkUserId(req);
+    const senderClerkId = body.senderClerkId || body.sender_clerk_id || extractClerkId(req);
     senderUserId = await resolveUserId({ userId: senderUserId, clerkId: senderClerkId, label: 'sender' });
 
     if (threadIdInput) {
@@ -112,7 +112,7 @@ async function handleGet(req, res) {
     const role = roleParam === 'host' || roleParam === 'renter' ? roleParam : null;
 
     let userId = req.query?.userId || req.query?.user_id || null;
-    const filterClerkId = req.query?.clerkId || req.query?.clerk_id || extractClerkUserId(req);
+    const filterClerkId = req.query?.clerkId || req.query?.clerk_id || extractClerkId(req);
 
     if (!userId && filterClerkId) {
       userId = await resolveUserId({ clerkId: filterClerkId, label: 'user filter' });

@@ -10,8 +10,6 @@
     "env:pull": "npx vercel env pull .env.development.local"
   },
   "dependencies": {
-    "@clerk/backend": "^2.23.2",
-    "@clerk/clerk-react": "^5.56.2",
     "@neondatabase/serverless": "^1.0.2",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
@@ -20,8 +18,7 @@
     "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^7.9.6",
-    "stripe": "^20.0.0"
+    "react-router-dom": "^7.9.6"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",

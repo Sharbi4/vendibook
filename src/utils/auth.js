@@ -216,26 +216,6 @@ export async function loginUser(email, password) {
 }
 
 /**
- * Request an email verification link
- * @param {string} email - Target email address
- */
-export async function requestVerificationEmail(email) {
-  const response = await fetch('/api/auth/send-verification', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email })
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok || data.success === false) {
-    throw new Error(data.message || data.error || 'Unable to send verification email');
-  }
-
-  return data;
-}
-
-/**
  * Get current authenticated user
  * @returns {Promise<object>} - Current user object
  */

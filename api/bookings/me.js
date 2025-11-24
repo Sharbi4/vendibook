@@ -3,10 +3,10 @@ import {
   fetchBookings,
   parsePagination,
   parseStatusFilter,
+  extractClerkId,
   resolveUserId,
   createHttpError
 } from './shared.js';
-import { requireClerkUserId } from '../_clerk.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -25,7 +25,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const clerkId = requireClerkUserId(req);
+    const clerkId = extractClerkId(req);
+    if (!clerkId) {
+      throw createHttpError(400, 'Missing clerkId. Provide via x-clerk-id header or query parameter.');
+    }
 
     const roleParam = String(req.query.role || '').toLowerCase();
     const role = roleParam === 'host' ? 'host' : 'renter';

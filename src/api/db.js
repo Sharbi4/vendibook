@@ -19,9 +19,7 @@ export const sql = neon(connectionString);
 
 let listingsBootstrapPromise;
 let usersBootstrapPromise;
-let verificationTokensBootstrapPromise;
 let userVerificationsBootstrapPromise;
-let userVerificationEventsBootstrapPromise;
 let userSettingsBootstrapPromise;
 let userSocialLinksBootstrapPromise;
 let userPayoutAccountsBootstrapPromise;
@@ -32,6 +30,7 @@ let listingBookingRulesBootstrapPromise;
 let messageThreadsBootstrapPromise;
 let messagesBootstrapPromise;
 let notificationsBootstrapPromise;
+let eventProPackagesBootstrapPromise;
 
 export function bootstrapListingsTable() {
   if (!listingsBootstrapPromise) {
@@ -142,96 +141,6 @@ export function bootstrapUsersTable() {
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
       `;
-<<<<<<< HEAD
-
-      try {
-        await sql`
-          ALTER TABLE users
-          ALTER COLUMN email SET NOT NULL;
-        `;
-      } catch (constraintError) {
-        console.warn('Unable to enforce NOT NULL on users.email:', constraintError?.message || constraintError);
-      }
-
-      await sql`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS password_hash TEXT NULL;
-      `;
-
-      await sql`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS first_name TEXT NULL;
-      `;
-
-      await sql`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS last_name TEXT NULL;
-      `;
-
-      await sql`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS phone TEXT NULL;
-      `;
-
-      await sql`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS stripe_connect_account_id TEXT NULL;
-      `;
-
-      await sql`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS stripe_identity_verification_id TEXT NULL;
-      `;
-
-      await sql`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT FALSE;
-      `;
-
-      await sql`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS verification_sent_at TIMESTAMPTZ NULL;
-      `;
-
-      await sql`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ NULL;
-      `;
-
-      await sql`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS is_host_verified BOOLEAN NOT NULL DEFAULT FALSE;
-      `;
-
-      await sql`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS host_verification_status TEXT NULL;
-      `;
-
-      await sql`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS host_verification_updated_at TIMESTAMPTZ NULL;
-      `;
-
-      await sql`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
-      `;
-
-      await sql`
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
-      `;
-
-      try {
-        await sql`
-          CREATE UNIQUE INDEX IF NOT EXISTS users_email_key ON users(email);
-        `;
-      } catch (indexError) {
-        console.warn('Unable to ensure unique index on users.email:', indexError?.message || indexError);
-      }
-=======
->>>>>>> parent of aea4d91 (feat: implement authentication system)
     })().catch(error => {
       usersBootstrapPromise = undefined;
       console.error('Failed to bootstrap users table:', error);
@@ -240,30 +149,6 @@ export function bootstrapUsersTable() {
   }
 
   return usersBootstrapPromise;
-}
-
-export function bootstrapVerificationTokensTable() {
-  if (!verificationTokensBootstrapPromise) {
-    verificationTokensBootstrapPromise = (async () => {
-      await bootstrapUsersTable();
-      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
-      await sql`
-        CREATE TABLE IF NOT EXISTS verification_tokens (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          token TEXT NOT NULL UNIQUE,
-          expires_at TIMESTAMPTZ NOT NULL,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        );
-      `;
-    })().catch(error => {
-      verificationTokensBootstrapPromise = undefined;
-      console.error('Failed to bootstrap verification_tokens table:', error);
-      throw error;
-    });
-  }
-
-  return verificationTokensBootstrapPromise;
 }
 
 export function bootstrapUserVerificationsTable() {
@@ -328,30 +213,6 @@ export function bootstrapUserSettingsTable() {
   }
 
   return userSettingsBootstrapPromise;
-}
-
-export function bootstrapUserVerificationEventsTable() {
-  if (!userVerificationEventsBootstrapPromise) {
-    userVerificationEventsBootstrapPromise = (async () => {
-      await bootstrapUsersTable();
-      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
-      await sql`
-        CREATE TABLE IF NOT EXISTS user_verification_events (
-          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          event_type TEXT NOT NULL,
-          event_payload JSONB NULL,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        );
-      `;
-    })().catch(error => {
-      userVerificationEventsBootstrapPromise = undefined;
-      console.error('Failed to bootstrap user_verification_events table:', error);
-      throw error;
-    });
-  }
-
-  return userVerificationEventsBootstrapPromise;
 }
 
 export function bootstrapUserSocialLinksTable() {
@@ -578,6 +439,38 @@ export function bootstrapListingBookingRulesTable() {
   }
 
   return listingBookingRulesBootstrapPromise;
+}
+
+export function bootstrapEventProPackagesTable() {
+  if (!eventProPackagesBootstrapPromise) {
+    eventProPackagesBootstrapPromise = (async () => {
+      await bootstrapListingsTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      // event_pro_packages is the canonical source of truth for Event Pro offerings surfaced on listings and bookings.
+      await sql`
+        CREATE TABLE IF NOT EXISTS event_pro_packages (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          description TEXT,
+          base_price NUMERIC NOT NULL,
+          max_guests INTEGER NULL,
+          included_items TEXT NULL,
+          duration_hours NUMERIC NULL,
+          is_active BOOLEAN NOT NULL DEFAULT TRUE,
+          sort_order INTEGER NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+    })().catch(error => {
+      eventProPackagesBootstrapPromise = undefined;
+      console.error('Failed to bootstrap event_pro_packages table:', error);
+      throw error;
+    });
+  }
+
+  return eventProPackagesBootstrapPromise;
 }
 
 export function bootstrapMessageThreadsTable() {

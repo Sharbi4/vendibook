@@ -3,7 +3,6 @@ import {
   bootstrapBookingsTable,
   bootstrapAvailabilityBlocksTable
 } from '../../src/api/db.js';
-import { extractClerkUserId } from '../_clerk.js';
 
 let bookingsBootstrapPromise;
 
@@ -413,8 +412,19 @@ export function parsePagination(query = {}) {
   };
 }
 
-export function extractClerkId(req, options = {}) {
-  return extractClerkUserId(req, options);
+export function extractClerkId(req) {
+  const headers = req?.headers || {};
+  return (
+    headers['x-clerk-id'] ||
+    headers['x-clerkid'] ||
+    headers['clerk-id'] ||
+    headers['clerkid'] ||
+    req.body?.clerkId ||
+    req.body?.clerk_id ||
+    req.query?.clerkId ||
+    req.query?.clerk_id ||
+    null
+  );
 }
 
 export async function resolveUserId({ userId, clerkId, label = 'user', required = true }) {
