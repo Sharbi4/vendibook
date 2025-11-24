@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ListingsPage from './pages/ListingsPage';
 import ListingDetails from './pages/ListingDetails';
@@ -14,15 +14,17 @@ import { AnalyticsDashboardPage } from './pages/AnalyticsDashboardPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import CommunityPage from './pages/CommunityPage';
 import ProfilePage from './pages/ProfilePage';
-import ProtectedRoute from './components/ProtectedRoute.jsx';
+import RequireAuth from './components/RequireAuth.jsx';
 import VerificationBanner from './components/VerificationBanner.jsx';
-import LoginPage from './pages/LoginPage.jsx';
+import SiteHeader from './components/layout/SiteHeader.jsx';
+import SigninPage from './pages/SigninPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 import VerifyEmailPage from './pages/VerifyEmailPage.jsx';
 
 function App() {
   return (
-    <Router>
+    <>
+      <SiteHeader />
       <VerificationBanner />
       <Routes>
         {/* Main Pages */}
@@ -33,9 +35,9 @@ function App() {
         <Route
           path="/profile"
           element={
-            <ProtectedRoute>
+            <RequireAuth>
               <ProfilePage />
-            </ProtectedRoute>
+            </RequireAuth>
           }
         />
         
@@ -44,33 +46,33 @@ function App() {
         <Route
           path="/host/create-listing"
           element={
-            <ProtectedRoute>
+            <RequireAuth>
               <HostOnboardingWizard />
-            </ProtectedRoute>
+            </RequireAuth>
           }
         />
         <Route
           path="/host/onboarding"
           element={
-            <ProtectedRoute>
+            <RequireAuth>
               <HostOnboardingWizard />
-            </ProtectedRoute>
+            </RequireAuth>
           }
         />
         <Route
           path="/host/dashboard"
           element={
-            <ProtectedRoute>
+            <RequireAuth>
               <HostDashboard />
-            </ProtectedRoute>
+            </RequireAuth>
           }
         />
         <Route
           path="/host/bookings"
           element={
-            <ProtectedRoute>
+            <RequireAuth>
               <HostBookingsPage />
-            </ProtectedRoute>
+            </RequireAuth>
           }
         />
         <Route path="/analytics" element={<AnalyticsDashboardPage />} />
@@ -79,9 +81,9 @@ function App() {
         <Route
           path="/bookings"
           element={
-            <ProtectedRoute>
+            <RequireAuth>
               <MyBookingsPage />
-            </ProtectedRoute>
+            </RequireAuth>
           }
         />
         
@@ -89,17 +91,17 @@ function App() {
         <Route
           path="/messages"
           element={
-            <ProtectedRoute>
+            <RequireAuth>
               <MessagesInboxPage />
-            </ProtectedRoute>
+            </RequireAuth>
           }
         />
         <Route
           path="/messages/:threadId"
           element={
-            <ProtectedRoute>
+            <RequireAuth>
               <MessageDetailPage />
-            </ProtectedRoute>
+            </RequireAuth>
           }
         />
         
@@ -110,11 +112,12 @@ function App() {
         <Route path="/admin" element={<AdminDashboard />} />
 
         {/* Auth */}
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<Navigate to="/signin" replace />} />
+        <Route path="/signin" element={<SigninPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
       </Routes>
-    </Router>
+    </>
   );
 }
 

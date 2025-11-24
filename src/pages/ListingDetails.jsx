@@ -270,7 +270,8 @@ function ListingDetails() {
 
   const handleBookNow = async () => {
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: `/listing/${listing?.id || id}` } });
+      const redirectTo = `/listing/${listing?.id || id}`;
+      navigate(`/signin?redirectTo=${encodeURIComponent(redirectTo)}`);
       return;
     }
 

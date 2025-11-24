@@ -1,174 +1,283 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
+import { useAuth as useClerkAuth, useUser } from '@clerk/clerk-react';
 import AuthContext from '../context/authContext.js';
-import {
-  getAuthToken,
-  getStoredUser,
-  getCurrentUser,
-  loginUser,
-  registerUser,
-  clearAuthToken,
-  setStoredUser,
-  requestVerificationEmail,
-} from '../utils/auth.js';
+import { getStoredUser, setStoredUser } from '../utils/auth.js';
+
+function sanitizeRedirectPath(value) {
+  if (!value) {
+    return '/listings';
+  }
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    try {
+      const url = new URL(value);
+      return `${url.pathname}${url.search}` || '/listings';
+    } catch (error) {
+      return '/listings';
+    }
+  }
+  return value.startsWith('/') ? value : `/${value}`;
+}
 
 function AuthProvider({ children }) {
+  const { isLoaded: isClerkAuthLoaded, isSignedIn, getToken, signOut, sessionId } = useClerkAuth();
+  const { user: clerkUser, isLoaded: isClerkUserLoaded } = useUser();
+
   const [user, setUser] = useState(() => getStoredUser());
-  const [token, setToken] = useState(() => getAuthToken());
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [token, setToken] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState(null);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [isStartingConnect, setIsStartingConnect] = useState(false);
   const [isStartingIdentity, setIsStartingIdentity] = useState(false);
 
-  const applyAuthState = useCallback((authResult) => {
-    if (!authResult) {
-      return { user: null, token: null };
+  const lastSyncedClerkId = useRef(null);
+
+  const isClerkReady = isClerkAuthLoaded && isClerkUserLoaded;
+  const clerkUserId = clerkUser?.id || null;
+  const primaryEmail =
+    clerkUser?.primaryEmailAddress?.emailAddress ||
+    clerkUser?.emailAddresses?.[0]?.emailAddress ||
+    null;
+
+  const updateGlobalAuthCache = useCallback((nextToken, nextClerkId) => {
+    if (typeof window === 'undefined') {
+      return;
     }
-    const nextUser = authResult.user || null;
-    const nextToken = authResult.token || null;
-    setStoredUser(nextUser);
-    setUser(nextUser);
-    setToken(nextToken);
-    return { user: nextUser, token: nextToken };
+    window.__vendibookAuthCache = {
+      ...(window.__vendibookAuthCache || {}),
+      token: nextToken || null,
+      clerkId: nextClerkId || null,
+    };
   }, []);
 
-  const resetSession = useCallback(() => {
-    clearAuthToken();
-    setStoredUser(null);
-    setUser(null);
-    setToken(null);
-  }, []);
+  const requestClerkToken = useCallback(async () => {
+    if (!isSignedIn) {
+      return null;
+    }
 
-  const refreshUserProfile = useCallback(async () => {
     try {
-      const current = await getCurrentUser();
-      if (current) {
-        setStoredUser(current);
-        setUser(current);
-        return current;
+      const templateToken = await getToken({ template: 'vendibook' });
+      if (templateToken) {
+        return templateToken;
+      }
+    } catch (templateError) {
+      console.warn('Optional Clerk token template "vendibook" unavailable:', templateError?.message || templateError);
+    }
+
+    return getToken({ skipCache: true });
+  }, [getToken, isSignedIn]);
+
+  const ensureSessionToken = useCallback(
+    async ({ force = false } = {}) => {
+      if (!isSignedIn) {
+        setToken(null);
+        updateGlobalAuthCache(null, clerkUserId);
+        return null;
       }
 
-      resetSession();
-      return null;
-    } catch (err) {
-      console.error('Error refreshing auth profile:', err);
-      setError(err);
-      resetSession();
-      throw err;
-    }
-  }, [resetSession]);
+      if (!force && token) {
+        return token;
+      }
 
-  const bootstrap = useCallback(async () => {
-    if (!token) {
-      setUser(null);
-      setIsLoading(false);
-      return null;
-    }
-
-    setIsLoading(true);
-    try {
-      return await refreshUserProfile();
-    } catch (err) {
-      // refreshUserProfile already handled logging/reset
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [token, refreshUserProfile]);
+      try {
+        const nextToken = await requestClerkToken();
+        setToken(nextToken || null);
+        updateGlobalAuthCache(nextToken || null, clerkUserId);
+        return nextToken || null;
+      } catch (error) {
+        console.error('Failed to fetch Clerk session token:', error);
+        setToken(null);
+        updateGlobalAuthCache(null, clerkUserId);
+        return null;
+      }
+    },
+    [clerkUserId, isSignedIn, requestClerkToken, token, updateGlobalAuthCache]
+  );
 
   useEffect(() => {
-    bootstrap();
-  }, [bootstrap]);
+    updateGlobalAuthCache(token, clerkUserId);
+  }, [token, clerkUserId, updateGlobalAuthCache]);
 
-  const handleLogin = useCallback(
-    async (credentials) => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const result = await loginUser(credentials);
-        const applied = applyAuthState(result);
-        await refreshUserProfile();
-        return applied;
-      } catch (err) {
-        setError(err);
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [applyAuthState, refreshUserProfile]
-  );
-
-  const handleSignup = useCallback(
-    async (payload) => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const result = await registerUser(payload);
-        const applied = applyAuthState(result);
-        await refreshUserProfile();
-        return applied;
-      } catch (err) {
-        setError(err);
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [applyAuthState, refreshUserProfile]
-  );
-
-  const handleLogout = useCallback(() => {
-    resetSession();
-  }, [resetSession]);
-
-  const handleSendVerification = useCallback(
-    async (targetEmail) => {
-      const email = targetEmail || user?.email;
-      if (!email) {
-        throw new Error('Email address required to send verification.');
-      }
-
-      setIsSendingVerification(true);
-      try {
-        await requestVerificationEmail(email);
-        await refreshUserProfile();
-        return { success: true };
-      } finally {
-        setIsSendingVerification(false);
-      }
-    },
-    [refreshUserProfile, user?.email]
-  );
+  useEffect(() => {
+    if (!isSignedIn) {
+      setToken(null);
+      updateGlobalAuthCache(null, null);
+      return;
+    }
+    ensureSessionToken({ force: true }).catch((error) => {
+      console.warn('Unable to refresh Clerk session token:', error);
+    });
+  }, [ensureSessionToken, isSignedIn, sessionId, updateGlobalAuthCache]);
 
   const authorizedFetch = useCallback(
     async (path, options = {}) => {
-      if (!token) {
-        throw new Error('You must be signed in to continue.');
-      }
-
-      const headers = {
-        ...(options.headers || {}),
-        Authorization: `Bearer ${token}`,
-      };
-
+      const headers = new Headers(options.headers || {});
       const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
-      if (!headers['Content-Type'] && !isFormData) {
-        headers['Content-Type'] = 'application/json';
+      if (!isFormData && !headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
+      }
+      if (clerkUserId) {
+        headers.set('x-clerk-id', clerkUserId);
       }
 
-      const response = await fetch(path, { ...options, headers });
+      const sessionToken = await ensureSessionToken();
+      if (sessionToken) {
+        headers.set('Authorization', `Bearer ${sessionToken}`);
+      }
+
+      const response = await fetch(path, { ...options, headers: Object.fromEntries(headers.entries()) });
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok || data.success === false) {
-        throw new Error(data.message || data.error || 'Request failed');
+        const message = data.message || data.error || 'Request failed';
+        const error = new Error(message);
+        error.status = response.status;
+        error.payload = data;
+        throw error;
       }
 
       return data;
     },
-    [token]
+    [clerkUserId, ensureSessionToken]
   );
+
+  const fetchCurrentUser = useCallback(async () => {
+    if (!clerkUserId) {
+      setUser(null);
+      setStoredUser(null);
+      return null;
+    }
+
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      const data = await authorizedFetch('/api/users/me', { method: 'GET' });
+      const nextUser = data.data || data.user || data;
+      setUser(nextUser);
+      setStoredUser(nextUser);
+      return nextUser;
+    } catch (error) {
+      if (error.status === 404) {
+        setUser(null);
+        setStoredUser(null);
+        lastSyncedClerkId.current = null;
+        return null;
+      }
+      setSyncError(error);
+      throw error;
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [authorizedFetch, clerkUserId]);
+
+  const syncUserProfile = useCallback(async () => {
+    if (!clerkUserId || !clerkUser) {
+      return null;
+    }
+
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      const payload = {
+        clerkId: clerkUser.id,
+        email: primaryEmail,
+        firstName: clerkUser.firstName || '',
+        lastName: clerkUser.lastName || '',
+        displayName: clerkUser.fullName || clerkUser.username || null,
+        businessName: clerkUser?.publicMetadata?.businessName || null,
+        phone: clerkUser.primaryPhoneNumber?.phoneNumber || null,
+        imageUrl: clerkUser.imageUrl || null,
+        role: clerkUser?.publicMetadata?.role || undefined,
+      };
+
+      await authorizedFetch('/api/users', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+
+      lastSyncedClerkId.current = clerkUser.id;
+      return fetchCurrentUser();
+    } catch (error) {
+      setSyncError(error);
+      throw error;
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [authorizedFetch, clerkUser, clerkUserId, fetchCurrentUser, primaryEmail]);
+
+  useEffect(() => {
+    if (!isClerkReady) {
+      return;
+    }
+
+    if (!isSignedIn || !clerkUserId) {
+      setUser(null);
+      setStoredUser(null);
+      setToken(null);
+      updateGlobalAuthCache(null, null);
+      lastSyncedClerkId.current = null;
+      return;
+    }
+
+    let cancelled = false;
+
+    async function hydrate() {
+      if (lastSyncedClerkId.current === clerkUserId && user) {
+        try {
+          await fetchCurrentUser();
+        } catch (error) {
+          console.warn('Failed to refresh user profile:', error);
+        }
+        return;
+      }
+
+      try {
+        await syncUserProfile();
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to sync Clerk user with Vendibook backend:', error);
+        }
+      }
+    }
+
+    hydrate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clerkUserId, fetchCurrentUser, isClerkReady, isSignedIn, syncUserProfile, updateGlobalAuthCache, user]);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await signOut();
+    } finally {
+      setUser(null);
+      setStoredUser(null);
+      setToken(null);
+      updateGlobalAuthCache(null, null);
+      lastSyncedClerkId.current = null;
+    }
+  }, [signOut, updateGlobalAuthCache]);
+
+  const handleSendVerification = useCallback(async () => {
+    const targetEmail = user?.email || primaryEmail;
+    if (!targetEmail) {
+      throw new Error('Email address required to send verification.');
+    }
+
+    setIsSendingVerification(true);
+    try {
+      await authorizedFetch('/api/auth/send-verification', {
+        method: 'POST',
+        body: JSON.stringify({ email: targetEmail }),
+      });
+      await fetchCurrentUser();
+      return { success: true };
+    } finally {
+      setIsSendingVerification(false);
+    }
+  }, [authorizedFetch, fetchCurrentUser, primaryEmail, user?.email]);
 
   const startConnectOnboarding = useCallback(async () => {
     setIsStartingConnect(true);
@@ -190,12 +299,12 @@ function AuthProvider({ children }) {
         body: JSON.stringify({ connectAccountId: accountId }),
       });
 
-      await refreshUserProfile();
+      await fetchCurrentUser();
       return linkResponse.data?.url || linkResponse.url;
     } finally {
       setIsStartingConnect(false);
     }
-  }, [authorizedFetch, refreshUserProfile]);
+  }, [authorizedFetch, fetchCurrentUser]);
 
   const startIdentityVerification = useCallback(async () => {
     setIsStartingIdentity(true);
@@ -203,52 +312,64 @@ function AuthProvider({ children }) {
       const response = await authorizedFetch('/api/stripe/create-identity-session', {
         method: 'POST',
       });
-      await refreshUserProfile();
+      await fetchCurrentUser();
       return response.data?.url || response.url;
     } finally {
       setIsStartingIdentity(false);
     }
-  }, [authorizedFetch, refreshUserProfile]);
+  }, [authorizedFetch, fetchCurrentUser]);
+
+  const isAuthenticated = Boolean(isSignedIn && clerkUserId);
+  const isLoading = !isClerkReady || isSyncing;
 
   const value = useMemo(
     () => ({
       user,
+      clerkUser,
       token,
-      isAuthenticated: Boolean(user && token),
+      clerkUserId,
+      sessionId,
+      isAuthenticated,
       isVerified: Boolean(user?.is_verified),
       needsVerification: Boolean(user && !user?.is_verified),
       isHostVerified: Boolean(user?.is_host_verified),
       needsHostVerification: Boolean(user && !user?.is_host_verified),
       hostVerificationStatus: user?.host_verification_status || null,
       isLoading,
-      error,
-      login: handleLogin,
-      signup: handleSignup,
+      error: syncError,
       logout: handleLogout,
-      refreshUser: refreshUserProfile,
-      setUser,
+      refreshUser: fetchCurrentUser,
+      syncUserProfile,
       sendVerification: handleSendVerification,
       isSendingVerification,
       startConnectOnboarding,
       startIdentityVerification,
       isStartingConnect,
       isStartingIdentity,
+      getToken: ensureSessionToken,
+      authorizedFetch,
+      defaultRedirect: sanitizeRedirectPath,
     }),
     [
-      user,
-      token,
-      isLoading,
-      error,
-      handleLogin,
-      handleSignup,
+      authorizedFetch,
+      clerkUser,
+      clerkUserId,
+      ensureSessionToken,
+      fetchCurrentUser,
       handleLogout,
-      refreshUserProfile,
       handleSendVerification,
+      isAuthenticated,
+      isLoading,
       isSendingVerification,
-      startConnectOnboarding,
-      startIdentityVerification,
       isStartingConnect,
       isStartingIdentity,
+      sessionId,
+      startConnectOnboarding,
+      startIdentityVerification,
+      syncError,
+      syncUserProfile,
+      token,
+      user,
     ]
   );
 

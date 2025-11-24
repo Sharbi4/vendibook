@@ -220,7 +220,13 @@ export function MyBookingsPage() {
           }
           action={{
             label: isAuthenticated ? 'Browse Listings' : 'Sign In',
-            onClick: () => navigate(isAuthenticated ? '/listings' : '/login')
+              onClick: () => {
+                if (isAuthenticated) {
+                  navigate('/listings');
+                } else {
+                  navigate(`/signin?redirectTo=${encodeURIComponent('/bookings')}`);
+                }
+              }
           }}
         />
       );

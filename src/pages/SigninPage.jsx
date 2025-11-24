@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
-import { SignUp } from '@clerk/clerk-react';
+import { Truck } from 'lucide-react';
+import { SignIn } from '@clerk/clerk-react';
 import { useAuth } from '../hooks/useAuth.js';
 
 function sanitizeRedirectPath(candidate) {
@@ -19,7 +19,7 @@ function sanitizeRedirectPath(candidate) {
   return candidate.startsWith('/') ? candidate : `/${candidate}`;
 }
 
-export default function SignupPage() {
+export default function SigninPage() {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -40,57 +40,46 @@ export default function SignupPage() {
   const redirectQuery = redirectTarget && redirectTarget !== '/listings' ? `?redirectTo=${encodeURIComponent(redirectTarget)}` : '';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white px-4 py-16">
+    <div className="min-h-screen bg-slate-50 px-4 py-16">
       <div className="mx-auto flex max-w-5xl flex-col gap-12 lg:flex-row">
-        <section className="flex-1 rounded-[32px] bg-white/90 p-12 shadow-2xl shadow-orange-500/10">
-          <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500">
-              <Sparkles className="h-6 w-6" />
+        <section className="flex-1 rounded-[32px] border border-slate-100 bg-white/90 p-10 shadow-xl shadow-orange-500/5">
+          <div className="mb-8 flex items-center gap-3 text-orange-500">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/10">
+              <Truck className="h-6 w-6" />
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Vendibook</p>
-              <h1 className="text-3xl font-bold text-slate-900">Create your account</h1>
+              <p className="text-2xl font-bold text-slate-900">Welcome back</p>
             </div>
           </div>
-
-          <p className="mb-10 text-base text-slate-600">
-            Build your marketplace presence in minutes. Track bookings, manage listings, and stay connected with renters across every activation.
+          <p className="text-base text-slate-600">
+            Access bookings, listings, conversations, and payouts in one secure dashboard. Continue where you left off or explore new opportunities across the marketplace.
           </p>
-
-          <ul className="space-y-4 text-sm text-slate-600">
-            <li className="flex items-start gap-3">
-              <span className="mt-1 h-2 w-2 rounded-full bg-orange-500" />
-              <span>Sync your Clerk identity with Vendibook to keep bookings, payouts, and verification statuses aligned.</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="mt-1 h-2 w-2 rounded-full bg-orange-500" />
-              <span>Host-ready onboarding with Stripe KYC, messaging, and real-time notifications.</span>
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="mt-1 h-2 w-2 rounded-full bg-orange-500" />
-              <span>Renter tools for saved searches, wishlists, and instant booking requests.</span>
-            </li>
-          </ul>
-
+          <div className="mt-8 grid gap-6 text-sm text-slate-600">
+            <div>
+              <p className="font-semibold text-slate-900">Hosts</p>
+              <p>Manage active listings, respond to inquiries, and keep your payout profile in sync.</p>
+            </div>
+            <div>
+              <p className="font-semibold text-slate-900">Renters</p>
+              <p>Track booking requests, message hosts, and verify your profile for instant approvals.</p>
+            </div>
+          </div>
           <p className="mt-10 text-sm text-slate-600">
-            Already have an account?{' '}
-            <Link to={`/signin${redirectQuery}`} className="font-semibold text-orange-600 hover:text-orange-500">
-              Sign in
+            New to Vendibook?{' '}
+            <Link to={`/signup${redirectQuery}`} className="font-semibold text-orange-600 hover:text-orange-500">
+              Create an account
             </Link>
             .
           </p>
         </section>
 
-        <section className="flex-1 rounded-[32px] border border-slate-100 bg-white/90 p-10 shadow-xl shadow-orange-500/5">
-          <SignUp
-            redirectUrl={redirectTarget}
-            afterSignInUrl={redirectTarget}
-            afterSignUpUrl={redirectTarget}
-            signInUrl={`/signin${redirectQuery}`}
+        <section className="flex-1 rounded-[32px] border border-slate-100 bg-white/70 p-10 shadow-2xl shadow-slate-900/5">
+          <SignIn
             appearance={{
               layout: {
                 socialButtonsPlacement: 'bottom',
-                logoPlacement: 'none',
+                socialButtonsVariant: 'iconButton',
               },
               elements: {
                 card: 'shadow-none border-0 bg-transparent p-0',
@@ -100,9 +89,11 @@ export default function SignupPage() {
                 formFieldInput: 'rounded-2xl border-slate-200 focus:border-orange-500 focus:ring-orange-200',
                 footerActionText: 'text-slate-600',
                 footerActionLink: 'text-orange-600 hover:text-orange-500',
-                socialButtons: 'rounded-2xl border-slate-200 text-slate-700',
               },
             }}
+            redirectUrl={redirectTarget}
+            afterSignInUrl={redirectTarget}
+            signUpUrl={`/signup${redirectQuery}`}
           />
         </section>
       </div>
