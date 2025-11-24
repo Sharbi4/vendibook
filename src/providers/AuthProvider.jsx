@@ -1,7 +1,12 @@
+<<<<<<< HEAD
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+=======
+import React, { useEffect, useState } from 'react';
+>>>>>>> parent of aea4d91 (feat: implement authentication system)
 import PropTypes from 'prop-types';
 import { useAuth as useClerkAuth, useUser } from '@clerk/clerk-react';
 import AuthContext from '../context/authContext.js';
+<<<<<<< HEAD
 import { getStoredUser, setStoredUser } from '../utils/auth.js';
 
 function sanitizeRedirectPath(value) {
@@ -18,6 +23,9 @@ function sanitizeRedirectPath(value) {
   }
   return value.startsWith('/') ? value : `/${value}`;
 }
+=======
+import { getAuthToken, getStoredUser, getCurrentUser, loginUser, logoutUser, clearAuthToken, setStoredUser } from '../utils/auth.js';
+>>>>>>> parent of aea4d91 (feat: implement authentication system)
 
 function AuthProvider({ children }) {
   const { isLoaded: isClerkAuthLoaded, isSignedIn, getToken, signOut, sessionId } = useClerkAuth();
@@ -31,6 +39,7 @@ function AuthProvider({ children }) {
   const [isStartingConnect, setIsStartingConnect] = useState(false);
   const [isStartingIdentity, setIsStartingIdentity] = useState(false);
 
+<<<<<<< HEAD
   const lastSyncedClerkId = useRef(null);
 
   const isClerkReady = isClerkAuthLoaded && isClerkUserLoaded;
@@ -372,6 +381,92 @@ function AuthProvider({ children }) {
       user,
     ]
   );
+=======
+  useEffect(() => {
+    let cancelled = false;
+
+    async function bootstrap() {
+      try {
+        // If no token, just use the stored user and finish loading
+        if (!token) {
+          setIsLoading(false);
+          return;
+        }
+        
+        // FRONTEND ONLY: Skip API call for now, just use stored user
+        // TODO: Uncomment when backend /api/auth/me is ready
+        // const current = await getCurrentUser();
+        // if (cancelled) return;
+        // setUser(current);
+        
+        // For now, trust the stored user if we have a token
+        if (cancelled) return;
+        const storedUser = getStoredUser();
+        if (storedUser) {
+          setUser(storedUser);
+        } else {
+          // Token exists but no user - clear everything
+          clearAuthToken();
+          setToken(null);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        console.error('Error bootstrapping auth:', err);
+        setError(err);
+        clearAuthToken();
+        setStoredUser(null);
+        setUser(null);
+        setToken(null);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    bootstrap();
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  const handleLogin = async (email, password) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await loginUser(email, password);
+      setUser(data.user || null);
+      setToken(data.token || null);
+      return data;
+    } catch (err) {
+      setError(err);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.error('Error during logout:', err);
+    }
+    clearAuthToken();
+    setStoredUser(null);
+    setUser(null);
+    setToken(null);
+  };
+
+  const value = {
+    user,
+    token,
+    isAuthenticated: !!token && !!user,
+    isLoading,
+    error,
+    login: handleLogin,
+    logout: handleLogout,
+    setUser,
+  };
+>>>>>>> parent of aea4d91 (feat: implement authentication system)
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

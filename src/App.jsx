@@ -15,12 +15,15 @@ import { AnalyticsDashboardPage } from './pages/AnalyticsDashboardPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import CommunityPage from './pages/CommunityPage';
 import ProfilePage from './pages/ProfilePage';
+<<<<<<< HEAD
 import RequireAuth from './components/RequireAuth.jsx';
 import VerificationBanner from './components/VerificationBanner.jsx';
 import SiteHeader from './components/layout/SiteHeader.jsx';
 import SigninPage from './pages/SigninPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 import VerifyEmailPage from './pages/VerifyEmailPage.jsx';
+=======
+>>>>>>> parent of aea4d91 (feat: implement authentication system)
 
 function App() {
   return (
@@ -41,6 +44,7 @@ function App() {
           }
         />
         <Route path="/community" element={<CommunityPage />} />
+<<<<<<< HEAD
         <Route
           path="/profile"
           element={
@@ -121,18 +125,38 @@ function App() {
             </RequireAuth>
           }
         />
+=======
+        <Route path="/profile" element={<ProfilePage />} />
+        
+        {/* Host Pages */}
+        <Route path="/become-host" element={<BecomeHostLanding />} />
+        <Route path="/host/onboarding" element={<HostOnboardingWizard />} />
+        <Route path="/host/dashboard" element={<HostDashboard />} />
+        <Route path="/host/bookings" element={<HostBookingsPage />} />
+        <Route path="/analytics" element={<AnalyticsDashboardPage />} />
+        
+        {/* Renter Pages */}
+        <Route path="/bookings" element={<MyBookingsPage />} />
+        
+        {/* Messaging */}
+        <Route path="/messages" element={<MessagesInboxPage />} />
+        <Route path="/messages/:threadId" element={<MessageDetailPage />} />
+>>>>>>> parent of aea4d91 (feat: implement authentication system)
         
         {/* Notifications */}
         <Route path="/notifications" element={<NotificationsPage />} />
         
         {/* Admin */}
         <Route path="/admin" element={<AdminDashboard />} />
+<<<<<<< HEAD
 
         {/* Auth */}
         <Route path="/login" element={<Navigate to="/signin" replace />} />
         <Route path="/signin" element={<SigninPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
+=======
+>>>>>>> parent of aea4d91 (feat: implement authentication system)
       </Routes>
     </>
   );

@@ -14,15 +14,6 @@ export default function WizardLayout({
   footer
 }) {
   const progress = Math.min(currentStep / totalSteps, 1) * 100;
-  const renderPreviewContent = () => {
-    if (!preview) {
-      return null;
-    }
-    if (typeof preview === 'function') {
-      return preview();
-    }
-    return React.isValidElement(preview) ? React.cloneElement(preview) : preview;
-  };
   return (
     <div className="space-y-10">
       {/* Progress Bar */}
@@ -41,9 +32,9 @@ export default function WizardLayout({
       </div>
       <div className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-12 items-start">
         <div>{children}</div>
-        <div className="lg:block hidden sticky top-24">{renderPreviewContent()}</div>
+        <div className="lg:block hidden sticky top-24">{preview}</div>
         {/* Mobile preview */}
-        <div className="lg:hidden space-y-4">{renderPreviewContent()}</div>
+        <div className="lg:hidden space-y-4">{preview}</div>
       </div>
       {footer && <div>{footer}</div>}
     </div>

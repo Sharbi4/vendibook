@@ -140,7 +140,7 @@ function CommunityPage() {
             </div>
             <button
               type="button"
-              onClick={() => navigate('/host/create-listing')}
+              onClick={() => navigate('/host/onboarding')}
               className="mt-4 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
             >
               Save my spot
