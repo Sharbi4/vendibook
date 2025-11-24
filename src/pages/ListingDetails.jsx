@@ -5,7 +5,6 @@ import { ArrowLeft, MapPin, Star, Check, Shield, Truck, Calendar } from 'lucide-
 import { getListingById as getMockListingById } from '../data/listings';
 import { AvailabilityCalendar } from '../components/AvailabilityCalendar';
 import { ListingMapPlaceholder } from '../components/ListingMapPlaceholder';
-import { useEventProPackages } from '../hooks/useEventProPackages';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStatus } from '../hooks/useAppStatus';
 
@@ -50,6 +49,31 @@ const formatListingType = (type, category) => {
 const formatCategoryBadge = (type, category) => {
   const label = (type || category || 'Listing').toString();
   return label.replace(/[_\s]+/g, '-').toUpperCase();
+};
+
+const buildEventProPackages = (listing) => {
+  const baseName = listing?.title?.split(' ')?.slice(0, 3).join(' ') || 'Signature';
+
+  return [
+    {
+      name: `${baseName} Tasting Experience`,
+      description:
+        'Curated tasting menu with 3 chef-selected entrées, seasonal sides, and dessert service. Includes staffing and setup.',
+      price: '$1,200 flat • up to 40 guests',
+    },
+    {
+      name: 'Catering Package – Up to 75 guests',
+      description:
+        'Includes 2 entrée options, 2 sides, beverages, and dessert. Perfect for corporate lunches or private events.',
+      price: '$1,950 flat • up to 3 hours service',
+    },
+    {
+      name: 'Full-Service Event',
+      description:
+        'Custom menu design, staffing, rentals coordination, and onsite execution. Ideal for weddings and large celebrations.',
+      price: 'Custom quote • 4 hour minimum',
+    },
+  ];
 };
 
 const BOOKING_MODE_LABELS = {
@@ -132,6 +156,7 @@ function ListingDetails({ bookingIntent = null }) {
   const [eventEndTime, setEventEndTime] = useState('');
   const [bookingFeedback, setBookingFeedback] = useState(null);
   const [calendarNotice, setCalendarNotice] = useState(null);
+<<<<<<< HEAD
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [verificationNotice, setVerificationNotice] = useState(null);
   const bookingPanelRef = useRef(null);
@@ -162,6 +187,8 @@ function ListingDetails({ bookingIntent = null }) {
       bookingPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [bookingIntentActive, redirectTarget]);
+=======
+>>>>>>> parent of a296a08 (feat: add event pro packages)
 
   useEffect(() => {
     if (!id) return;
@@ -271,7 +298,6 @@ function ListingDetails({ bookingIntent = null }) {
     setEventEndTime('');
     setBookingFeedback(null);
     setCalendarNotice(null);
-    setSelectedPackage(null);
   }, [listing?.id, listing?.default_start_time, listing?.defaultStartTime, listing?.default_end_time, listing?.defaultEndTime]);
 
   useEffect(() => {
@@ -550,19 +576,6 @@ function ListingDetails({ bookingIntent = null }) {
     'daily-with-time';
   const isHourlyMode = bookingMode === 'hourly';
   const bookingModeLabel = BOOKING_MODE_LABELS[bookingMode] || 'Daily rental';
-  const { packages: eventProPackages = [] } = useEventProPackages(isEventPro && listing?.id ? listing.id : null);
-
-  useEffect(() => {
-    if (!selectedPackage) {
-      return;
-    }
-    const stillExists = Array.isArray(eventProPackages)
-      ? eventProPackages.some((pkg) => pkg.id === selectedPackage.id)
-      : false;
-    if (!stillExists) {
-      setSelectedPackage(null);
-    }
-  }, [eventProPackages, selectedPackage]);
 
   const categoryBadgeLabel = useMemo(
     () => formatCategoryBadge(rawType, listing?.category),
@@ -571,6 +584,10 @@ function ListingDetails({ bookingIntent = null }) {
   const listingTypeLabel = useMemo(
     () => formatListingType(rawType, listing?.category),
     [rawType, listing?.category]
+  );
+  const eventProPackages = useMemo(
+    () => (isEventPro && listing ? buildEventProPackages(listing) : []),
+    [isEventPro, listing]
   );
   const detailItems = useMemo(() => {
     const items = [
