@@ -3,6 +3,7 @@
  */
 
 import { sql, bootstrapUsersTable, bootstrapUserSocialLinksTable } from '../../src/api/db.js';
+import { requireClerkUserId } from '../_clerk.js';
 
 let bootstrapPromise;
 
@@ -14,21 +15,6 @@ function ensureBootstrap() {
     ]);
   }
   return bootstrapPromise;
-}
-
-function extractClerkId(req) {
-  const headers = req.headers || {};
-  return (
-    headers['x-clerk-id'] ||
-    headers['x-clerkid'] ||
-    headers['clerk-id'] ||
-    headers['clerkid'] ||
-    req.body?.clerkId ||
-    req.body?.clerk_id ||
-    req.query?.clerkId ||
-    req.query?.clerk_id ||
-    null
-  );
 }
 
 export default async function handler(req, res) {
@@ -46,13 +32,14 @@ export default async function handler(req, res) {
     });
   }
 
-  const clerkId = extractClerkId(req);
-
-  if (!clerkId) {
-    return res.status(400).json({
+  let clerkId;
+  try {
+    clerkId = requireClerkUserId(req);
+  } catch (authError) {
+    return res.status(authError.statusCode || 401).json({
       success: false,
-      error: 'Invalid request',
-      message: 'Missing clerkId. Provide via x-clerk-id header or request body.'
+      error: 'Unauthorized',
+      message: authError.message || 'Authentication required'
     });
   }
 

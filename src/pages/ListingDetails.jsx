@@ -1,5 +1,6 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import { ArrowLeft, MapPin, Star, Check, Shield, Truck, Calendar } from 'lucide-react';
 import { getListingById as getMockListingById } from '../data/listings';
 import { AvailabilityCalendar } from '../components/AvailabilityCalendar';
@@ -98,9 +99,10 @@ const extractHostUserId = (listing) =>
   listing?.userId ||
   null;
 
-function ListingDetails() {
+function ListingDetails({ bookingIntent = null }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     user,
     token,
@@ -125,6 +127,34 @@ function ListingDetails() {
   const [calendarNotice, setCalendarNotice] = useState(null);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [verificationNotice, setVerificationNotice] = useState(null);
+  const bookingPanelRef = useRef(null);
+
+  const redirectTarget = useMemo(() => {
+    const target = `${location.pathname || ''}${location.search || ''}${location.hash || ''}`;
+    return target && target !== '' ? target : `/listing/${id}`;
+  }, [id, location.hash, location.pathname, location.search]);
+
+  const redirectQuery = redirectTarget && redirectTarget !== '/' ? `?redirectTo=${encodeURIComponent(redirectTarget)}` : '';
+  const signinRedirectUrl = `/signin${redirectQuery}`;
+  const bookingIntentActive = useMemo(() => {
+    if (bookingIntent === 'book') {
+      return true;
+    }
+    const params = new URLSearchParams(location.search || '');
+    if (params.get('intent') === 'book') {
+      return true;
+    }
+    if ((location.hash || '').replace('#', '') === 'book') {
+      return true;
+    }
+    return false;
+  }, [bookingIntent, location.hash, location.search]);
+
+  useEffect(() => {
+    if (bookingIntentActive && bookingPanelRef.current) {
+      bookingPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [bookingIntentActive, redirectTarget]);
 
   useEffect(() => {
     if (!id) return;
@@ -270,8 +300,7 @@ function ListingDetails() {
 
   const handleBookNow = async () => {
     if (!isAuthenticated) {
-      const redirectTo = `/listing/${listing?.id || id}`;
-      navigate(`/signin?redirectTo=${encodeURIComponent(redirectTo)}`);
+      navigate(signinRedirectUrl);
       return;
     }
 
@@ -402,6 +431,11 @@ function ListingDetails() {
   };
 
   const handleMessageHost = () => {
+    if (!isAuthenticated) {
+      navigate(signinRedirectUrl);
+      return;
+    }
+
     if (needsVerification) {
       setBookingFeedback({ type: 'error', message: 'Verify your email to message hosts on Vendibook.' });
       setVerificationNotice({ type: 'error', message: 'Verify your email to start messaging hosts.' });
@@ -602,8 +636,8 @@ function ListingDetails() {
   const hasRequiredSelection = isHourlyMode
     ? Boolean(startDate && eventStartTime && eventEndTime)
     : Boolean(startDate && selectedEndDate);
-  const canSubmit =
-    Boolean(hostUserId && isAuthenticated && hasRequiredSelection && !needsVerification) && !isSubmitting;
+  const bookingSubmissionReady = Boolean(hostUserId && hasRequiredSelection && !needsVerification);
+  const bookButtonDisabled = isAuthenticated ? !bookingSubmissionReady || isSubmitting : false;
 
   if (isLoading) {
     return (
@@ -988,10 +1022,10 @@ function ListingDetails() {
                 </div>
               )}
 
-              <div className="space-y-3">
+              <div ref={bookingPanelRef} className="space-y-3" id="booking-panel">
                 <button
                   onClick={handleBookNow}
-                  disabled={!canSubmit}
+                  disabled={bookButtonDisabled}
                   className="w-full rounded-xl bg-gradient-to-r from-orange-500 via-orange-500 to-orange-600 px-6 py-4 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isSubmitting ? 'Submitting...' : 'Book Now'}
@@ -1047,5 +1081,9 @@ function ListingDetails() {
     </div>
   );
 }
+
+ListingDetails.propTypes = {
+  bookingIntent: PropTypes.string,
+};
 
 export default ListingDetails;

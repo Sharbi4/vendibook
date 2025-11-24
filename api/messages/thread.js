@@ -1,6 +1,5 @@
 import {
   ensureMessagingBootstrap,
-  extractClerkId,
   resolveUserId,
   parsePagination,
   fetchThreadById,
@@ -8,6 +7,7 @@ import {
   markThreadAsRead,
   createHttpError
 } from '../../src/api/messaging/shared.js';
+import { requireClerkUserId } from '../_clerk.js';
 
 export default async function handler(req, res) {
   try {
@@ -35,11 +35,12 @@ export default async function handler(req, res) {
     const markReadParam = String(req.query?.markRead || req.query?.mark_read || 'false').toLowerCase();
     const shouldMarkRead = ['true', '1', 'yes'].includes(markReadParam);
 
-    let currentUserId = req.query?.userId || req.query?.user_id || null;
-    const clerkId = extractClerkId(req);
-    if (!currentUserId) {
-      currentUserId = await resolveUserId({ clerkId, label: 'current user' });
-    }
+    const clerkId = requireClerkUserId(req);
+    const currentUserId = await resolveUserId({
+      userId: req.query?.userId || req.query?.user_id || null,
+      clerkId,
+      label: 'current user'
+    });
 
     const thread = await fetchThreadById(threadId);
     if (!thread) {

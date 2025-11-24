@@ -31,6 +31,14 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/listings" element={<ListingsPage />} />
         <Route path="/listing/:id" element={<ListingDetails />} />
+        <Route
+          path="/listing/:id/book"
+          element={
+            <RequireAuth>
+              <ListingDetails bookingIntent="book" />
+            </RequireAuth>
+          }
+        />
         <Route path="/community" element={<CommunityPage />} />
         <Route
           path="/profile"
@@ -45,6 +53,14 @@ function App() {
         <Route path="/become-host" element={<BecomeHostLanding />} />
         <Route
           path="/host/create-listing"
+          element={
+            <RequireAuth>
+              <HostOnboardingWizard />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/create-listing"
           element={
             <RequireAuth>
               <HostOnboardingWizard />

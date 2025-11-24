@@ -1,18 +1,9 @@
 import PropTypes from 'prop-types';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth.js';
-
-function buildRedirectParam(location) {
-  const path = `${location.pathname || ''}${location.search || ''}${location.hash || ''}`;
-  if (!path || path === '/') {
-    return '';
-  }
-  return `?redirectTo=${encodeURIComponent(path)}`;
-}
+import { Navigate } from 'react-router-dom';
+import { useRequireAuth } from '../hooks/useRequireAuth.js';
 
 export default function RequireAuth({ children }) {
-  const { isAuthenticated, isLoading } = useAuth();
-  const location = useLocation();
+  const { isAuthenticated, isLoading, redirectQuery } = useRequireAuth();
 
   if (isLoading) {
     return (
@@ -23,8 +14,7 @@ export default function RequireAuth({ children }) {
   }
 
   if (!isAuthenticated) {
-    const param = buildRedirectParam(location);
-    return <Navigate to={`/signin${param}`} replace />;
+    return <Navigate to={`/signin${redirectQuery}`} replace />;
   }
 
   return children;
