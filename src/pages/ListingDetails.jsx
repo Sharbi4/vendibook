@@ -157,6 +157,7 @@ function ListingDetails({ bookingIntent = null }) {
   const [bookingFeedback, setBookingFeedback] = useState(null);
   const [calendarNotice, setCalendarNotice] = useState(null);
 <<<<<<< HEAD
+<<<<<<< HEAD
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [verificationNotice, setVerificationNotice] = useState(null);
   const bookingPanelRef = useRef(null);
@@ -187,6 +188,8 @@ function ListingDetails({ bookingIntent = null }) {
       bookingPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [bookingIntentActive, redirectTarget]);
+=======
+>>>>>>> parent of a296a08 (feat: add event pro packages)
 =======
 >>>>>>> parent of a296a08 (feat: add event pro packages)
 
