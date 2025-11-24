@@ -10,7 +10,8 @@ import GlobalLoadingOverlay from './components/GlobalLoadingOverlay.jsx';
 import AppStatusProvider from './providers/AppStatusProvider.jsx';
 import AuthProvider from './providers/AuthProvider.jsx';
 import { useAppStatus } from './hooks/useAppStatus.js';
-import { clerkConfig } from './config/clerkConfig.js';
+import './config/clerkConfig';
+import { clerkFrontendApi, clerkPublishableKey } from './config/clerkConfig.js';
 
 // Wrapper component that connects GlobalLoadingOverlay to AppStatusProvider
 function AppWithStatus() {
@@ -40,7 +41,8 @@ function ClerkProviderWithRouter({ children }) {
   const navigate = useNavigate();
   return (
     <ClerkProvider
-      publishableKey={clerkConfig.publishableKey}
+      publishableKey={clerkPublishableKey}
+      frontendApi={clerkFrontendApi}
       routerPush={navigate}
       routerReplace={(to) => navigate(to, { replace: true })}
       afterSignOutUrl="/"
@@ -54,7 +56,7 @@ ClerkProviderWithRouter.propTypes = {
   children: PropTypes.node,
 };
 
-if (!clerkConfig.publishableKey) {
+if (!clerkPublishableKey) {
   throw new Error('VITE_CLERK_PUBLISHABLE_KEY is required for Clerk to function. Add it to your environment config.');
 }
 
