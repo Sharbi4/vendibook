@@ -1,8 +1,8 @@
 <<<<<<< HEAD
 import { createClerkClient } from '@clerk/backend';
 import { sql, bootstrapUserSettingsTable } from '../../src/api/db.js';
-import { requireClerkSecretKey } from '../../src/api/auth/getClerkSecrets.js';
 
+<<<<<<< HEAD
 let clerk;
 
 function getClerkClient() {
@@ -30,6 +30,9 @@ function getClerkClient() {
  * }
  */
 >>>>>>> parent of aea4d91 (feat: implement authentication system)
+=======
+const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+>>>>>>> parent of c01e674 (Add VITE Clerk publishable key to env.local)
 
 const db = require('../_db');
 const auth = require('../_auth');
@@ -101,9 +104,8 @@ export default function handler(req, res) {
   const normalizedEmail = normalizeEmail(email);
 
   try {
-    const clerkClient = getClerkClient();
     // Create user in Clerk
-    const clerkUser = await clerkClient.users.createUser({
+    const clerkUser = await clerk.users.createUser({
       emailAddress: [normalizedEmail],
       password,
       firstName: firstName || undefined,
@@ -155,14 +157,6 @@ export default function handler(req, res) {
     });
   } catch (error) {
     console.error('Failed to register user:', error);
-
-    if (error?.statusCode === 401 && error.message === 'Missing CLERK_SECRET_KEY') {
-      return res.status(401).json({
-        success: false,
-        error: 'Unauthorized',
-        message: 'CLERK_SECRET_KEY is required to register users. Update your environment configuration.',
-      });
-    }
     
     // Handle Clerk-specific errors
     if (error.errors) {
