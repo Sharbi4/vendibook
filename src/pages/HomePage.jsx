@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+<<<<<<< HEAD
 import { Truck, Star, Check, Store, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import HeroSearch from '../components/home/HeroSearch.jsx';
@@ -201,6 +202,9 @@ function normalizeListing(item) {
     verified: Boolean(item.isVerified ?? item.is_verified ?? true),
   };
 }
+=======
+import { Search, MapPin, Calendar, ChevronRight, Truck, Users, UtensilsCrossed, Store, ShoppingCart, Menu, X, ChevronDown, ChevronUp, Star, Check, DollarSign, Zap, Coffee } from 'lucide-react';
+>>>>>>> parent of aea4d91 (feat: implement authentication system)
 
 function HomePage() {
   const navigate = useNavigate();
@@ -292,6 +296,196 @@ function HomePage() {
     const nextVerifiedOnly = filterOverrides.verifiedOnly ?? verifiedOnly;
     const nextAmenities = filterOverrides.amenities ?? selectedAmenities;
 
+<<<<<<< HEAD
+=======
+  const amenitiesList = ['Power', 'Water', 'Propane', 'Full Kitchen', 'Storage', 'WiFi'];
+
+  const navLinks = [
+    { label: 'Rent Equipment', path: '/listings' },
+    { label: 'Buy Equipment', path: '/listings' },
+    { label: 'Become a Host', path: '/become-host' },
+    { label: 'Community', path: '/community' },
+    { label: 'Profile', path: '/profile' }
+  ];
+
+  // Fetch dynamic listings from API (Neon) and merge with legacy mock data until fully migrated
+  const { listings: dynamicListings, loading: listingsLoading } = useListings(appliedSearch);
+
+  const mockListings = [
+    {
+      id: 1,
+      title: 'Fully Equipped Taco Truck - LA Style',
+      category: 'food-trucks',
+      listingType: 'rent',
+      location: 'Tucson, AZ',
+      price: 250,
+      priceType: 'day',
+      image: 'https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?w=800&auto=format&fit=crop&q=80',
+      rating: 4.9,
+      reviews: 32,
+      features: ['Power', 'Water', 'Propane', 'Full Kitchen'],
+      host: 'Verified Host',
+      deliveryAvailable: true
+    },
+    {
+      id: 2,
+      title: 'Wood-Fired Pizza Trailer - Professional Setup',
+      category: 'trailers',
+      listingType: 'rent',
+      location: 'Phoenix, AZ',
+      price: 180,
+      priceType: 'day',
+      image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&auto=format&fit=crop&q=80',
+      rating: 4.8,
+      reviews: 28,
+      features: ['Power', 'Water', 'Wood-fired oven', 'Prep station'],
+      host: 'Verified Host',
+      deliveryAvailable: true
+    },
+    {
+      id: 3,
+      title: 'Premium Ghost Kitchen - 24/7 Access',
+      category: 'ghost-kitchens',
+      listingType: 'rent',
+      location: 'Tucson, AZ',
+      price: 150,
+      priceType: 'day',
+      image: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&auto=format&fit=crop&q=80',
+      rating: 5.0,
+      reviews: 15,
+      features: ['Full kitchen', 'Storage', '24/7 access', 'Walk-in cooler'],
+      host: 'Superhost',
+      deliveryAvailable: false
+    },
+    {
+      id: 4,
+      title: 'Downtown Vending Location - High Traffic',
+      category: 'vending-lots',
+      listingType: 'rent',
+      location: 'Tempe, AZ',
+      price: 120,
+      priceType: 'day',
+      image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80',
+      rating: 4.7,
+      reviews: 45,
+      features: ['High foot traffic', 'Power hookup', 'Weekend events', 'Permits included'],
+      host: 'Verified Host',
+      deliveryAvailable: false
+    },
+    {
+      id: 5,
+      title: 'Award-Winning Chef - Mexican Cuisine',
+      category: 'event-pros',
+      listingType: 'event-pro',
+      location: 'Phoenix, AZ',
+      price: 75,
+      priceType: 'hour',
+      image: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=800&auto=format&fit=crop&q=80',
+      rating: 4.9,
+      reviews: 67,
+      features: ['Certified', 'Catering license', 'Menu planning', '10+ years exp'],
+      host: 'Superhost',
+      deliveryAvailable: false
+    },
+    {
+      id: 6,
+      title: 'Vintage Coffee Cart - Fully Restored',
+      category: 'trailers',
+      listingType: 'rent',
+      location: 'Scottsdale, AZ',
+      price: 95,
+      priceType: 'day',
+      image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&auto=format&fit=crop&q=80',
+      rating: 4.6,
+      reviews: 19,
+      features: ['Espresso machine', 'Power', 'Compact', 'Instagram-worthy'],
+      host: 'Verified Host',
+      deliveryAvailable: true
+    },
+    {
+      id: 7,
+      title: '2022 Food Truck - Like New (For Sale)',
+      category: 'for-sale',
+      listingType: 'sale',
+      location: 'Phoenix, AZ',
+      price: 45000,
+      priceType: 'sale',
+      image: 'https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?w=800&auto=format&fit=crop&q=80',
+      rating: 5.0,
+      reviews: 8,
+      features: ['Title verified', 'Low miles', 'Full inspection', 'Financing available'],
+      host: 'Verified Seller',
+      deliveryAvailable: true
+    },
+    {
+      id: 8,
+      title: 'BBQ Smoker Trailer - Competition Ready',
+      category: 'trailers',
+      listingType: 'rent',
+      location: 'Mesa, AZ',
+      price: 220,
+      priceType: 'day',
+      image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&auto=format&fit=crop&q=80',
+      rating: 4.9,
+      reviews: 52,
+      features: ['Large smoker', 'Prep station', 'Power', 'Water hookup'],
+      host: 'Superhost',
+      deliveryAvailable: true
+    }
+  ];
+
+  // Filter listings based on applied search
+  const combinedListings = [...dynamicListings, ...mockListings];
+  const filteredListings = combinedListings.filter(listing => {
+    // Listing type filter
+    if (appliedSearch.listingType !== 'all' && listing.listingType !== appliedSearch.listingType) {
+      return false;
+    }
+
+    // Category filter
+    if (appliedSearch.category !== 'all' && listing.category !== appliedSearch.category) {
+      return false;
+    }
+
+    // Location filter (simple contains check)
+    if (appliedSearch.location && !listing.location.toLowerCase().includes(appliedSearch.location.toLowerCase())) {
+      return false;
+    }
+
+    // Price filter
+    if (appliedSearch.priceMin && listing.price < parseInt(appliedSearch.priceMin)) {
+      return false;
+    }
+    if (appliedSearch.priceMax && listing.price > parseInt(appliedSearch.priceMax)) {
+      return false;
+    }
+
+    // Delivery filter
+    if (appliedSearch.deliveryOnly && !listing.deliveryAvailable) {
+      return false;
+    }
+
+    // Verified host filter
+    if (appliedSearch.verifiedOnly && !listing.host.includes('Verified') && !listing.host.includes('Superhost')) {
+      return false;
+    }
+
+    // Amenities filter
+    if (appliedSearch.amenities.length > 0) {
+      const hasAllAmenities = appliedSearch.amenities.every(amenity =>
+        listing.features.some(feature => feature.toLowerCase().includes(amenity.toLowerCase()))
+      );
+      if (!hasAllAmenities) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  const handleSearch = () => {
+    // Build query string for navigation
+>>>>>>> parent of aea4d91 (feat: implement authentication system)
     const params = new URLSearchParams();
     if (rawLocation) params.set('location', rawLocation);
     if (nextCategory && nextCategory !== 'all') params.set('category', nextCategory);
@@ -447,12 +641,100 @@ function HomePage() {
   });
 
   return (
+<<<<<<< HEAD
     <main className="bg-slate-50 pb-24 text-slate-900">
       <section className="relative overflow-hidden bg-slate-950 text-white">
         <div className="absolute inset-0">
           <div className="absolute inset-x-0 top-0 h-60 bg-gradient-to-b from-orange-500/30 to-transparent" />
           <div className="absolute right-[-25%] top-[-10%] h-[420px] w-[420px] rounded-full bg-orange-400/25 blur-[160px]" />
           <div className="absolute left-[-15%] bottom-[-30%] h-[360px] w-[360px] rounded-full bg-rose-500/20 blur-[180px]" />
+=======
+    <div style={{ minHeight: '100vh', background: 'white' }}>
+      {/* Header */}
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        background: 'white',
+        borderBottom: '1px solid #EBEBEB',
+        boxShadow: '0 1px 0 rgba(0,0,0,0.05)'
+      }}>
+        <div style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '80px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                background: '#FF5124',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Truck style={{ width: '18px', height: '18px', color: 'white' }} />
+              </div>
+              <span style={{
+                fontSize: '20px',
+                fontWeight: '700',
+                color: '#FF5124',
+                letterSpacing: '-0.5px'
+              }}>
+                vendibook
+              </span>
+            </div>
+
+            <nav style={{ display: 'flex', alignItems: 'center', gap: '32px', flexWrap: 'wrap' }}>
+              {navLinks.map((link) => (
+                <button
+                  key={link.path}
+                  type="button"
+                  onClick={() => navigate(link.path)}
+                  style={{
+                    color: '#222',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    textDecoration: 'none',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {link.label}
+                </button>
+              ))}
+            </nav>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <button style={{
+                color: '#222',
+                fontSize: '14px',
+                fontWeight: '600',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '8px 16px',
+                borderRadius: '22px',
+                transition: 'background 0.2s'
+              }}>
+                Sign In
+              </button>
+              <button style={{
+                background: '#FF5124',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '24px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(255, 81, 36, 0.3)',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+              }}>
+                Sign Up
+              </button>
+            </div>
+          </div>
+>>>>>>> parent of aea4d91 (feat: implement authentication system)
         </div>
         <div className="relative mx-auto max-w-6xl px-6 py-16 lg:py-20">
           <div className="grid gap-10 lg:grid-cols-[1.1fr_minmax(0,0.9fr)] lg:items-center">

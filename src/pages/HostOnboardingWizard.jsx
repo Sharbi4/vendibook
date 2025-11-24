@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, MapPin, Check } from 'lucide-react';
 import { LISTING_TYPES, PRICE_UNITS, getCategoriesByType, getListingTypeInfo, formatPrice } from '../data/listings';
@@ -26,8 +26,7 @@ function HostOnboardingWizard() {
     priceUnit: '',
     amenities: [],
     images: [],
-    description: '',
-    imageUrl: ''
+    description: ''
   });
 
   const updateData = (field, value) => {
@@ -110,7 +109,8 @@ function HostOnboardingWizard() {
     }
   };
 
-  const previewNode = useMemo(() => (
+  // Preview wrapper using existing ListingCardPreview
+  const LivePreview = () => (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-gray-900">Live Preview</h3>
       <ListingCardPreview listingData={{ ...listingData, amenities: listingData.amenities }} />
@@ -118,95 +118,111 @@ function HostOnboardingWizard() {
         <span className="font-semibold text-orange-600">Tip:</span> This is how your listing will appear to renters.
       </div>
     </div>
-  ), [listingData]);
+  );
+
+  // Step 1: Listing Type
+  const Step1 = () => (
+    <div>
+      <h2 className="text-3xl font-bold mb-3 text-gray-900">What would you like to list?</h2>
+      <p className="text-gray-600 mb-8">Choose the type of listing you want to create.</p>
+      <div className="grid gap-4">
+        {[
+          { type: LISTING_TYPES.RENT, label: 'Rent out equipment', desc: 'Food trucks, trailers, ghost kitchens, vending locations' },
+          { type: LISTING_TYPES.SALE, label: 'Sell equipment', desc: 'Food trucks, trailers, commercial kitchen equipment' },
+          { type: LISTING_TYPES.EVENT_PRO, label: 'Offer professional services', desc: 'Chef, caterer, barista, or event services' }
+        ].map(({ type, label, desc }) => (
+          <button
+            type="button"
+            key={type}
+            onClick={() => {
+              updateData('listingType', type);
+              if (type === LISTING_TYPES.RENT) updateData('priceUnit', PRICE_UNITS.PER_DAY);
+              else if (type === LISTING_TYPES.SALE) updateData('priceUnit', PRICE_UNITS.ONE_TIME);
+              else updateData('priceUnit', PRICE_UNITS.PER_HOUR);
+            }}
+            className={`text-left p-6 rounded-xl border transition ${listingData.listingType === type ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white hover:border-orange-400'}`}
+            aria-pressed={listingData.listingType === type}
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">{label}</h3>
+            <p className="text-sm text-gray-600">{desc}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Step 2: Basic Info
+  const Step2 = () => (
+    <div>
+      <SectionHeader title="Tell us about your listing" description="Provide the basic details to help customers find your listing" />
+      <div className="grid gap-6">
+        <FormField label="Listing Title" required type="text" value={listingData.title} onChange={(e) => updateData('title', e.target.value)} placeholder="e.g., Fully Equipped Taco Truck" />
+        <FormField label="Category" required type="select" value={listingData.category} onChange={(e) => updateData('category', e.target.value)} options={getCategoriesByType(listingData.listingType).slice(1).map(cat => ({ value: cat.id, label: cat.name }))} />
+        <FormField label="Location" required type="text" value={listingData.location} onChange={(e) => updateData('location', e.target.value)} placeholder="e.g., Phoenix, AZ" />
+      </div>
+    </div>
+  );
+
+  // Step 3: Pricing
+  const Step3 = () => (
+    <div>
+      <SectionHeader
+        title={`Set your ${listingData.listingType === LISTING_TYPES.SALE ? 'price' : 'rate'}`}
+        description={listingData.listingType === LISTING_TYPES.SALE ? 'Set your asking price' : listingData.listingType === LISTING_TYPES.EVENT_PRO ? 'Set your hourly service rate' : 'Set your daily rental rate'}
+      />
+      <div className="grid gap-6">
+        <FormField label={`${listingData.listingType === LISTING_TYPES.SALE ? 'Price' : 'Rate'}`} required type="number" value={listingData.price} onChange={(e) => updateData('price', e.target.value)} placeholder="250" />
+        <FormField label="Pricing Unit" required type="select" value={listingData.priceUnit} onChange={(e) => updateData('priceUnit', e.target.value)} options={listingData.listingType === LISTING_TYPES.SALE ? [{ value: PRICE_UNITS.ONE_TIME, label: 'One-time purchase' }] : listingData.listingType === LISTING_TYPES.EVENT_PRO ? [{ value: PRICE_UNITS.PER_HOUR, label: 'Per hour' }] : [{ value: PRICE_UNITS.PER_DAY, label: 'Per day' }]} />
+      </div>
+    </div>
+  );
+
+  // Step 4: Tags/Amenities
+  const Step4 = () => {
+    const tagOptions = listingData.listingType === LISTING_TYPES.EVENT_PRO ? ['Certified', 'Licensed', 'Insured', 'Menu Planning', 'Catering', 'Bar Service', '10+ Years Exp'] : ['Power', 'Water', 'Propane', 'Full Kitchen', 'Storage', 'WiFi', 'Delivery Available', 'High Foot Traffic'];
+    return (
+      <div>
+        <SectionHeader title="Add features and amenities" description="Select all that apply to your listing" />
+        <div className="flex flex-wrap gap-3">
+          {tagOptions.map(tag => (
+            <button
+              key={tag}
+              onClick={() => toggleTag(tag)}
+              type="button"
+              className={`px-5 py-2.5 rounded-full text-sm font-medium border transition ${listingData.amenities.includes(tag) ? 'border-orange-500 bg-orange-50 text-orange-600' : 'border-gray-300 text-gray-600 hover:border-orange-400'}`}
+              aria-pressed={listingData.amenities.includes(tag)}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Step 5: Description & Photos
+  const Step5 = () => (
+    <div>
+      <SectionHeader title="Add final details" description="Help renters understand what makes your listing special" />
+      <div className="grid gap-6">
+        <FormField label="Description" required type="textarea" value={listingData.description} onChange={(e) => updateData('description', e.target.value)} placeholder="Describe your listing, what makes it special, and any important details..." />
+        <FormField label="Photo URL (optional)" type="text" value={listingData.imageUrl} onChange={(e) => updateData('imageUrl', e.target.value)} placeholder="https://images.unsplash.com/..." />
+      </div>
+    </div>
+  );
 
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return (
-          <div>
-            <h2 className="text-3xl font-bold mb-3 text-gray-900">What would you like to list?</h2>
-            <p className="text-gray-600 mb-8">Choose the type of listing you want to create.</p>
-            <div className="grid gap-4">
-              {[
-                { type: LISTING_TYPES.RENT, label: 'Rent out equipment', desc: 'Food trucks, trailers, ghost kitchens, vending locations' },
-                { type: LISTING_TYPES.SALE, label: 'Sell equipment', desc: 'Food trucks, trailers, commercial kitchen equipment' },
-                { type: LISTING_TYPES.EVENT_PRO, label: 'Offer professional services', desc: 'Chef, caterer, barista, or event services' }
-              ].map(({ type, label, desc }) => (
-                <button
-                  type="button"
-                  key={type}
-                  onClick={() => {
-                    updateData('listingType', type);
-                    if (type === LISTING_TYPES.RENT) updateData('priceUnit', PRICE_UNITS.PER_DAY);
-                    else if (type === LISTING_TYPES.SALE) updateData('priceUnit', PRICE_UNITS.ONE_TIME);
-                    else updateData('priceUnit', PRICE_UNITS.PER_HOUR);
-                  }}
-                  className={`text-left p-6 rounded-xl border transition ${listingData.listingType === type ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white hover:border-orange-400'}`}
-                  aria-pressed={listingData.listingType === type}
-                >
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">{label}</h3>
-                  <p className="text-sm text-gray-600">{desc}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
+        return <Step1 />;
       case 2:
-        return (
-          <div>
-            <SectionHeader title="Tell us about your listing" description="Provide the basic details to help customers find your listing" />
-            <div className="grid gap-6">
-              <FormField label="Listing Title" required type="text" value={listingData.title} onChange={(e) => updateData('title', e.target.value)} placeholder="e.g., Fully Equipped Taco Truck" />
-              <FormField label="Category" required type="select" value={listingData.category} onChange={(e) => updateData('category', e.target.value)} options={getCategoriesByType(listingData.listingType).slice(1).map(cat => ({ value: cat.id, label: cat.name }))} />
-              <FormField label="Location" required type="text" value={listingData.location} onChange={(e) => updateData('location', e.target.value)} placeholder="e.g., Phoenix, AZ" />
-            </div>
-          </div>
-        );
+        return <Step2 />;
       case 3:
-        return (
-          <div>
-            <SectionHeader
-              title={`Set your ${listingData.listingType === LISTING_TYPES.SALE ? 'price' : 'rate'}`}
-              description={listingData.listingType === LISTING_TYPES.SALE ? 'Set your asking price' : listingData.listingType === LISTING_TYPES.EVENT_PRO ? 'Set your hourly service rate' : 'Set your daily rental rate'}
-            />
-            <div className="grid gap-6">
-              <FormField label={`${listingData.listingType === LISTING_TYPES.SALE ? 'Price' : 'Rate'}`} required type="number" value={listingData.price} onChange={(e) => updateData('price', e.target.value)} placeholder="250" />
-              <FormField label="Pricing Unit" required type="select" value={listingData.priceUnit} onChange={(e) => updateData('priceUnit', e.target.value)} options={listingData.listingType === LISTING_TYPES.SALE ? [{ value: PRICE_UNITS.ONE_TIME, label: 'One-time purchase' }] : listingData.listingType === LISTING_TYPES.EVENT_PRO ? [{ value: PRICE_UNITS.PER_HOUR, label: 'Per hour' }] : [{ value: PRICE_UNITS.PER_DAY, label: 'Per day' }]} />
-            </div>
-          </div>
-        );
-      case 4: {
-        const tagOptions = listingData.listingType === LISTING_TYPES.EVENT_PRO ? ['Certified', 'Licensed', 'Insured', 'Menu Planning', 'Catering', 'Bar Service', '10+ Years Exp'] : ['Power', 'Water', 'Propane', 'Full Kitchen', 'Storage', 'WiFi', 'Delivery Available', 'High Foot Traffic'];
-        return (
-          <div>
-            <SectionHeader title="Add features and amenities" description="Select all that apply to your listing" />
-            <div className="flex flex-wrap gap-3">
-              {tagOptions.map(tag => (
-                <button
-                  key={tag}
-                  onClick={() => toggleTag(tag)}
-                  type="button"
-                  className={`px-5 py-2.5 rounded-full text-sm font-medium border transition ${listingData.amenities.includes(tag) ? 'border-orange-500 bg-orange-50 text-orange-600' : 'border-gray-300 text-gray-600 hover:border-orange-400'}`}
-                  aria-pressed={listingData.amenities.includes(tag)}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      }
+        return <Step3 />;
+      case 4:
+        return <Step4 />;
       case 5:
-        return (
-          <div>
-            <SectionHeader title="Add final details" description="Help renters understand what makes your listing special" />
-            <div className="grid gap-6">
-              <FormField label="Description" required type="textarea" value={listingData.description} onChange={(e) => updateData('description', e.target.value)} placeholder="Describe your listing, what makes it special, and any important details..." />
-              <FormField label="Photo URL (optional)" type="text" value={listingData.imageUrl} onChange={(e) => updateData('imageUrl', e.target.value)} placeholder="https://images.unsplash.com/..." />
-            </div>
-          </div>
-        );
+        return <Step5 />;
       default:
         return null;
     }
@@ -238,7 +254,7 @@ function HostOnboardingWizard() {
       <WizardLayout
         currentStep={currentStep}
         totalSteps={5}
-        preview={previewNode}
+        preview={<LivePreview />}
         footer={(
           <StepNavigation
             currentStep={currentStep}
