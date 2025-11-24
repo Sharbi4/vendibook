@@ -54,7 +54,11 @@ ClerkProviderWithRouter.propTypes = {
   children: PropTypes.node,
 };
 
+<<<<<<< HEAD
 if (!clerkConfig.publishableKey) {
+=======
+if (!clerkPublishableKey) {
+>>>>>>> parent of 2eb759a (Merge pull request #13 from Sharbi4/codex/implement-environment-variable-handling-for-clerk)
   throw new Error('VITE_CLERK_PUBLISHABLE_KEY is required for Clerk to function. Add it to your environment config.');
 }
 
