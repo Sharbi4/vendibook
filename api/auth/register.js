@@ -1,5 +1,7 @@
-import { clerkClient } from '@clerk/backend';
+import { createClerkClient } from '@clerk/backend';
 import { sql, bootstrapUserSettingsTable } from '../../src/api/db.js';
+
+const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 let bootstrapPromise;
 
@@ -45,7 +47,7 @@ export default async function handler(req, res) {
 
   try {
     // Create user in Clerk
-    const clerkUser = await clerkClient.users.createUser({
+    const clerkUser = await clerk.users.createUser({
       emailAddress: [normalizedEmail],
       password,
       firstName: firstName || undefined,
