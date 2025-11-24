@@ -1,44 +1,17 @@
-<<<<<<< HEAD
 import bcrypt from 'bcryptjs';
 import { sql, bootstrapUsersTable } from '../../src/api/db.js';
 import { createToken } from '../../src/api/auth/jwt.js';
 import { sanitizeUser } from '../../src/api/auth/verificationService.js';
-=======
-/**
- * POST /api/auth/login - Authenticate and get session token
- * 
- * Request body:
- * {
- *   email: string (required)
- *   password: string (required)
- * }
- * 
- * Response: 200 OK
- * {
- *   token: string (auth token)
- *   user: { id, email, name, createdAt, role }
- * }
- */
->>>>>>> parent of aea4d91 (feat: implement authentication system)
 
-const db = require('../_db');
-const auth = require('../_auth');
+let bootstrapPromise;
 
-export default function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-  
-  const { email, password } = req.body;
-  
-  // Validate required fields
-  if (!email || !password) {
-    return res.status(400).json({
-      error: 'Validation failed',
-      message: 'Missing required fields: email, password'
+async function ensureBootstrap() {
+  if (!bootstrapPromise) {
+    bootstrapPromise = bootstrapUsersTable().catch((error) => {
+      bootstrapPromise = undefined;
+      throw error;
     });
   }
-<<<<<<< HEAD
   return bootstrapPromise;
 }
 
@@ -91,34 +64,5 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Failed to login:', error);
     return res.status(500).json({ success: false, error: 'Server error', message: 'Unable to login' });
-=======
-  
-  // Find user by email
-  const user = db.users.getUserByEmail(email);
-  if (!user) {
-    return res.status(401).json({
-      error: 'Invalid credentials',
-      message: 'Email or password is incorrect'
-    });
   }
-  
-  // Verify password
-  if (!auth.verifyPassword(password, user.password)) {
-    return res.status(401).json({
-      error: 'Invalid credentials',
-      message: 'Email or password is incorrect'
-    });
->>>>>>> parent of aea4d91 (feat: implement authentication system)
-  }
-  
-  // Generate auth token
-  const token = auth.generateToken();
-  db.auth.storeToken(token, user.id);
-  
-  // Set auth token in response
-  auth.setAuthToken(res, token);
-  
-  return res.status(200).json(
-    auth.getAuthResponse(user, token)
-  );
 }

@@ -128,8 +128,9 @@ export function bootstrapUsersTable() {
       await sql`
         CREATE TABLE IF NOT EXISTS users (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-          clerk_id TEXT UNIQUE NOT NULL,
-          email TEXT,
+          clerk_id TEXT UNIQUE,
+          email TEXT UNIQUE NOT NULL,
+          password_hash TEXT,
           first_name TEXT,
           last_name TEXT,
           display_name TEXT,
@@ -142,7 +143,6 @@ export function bootstrapUsersTable() {
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
       `;
-<<<<<<< HEAD
 
       try {
         await sql`
@@ -230,8 +230,6 @@ export function bootstrapUsersTable() {
       } catch (indexError) {
         console.warn('Unable to ensure unique index on users.email:', indexError?.message || indexError);
       }
-=======
->>>>>>> parent of aea4d91 (feat: implement authentication system)
     })().catch(error => {
       usersBootstrapPromise = undefined;
       console.error('Failed to bootstrap users table:', error);

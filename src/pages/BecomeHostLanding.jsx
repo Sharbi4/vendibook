@@ -116,7 +116,7 @@ function BecomeHostLanding() {
             Turn your mobile business assets into income
           </p>
           <button
-            onClick={() => navigate('/host/onboarding')}
+            onClick={() => navigate('/host/create-listing')}
             style={{
               background: 'white',
               color: '#FF5124',
@@ -201,7 +201,7 @@ function BecomeHostLanding() {
             Create your first listing in under 10 minutes
           </p>
           <button
-            onClick={() => navigate('/host/onboarding')}
+            onClick={() => navigate('/host/create-listing')}
             style={{
               background: '#FF5124',
               color: 'white',

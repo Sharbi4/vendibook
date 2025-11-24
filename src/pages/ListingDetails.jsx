@@ -335,7 +335,6 @@ function ListingDetails({ bookingIntent = null }) {
   };
 
   const handleBookNow = async () => {
-<<<<<<< HEAD
     if (!isAuthenticated) {
       navigate(signinRedirectUrl);
       return;
@@ -347,8 +346,6 @@ function ListingDetails({ bookingIntent = null }) {
       return;
     }
 
-=======
->>>>>>> parent of aea4d91 (feat: implement authentication system)
     if (!listing?.id) {
       return;
     }
@@ -356,8 +353,8 @@ function ListingDetails({ bookingIntent = null }) {
     const renterUserId = user?.id || user?._id || user?.userId;
     const renterClerkId = user?.clerkId || user?.clerk_id || user?.clerkID || null;
 
-    if (!isAuthenticated || !renterUserId) {
-      setBookingFeedback({ type: 'error', message: 'Please sign in to request a booking.' });
+    if (!renterUserId) {
+      setBookingFeedback({ type: 'error', message: 'Account data incomplete. Please sign out and back in.' });
       return;
     }
 
