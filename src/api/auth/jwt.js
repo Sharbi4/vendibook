@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify } from 'jose';
+import jwt from 'jsonwebtoken';
 
 const DEFAULT_EXPIRATION = '7d';
 
@@ -7,10 +7,10 @@ function getSecret() {
   if (!secret) {
     throw new Error('JWT_SECRET environment variable is required');
   }
-  return new TextEncoder().encode(secret);
+  return secret;
 }
 
-export async function createToken(user, options = {}) {
+export function createToken(user, options = {}) {
   if (!user || !user.id) {
     throw new Error('Cannot sign token without user id');
   }
@@ -18,26 +18,16 @@ export async function createToken(user, options = {}) {
   const payload = {
     user_id: user.id,
     email: user.email,
-    role: user.role || 'renter'
+    role: user.role || 'renter',
   };
 
-  const exp = options.expiresIn || DEFAULT_EXPIRATION;
-
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime(exp)
-    .sign(getSecret());
+  const expiresIn = options.expiresIn || DEFAULT_EXPIRATION;
+  return jwt.sign(payload, getSecret(), { expiresIn });
 }
 
-export async function verifyToken(token) {
+export function verifyToken(token) {
   if (!token) {
     throw new Error('Missing token');
   }
-
-  const { payload } = await jwtVerify(token, getSecret(), {
-    algorithms: ['HS256']
-  });
-
-  return payload;
+  return jwt.verify(token, getSecret());
 }

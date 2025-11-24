@@ -1,22 +1,35 @@
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { sql, bootstrapUsersTable } from '../../src/api/db.js';
-import { createToken } from '../../src/api/auth/jwt.js';
-import { sanitizeUser } from '../../src/api/auth/verificationService.js';
 
-let bootstrapPromise;
-
-async function ensureBootstrap() {
-  if (!bootstrapPromise) {
-    bootstrapPromise = bootstrapUsersTable().catch((error) => {
-      bootstrapPromise = undefined;
-      throw error;
-    });
-  }
-  return bootstrapPromise;
-}
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRES_IN = '7d';
+const COOKIE_NAME = 'vendibook_token';
 
 function normalizeEmail(value) {
   return (value || '').trim().toLowerCase();
+}
+
+function createToken(user) {
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+  return jwt.sign({ user_id: user.id, email: user.email, role: user.role || 'renter' }, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN,
+  });
+}
+
+function setAuthCookie(res, token) {
+  const isProd = process.env.NODE_ENV === 'production';
+  const parts = [`${COOKIE_NAME}=${token}`, 'Path=/', 'HttpOnly', 'SameSite=Lax', `Max-Age=${7 * 24 * 60 * 60}`];
+  if (isProd) {
+    parts.push('Secure');
+  }
+  res.setHeader('Set-Cookie', parts.join('; '));
+}
+
+async function ensureBootstrap() {
+  await bootstrapUsersTable();
 }
 
 export default async function handler(req, res) {
@@ -37,13 +50,10 @@ export default async function handler(req, res) {
   }
 
   const normalizedEmail = normalizeEmail(email);
-
   try {
     const users = await sql`
       SELECT id, email, password_hash, first_name, last_name, phone, role,
-             created_at, updated_at, is_verified, verification_sent_at, verified_at,
-             stripe_connect_account_id, stripe_identity_verification_id,
-             is_host_verified, host_verification_status, host_verification_updated_at
+             created_at, updated_at
       FROM users
       WHERE email = ${normalizedEmail}
       LIMIT 1;
@@ -59,8 +69,9 @@ export default async function handler(req, res) {
       return res.status(401).json({ success: false, error: 'Invalid credentials', message: 'Email or password is incorrect' });
     }
 
-    const token = await createToken(user);
-    return res.status(200).json({ success: true, data: { user: sanitizeUser(user), token } });
+    const token = createToken(user);
+    setAuthCookie(res, token);
+    return res.status(200).json({ success: true, data: { user } });
   } catch (error) {
     console.error('Failed to login:', error);
     return res.status(500).json({ success: false, error: 'Server error', message: 'Unable to login' });

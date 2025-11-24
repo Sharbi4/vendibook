@@ -1,33 +1,35 @@
-import { createClerkClient } from '@clerk/backend';
-import { sql, bootstrapUserSettingsTable } from '../../src/api/db.js';
-import { requireClerkSecretKey } from '../../src/api/auth/getClerkSecrets.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { sql, bootstrapUsersTable } from '../../src/api/db.js';
 
-let clerk;
-
-function getClerkClient() {
-  if (!clerk) {
-    const secretKey = requireClerkSecretKey();
-    clerk = createClerkClient({ secretKey });
-  }
-  return clerk;
-}
-
-let bootstrapPromise;
-
-async function ensureBootstrap() {
-  if (!bootstrapPromise) {
-    bootstrapPromise = (async () => {
-      await bootstrapUserSettingsTable();
-    })().catch((error) => {
-      bootstrapPromise = undefined;
-      throw error;
-    });
-  }
-  return bootstrapPromise;
-}
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRES_IN = '7d';
+const COOKIE_NAME = 'vendibook_token';
 
 function normalizeEmail(value) {
   return (value || '').trim().toLowerCase();
+}
+
+function createToken(user) {
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+  return jwt.sign({ user_id: user.id, email: user.email, role: user.role || 'renter' }, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN,
+  });
+}
+
+function setAuthCookie(res, token) {
+  const isProd = process.env.NODE_ENV === 'production';
+  const parts = [`${COOKIE_NAME}=${token}`, 'Path=/', 'HttpOnly', 'SameSite=Lax', `Max-Age=${7 * 24 * 60 * 60}`];
+  if (isProd) {
+    parts.push('Secure');
+  }
+  res.setHeader('Set-Cookie', parts.join('; '));
+}
+
+async function ensureBootstrap() {
+  await bootstrapUsersTable();
 }
 
 export default async function handler(req, res) {
@@ -38,102 +40,35 @@ export default async function handler(req, res) {
   try {
     await ensureBootstrap();
   } catch (error) {
-    console.error('Failed to bootstrap auth tables:', error);
+    console.error('Failed to bootstrap users table:', error);
     return res.status(500).json({ success: false, error: 'Server error', message: 'Unable to initialize auth' });
   }
 
-  const { firstName, lastName, email, password, phone } = req.body || {};
-
+  const { email, password, firstName = '', lastName = '', phone = '' } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ success: false, error: 'Validation error', message: 'Email and password are required' });
   }
 
-  if (password.length < 8) {
-    return res.status(400).json({ success: false, error: 'Validation error', message: 'Password must be at least 8 characters' });
-  }
-
   const normalizedEmail = normalizeEmail(email);
-
   try {
-    const clerkClient = getClerkClient();
-    // Create user in Clerk
-    const clerkUser = await clerkClient.users.createUser({
-      emailAddress: [normalizedEmail],
-      password,
-      firstName: firstName || undefined,
-      lastName: lastName || undefined,
-      phoneNumber: phone ? [phone] : undefined,
-    });
+    const existing = await sql`SELECT id FROM users WHERE email = ${normalizedEmail} LIMIT 1;`;
+    if (existing?.length) {
+      return res.status(409).json({ success: false, error: 'Conflict', message: 'Email already registered' });
+    }
 
-    // Sync user to local database
-    const insertedRows = await sql`
-      INSERT INTO users (
-        clerk_id, email, first_name, last_name, phone, role, is_verified
-      )
-      VALUES (
-        ${clerkUser.id},
-        ${normalizedEmail},
-        ${firstName || null},
-        ${lastName || null},
-        ${phone || null},
-        'renter',
-        ${clerkUser.emailAddresses[0]?.verification?.status === 'verified'}
-      )
-      ON CONFLICT (clerk_id) DO UPDATE SET
-        email = EXCLUDED.email,
-        first_name = EXCLUDED.first_name,
-        last_name = EXCLUDED.last_name,
-        phone = EXCLUDED.phone,
-        is_verified = EXCLUDED.is_verified,
-        updated_at = NOW()
-      RETURNING id, clerk_id, email, first_name, last_name, phone, role, created_at, updated_at, is_verified;
+    const passwordHash = await bcrypt.hash(password, 10);
+    const rows = await sql`
+      INSERT INTO users (email, password_hash, first_name, last_name, phone, role)
+      VALUES (${normalizedEmail}, ${passwordHash}, ${firstName || null}, ${lastName || null}, ${phone || null}, 'renter')
+      RETURNING id, email, first_name, last_name, phone, role, created_at, updated_at;
     `;
 
-    const user = insertedRows[0];
-
-    return res.status(201).json({
-      success: true,
-      data: {
-        user: {
-          id: user.id,
-          clerk_id: user.clerk_id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          phone: user.phone,
-          role: user.role,
-          isVerified: user.is_verified,
-        },
-        clerkUserId: clerkUser.id,
-      },
-    });
+    const user = rows[0];
+    const token = createToken(user);
+    setAuthCookie(res, token);
+    return res.status(201).json({ success: true, data: { user } });
   } catch (error) {
     console.error('Failed to register user:', error);
-
-    if (error?.statusCode === 401 && error.message === 'Missing CLERK_SECRET_KEY') {
-      return res.status(401).json({
-        success: false,
-        error: 'Unauthorized',
-        message: 'CLERK_SECRET_KEY is required to register users. Update your environment configuration.',
-      });
-    }
-    
-    // Handle Clerk-specific errors
-    if (error.errors) {
-      const clerkError = error.errors[0];
-      if (clerkError?.code === 'form_identifier_exists') {
-        return res.status(409).json({
-          success: false,
-          error: 'Conflict',
-          message: 'Email already registered',
-        });
-      }
-    }
-
-    return res.status(500).json({
-      success: false,
-      error: 'Server error',
-      message: 'Unable to register user',
-    });
+    return res.status(500).json({ success: false, error: 'Server error', message: 'Unable to register' });
   }
 }

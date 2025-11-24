@@ -1,14 +1,29 @@
 import { verifyToken } from './jwt.js';
 import { sql } from '../db.js';
 
-export async function requireAuth(req, res) {
-  const authHeader = req.headers.authorization || req.headers.Authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({ success: false, error: 'Unauthorized', message: 'Missing authorization header' });
-    return null;
+const COOKIE_NAME = 'vendibook_token';
+
+function extractToken(req) {
+  const header = req.headers.authorization || req.headers.Authorization;
+  if (header && typeof header === 'string' && header.startsWith('Bearer ')) {
+    return header.substring('Bearer '.length).trim();
   }
 
-  const token = authHeader.substring('Bearer '.length).trim();
+  const cookieHeader = req.headers.cookie || '';
+  const cookies = cookieHeader.split(';').map((entry) => entry.trim());
+  const tokenCookie = cookies.find((entry) => entry.startsWith(`${COOKIE_NAME}=`));
+  if (tokenCookie) {
+    return tokenCookie.substring(COOKIE_NAME.length + 1);
+  }
+  return null;
+}
+
+export async function requireAuth(req, res) {
+  const token = extractToken(req);
+  if (!token) {
+    res.status(401).json({ success: false, error: 'Unauthorized', message: 'Missing token' });
+    return null;
+  }
 
   try {
     const payload = await verifyToken(token);
