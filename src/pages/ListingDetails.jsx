@@ -333,6 +333,14 @@ function ListingDetails() {
       }
     }
 
+    // Attach selected Event Pro package metadata if the renter chose a package
+    if (selectedPackage) {
+      payload.packageId = selectedPackage.id;
+      payload.packageName = selectedPackage.name;
+      payload.packageBasePrice = Number(selectedPackage.base_price ?? selectedPackage.basePrice ?? selectedPackage.price ?? 0);
+      // TODO: Consider storing package_id and package_pricing on bookings table for accounting
+    }
+
     try {
       const headers = { 'Content-Type': 'application/json' };
       if (token) {
@@ -544,6 +552,11 @@ function ListingDetails() {
     [listing?.price, priceUnit]
   );
 
+  const selectedPackageBasePrice = selectedPackage
+    ? Number(selectedPackage.base_price ?? selectedPackage.basePrice ?? selectedPackage.price ?? 0)
+    : null;
+  const displayPrimaryPrice = selectedPackageBasePrice ? formatCurrency(selectedPackageBasePrice) : formattedPrice;
+
   const selectedEndDate = isHourlyMode ? startDate : endDate;
   const rentalDays = !isHourlyMode && startDate && endDate ? calculateSelectedDays(startDate, endDate) : 0;
   const durationHours = isHourlyMode && startDate && eventStartTime && eventEndTime ? calculateSelectedHours(startDate, eventStartTime, eventEndTime) : 0;
@@ -721,16 +734,59 @@ function ListingDetails() {
                     Tailored experiences to match your event size and style. Choose a starting point and we&apos;ll customize the menu for you.
                   </p>
                   <div className="mt-6 space-y-4">
-                    {eventProPackages.map((pkg) => (
-                      <div
-                        key={pkg.name}
-                        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
-                      >
-                        <p className="text-sm font-semibold text-slate-900">{pkg.name}</p>
-                        <p className="mt-1 text-sm text-slate-600">{pkg.description}</p>
-                        <p className="mt-2 text-sm font-medium text-slate-900">{pkg.price}</p>
+                    {eventProPackages.length === 0 ? (
+                      <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+                        This Event Pro has not added packages yet — contact the host for custom pricing.
                       </div>
-                    ))}
+                    ) : (
+                      eventProPackages.map((pkg) => {
+                        const isActive = selectedPackage && selectedPackage.id === pkg.id;
+                        const basePrice = Number(pkg.base_price ?? pkg.basePrice ?? pkg.price ?? 0);
+                        return (
+                          <div
+                            key={pkg.id}
+                            className={`rounded-2xl border bg-white p-4 shadow-sm transition hover:shadow-md ${
+                              isActive ? 'ring-2 ring-orange-300 border-orange-200' : 'border-slate-200'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <p className="text-sm font-semibold text-slate-900">{pkg.name}</p>
+                                {pkg.max_guests || pkg.maxGuests ? (
+                                  <p className="mt-1 text-xs text-slate-500">Up to {pkg.max_guests || pkg.maxGuests} guests</p>
+                                ) : null}
+                                {pkg.description ? (
+                                  <p className="mt-2 text-sm text-slate-600 whitespace-pre-line">{pkg.description}</p>
+                                ) : null}
+                                {pkg.included_items || pkg.includedItems ? (
+                                  <ul className="mt-2 list-disc list-inside text-sm text-slate-600">
+                                    {String(pkg.included_items || pkg.includedItems).split('\n').map((line, idx) => (
+                                      <li key={idx}>{line}</li>
+                                    ))}
+                                  </ul>
+                                ) : null}
+                                {pkg.duration_hours || pkg.durationHours ? (
+                                  <p className="mt-2 text-xs text-slate-500">Typical service time, {pkg.duration_hours || pkg.durationHours} hours</p>
+                                ) : null}
+                              </div>
+
+                              <div className="flex shrink-0 flex-col items-end gap-3">
+                                <div className="text-sm font-semibold text-slate-900">{formatCurrency(basePrice) || 'Contact for pricing'}</div>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedPackage(isActive ? null : pkg)}
+                                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                                    isActive ? 'bg-orange-500 text-white' : 'bg-white border border-slate-200 text-slate-900 hover:bg-slate-50'
+                                  }`}
+                                >
+                                  {isActive ? 'Selected' : 'Select package'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </section>
               </article>
@@ -792,10 +848,16 @@ function ListingDetails() {
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                   {isEventPro ? 'Starting package at' : 'Starting at'}
                 </p>
-                <p className="mt-2 text-3xl font-bold text-slate-900">{formattedPrice}</p>
+                <p className="mt-2 text-3xl font-bold text-slate-900">{displayPrimaryPrice}</p>
                 <p className="mt-1 text-sm text-slate-500">
                   {isEventPro ? 'Custom quotes available for larger activations.' : `Base rate ${priceUnit}`}
                 </p>
+                {selectedPackage ? (
+                  <div className="mt-3 rounded-md border border-orange-100 bg-orange-50 px-3 py-2 text-sm">
+                    <div className="font-semibold text-slate-900">Selected package: {selectedPackage.name}</div>
+                    <div className="text-sm text-slate-700">Starting at {formatCurrency(Number(selectedPackage.base_price ?? selectedPackage.basePrice ?? selectedPackage.price ?? 0))}</div>
+                  </div>
+                ) : null}
                 {locationSummary && (
                   <p className="mt-2 text-sm font-semibold text-slate-700">Pickup near {locationSummary}</p>
                 )}

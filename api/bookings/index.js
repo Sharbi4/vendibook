@@ -63,7 +63,19 @@ async function handlePost(req, res) {
     const totalPrice = parseTotalPrice(body.totalPrice ?? body.total_price);
     const currency = normalizeCurrency(body.currency);
     const status = normalizeStatus(body.status, 'PENDING');
-    const notes = normalizeNotes(body.notes);
+    let notes = normalizeNotes(body.notes);
+    // If package metadata was included by the client, append a structured note so hosts can see the selection.
+    if (body.packageId || body.package_id) {
+      try {
+        const pkgId = body.packageId || body.package_id;
+        const pkgName = body.packageName || body.package_name || body.package || '';
+        const pkgPrice = body.packageBasePrice || body.package_base_price || body.packagePrice || '';
+        const packageNote = `PACKAGE_SELECTED: ${pkgName} (id: ${pkgId})${pkgPrice ? ` — base price: ${pkgPrice}` : ''}`;
+        notes = notes ? `${notes}\n\n${packageNote}` : packageNote;
+      } catch (e) {
+        // ignore formatting errors — notes are optional
+      }
+    }
 
     if (!listingId) {
       throw createHttpError(400, 'listingId is required');
