@@ -1,680 +1,842 @@
-import { useState } from 'react';
-import { useListings } from '../hooks/useListings.js';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, Star, Check, Store, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import HeroSearch from '../components/home/HeroSearch.jsx';
 import { CATEGORY_OPTIONS, CATEGORY_MAP, DEFAULT_CATEGORY } from '../config/categories.js';
+import { useListings } from '../hooks/useListings.js';
+
+const NAV_LINKS = [
+  { label: 'Rent equipment', path: '/listings?intent=rent' },
+  { label: 'Event pros', path: '/listings?intent=event-pro' },
+  { label: 'Buy or lease', path: '/listings?intent=sale' },
+  { label: 'Become a host', path: '/become-host' },
+  { label: 'Community', path: '/community' },
+];
+
+const AMENITY_OPTIONS = [
+  'Power',
+  'Water',
+  'Propane',
+  'Full kitchen',
+  'Storage',
+  'Delivery available',
+  'High foot traffic',
+];
+
+const CATEGORY_COLORS = {
+  all: '#FF5124',
+  'food-trucks': '#FF6B35',
+  trailers: '#FF8C42',
+  'ghost-kitchens': '#FFA500',
+  'event-pros': '#FF6B6B',
+  'vending-lots': '#FFB347',
+};
+
+const FALLBACK_LISTINGS = [
+  {
+    id: '1',
+    title: 'Fully Equipped Taco Truck - LA Style',
+    category: 'food-trucks',
+    location: 'Tucson, AZ',
+    price: 250,
+    priceType: 'day',
+    image: 'https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?w=800&auto=format&fit=crop&q=80',
+    rating: 4.9,
+    reviews: 32,
+    features: ['Power', 'Water', 'Propane', 'Full kitchen'],
+    host: 'Verified Host',
+    deliveryAvailable: true,
+    verified: true,
+  },
+  {
+    id: '2',
+    title: 'Wood-Fired Pizza Trailer - Professional Setup',
+    category: 'trailers',
+    location: 'Phoenix, AZ',
+    price: 180,
+    priceType: 'day',
+    image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&auto=format&fit=crop&q=80',
+    rating: 4.8,
+    reviews: 28,
+    features: ['Power', 'Water', 'Wood-fired oven', 'Prep station'],
+    host: 'Verified Host',
+    deliveryAvailable: true,
+    verified: true,
+  },
+  {
+    id: '3',
+    title: 'Premium Ghost Kitchen - 24/7 Access',
+    category: 'ghost-kitchens',
+    location: 'Tucson, AZ',
+    price: 150,
+    priceType: 'day',
+    image: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&auto=format&fit=crop&q=80',
+    rating: 5,
+    reviews: 15,
+    features: ['Full kitchen', 'Storage', '24/7 access', 'Walk-in cooler'],
+    host: 'Superhost',
+    deliveryAvailable: false,
+    verified: true,
+  },
+  {
+    id: '4',
+    title: 'Downtown Vending Location - High Traffic',
+    category: 'vending-lots',
+    location: 'Tempe, AZ',
+    price: 120,
+    priceType: 'day',
+    image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80',
+    rating: 4.7,
+    reviews: 45,
+    features: ['High foot traffic', 'Power hookup', 'Weekend events', 'Permits included'],
+    host: 'Verified Host',
+    deliveryAvailable: false,
+    verified: true,
+  },
+  {
+    id: '5',
+    title: 'Award-Winning Chef - Mexican Cuisine',
+    category: 'event-pros',
+    location: 'Phoenix, AZ',
+    price: 75,
+    priceType: 'hour',
+    image: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=800&auto=format&fit=crop&q=80',
+    rating: 4.9,
+    reviews: 67,
+    features: ['Certified', 'Catering license', 'Menu planning', '10+ years exp'],
+    host: 'Superhost',
+    deliveryAvailable: false,
+    verified: true,
+  },
+  {
+    id: '6',
+    title: 'Vintage Coffee Cart - Fully Restored',
+    category: 'trailers',
+    location: 'Scottsdale, AZ',
+    price: 95,
+    priceType: 'day',
+    image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&auto=format&fit=crop&q=80',
+    rating: 4.6,
+    reviews: 19,
+    features: ['Espresso machine', 'Power', 'Compact', 'Instagram-worthy'],
+    host: 'Verified Host',
+    deliveryAvailable: true,
+    verified: true,
+  },
+  {
+    id: '7',
+    title: '2022 Food Truck - Like New (For Sale)',
+    category: 'for-sale',
+    location: 'Phoenix, AZ',
+    price: 45000,
+    priceType: 'sale',
+    image: 'https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?w=800&auto=format&fit=crop&q=80',
+    rating: 5,
+    reviews: 8,
+    features: ['Title verified', 'Low miles', 'Full inspection', 'Financing available'],
+    host: 'Verified Seller',
+    deliveryAvailable: true,
+    verified: true,
+  },
+  {
+    id: '8',
+    title: 'BBQ Smoker Trailer - Competition Ready',
+    category: 'trailers',
+    location: 'Mesa, AZ',
+    price: 220,
+    priceType: 'day',
+    image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&auto=format&fit=crop&q=80',
+    rating: 4.9,
+    reviews: 52,
+    features: ['Large smoker', 'Prep station', 'Power', 'Water hookup'],
+    host: 'Superhost',
+    deliveryAvailable: true,
+    verified: true,
+  },
+];
+
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&auto=format&fit=crop&q=80';
+
+function normalizeListing(item) {
+  const rawCategory = (item.category || '').toString().toLowerCase();
+  const listingType = (item.listing_type || item.listingType || '').toString().toUpperCase();
+  const category = rawCategory || (listingType === 'EVENT_PRO' ? 'event-pros' : rawCategory || 'all');
+  const priceUnit = (item.price_unit || item.priceUnit || '').toString().toLowerCase();
+  let priceType = 'day';
+  if (priceUnit.includes('hour')) {
+    priceType = 'hour';
+  } else if (priceUnit.includes('sale') || listingType === 'SALE') {
+    priceType = 'sale';
+  } else if (priceUnit.includes('event')) {
+    priceType = 'event';
+  }
+
+  const featureList =
+    (Array.isArray(item.features) && item.features.length > 0)
+      ? item.features
+      : Array.isArray(item.tags)
+        ? item.tags
+        : Array.isArray(item.highlights)
+          ? item.highlights
+          : [];
+
+  return {
+    id: item.id || item.listingId || crypto.randomUUID(),
+    title: item.title || 'Untitled listing',
+    category,
+    location:
+      item.location ||
+      [item.city, item.state].filter(Boolean).join(', ') ||
+      'Phoenix, AZ',
+    price: Number(item.price) || 0,
+    priceType,
+    image: item.image || item.imageUrl || item.image_url || FALLBACK_IMAGE,
+    rating: Number(item.rating) || 4.8,
+    reviews: item.reviewCount || item.review_count || 12,
+    features: featureList,
+    amenities: featureList.map((feature) => feature.toLowerCase()),
+    host: item.host || item.hostName || item.host_name || 'Verified Host',
+    deliveryAvailable: Boolean(item.deliveryAvailable ?? item.delivery_available ?? false),
+    verified: Boolean(item.isVerified ?? item.is_verified ?? true),
+  };
+}
 
 function HomePage() {
   const navigate = useNavigate();
+  const { isAuthenticated, needsVerification } = useAuth();
 
-  // Filters state
   const [showFilters, setShowFilters] = useState(false);
   const [priceMin, setPriceMin] = useState('');
-      priceType: 'day',
-      image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&auto=format&fit=crop&q=80',
-      rating: 4.6,
-      reviews: 19,
-      features: ['Espresso machine', 'Power', 'Compact', 'Instagram-worthy'],
-      host: 'Verified Host',
-      deliveryAvailable: true
-      {/* Hero Section */}
+  const [priceMax, setPriceMax] = useState('');
+  const [selectedAmenities, setSelectedAmenities] = useState([]);
+  const [deliveryOnly, setDeliveryOnly] = useState(false);
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [appliedSearch, setAppliedSearch] = useState({
+    location: '',
+    startDate: '',
+    endDate: '',
+    category: DEFAULT_CATEGORY.value,
+    listingType: DEFAULT_CATEGORY.listingIntent,
+    priceMin: '',
+    priceMax: '',
+    amenities: [],
+    deliveryOnly: false,
+    verifiedOnly: false,
+  });
+
+  const listingFilters = useMemo(() => {
+    const filters = {};
+    if (appliedSearch.listingType && appliedSearch.listingType !== 'all') {
+      if (appliedSearch.listingType === 'event-pro') {
+        filters.listing_type = 'EVENT_PRO';
+      } else if (appliedSearch.listingType === 'sale') {
+        filters.listing_type = 'SALE';
+      } else {
+        filters.listing_type = 'RENT';
+      }
+    }
+    if (appliedSearch.category && appliedSearch.category !== 'all') {
+      filters.category = appliedSearch.category;
+    }
+    return filters;
+  }, [appliedSearch.category, appliedSearch.listingType]);
+
+  const { listings, isLoading } = useListings(listingFilters);
+
+  const normalizedListings = useMemo(() => {
+    if (Array.isArray(listings) && listings.length > 0) {
+      return listings.map(normalizeListing);
+    }
+    return FALLBACK_LISTINGS.map((listing) => ({
+      ...listing,
+      amenities: listing.features.map((feature) => feature.toLowerCase()),
+    }));
+  }, [listings]);
+
+  const heroLocationLabel = appliedSearch.location
+    ? `Near ${appliedSearch.location}`
+    : 'All locations';
+  const heroCategoryLabel = CATEGORY_MAP[appliedSearch.category]?.label || 'All categories';
+  const heroDateLabel =
+    appliedSearch.startDate && appliedSearch.endDate
+      ? `${appliedSearch.startDate} → ${appliedSearch.endDate}`
+      : 'Flexible dates';
+
+  const currentSearchPayload = useMemo(
+    () => ({
+      location: appliedSearch.location,
+      category: appliedSearch.category,
+      listingIntent: appliedSearch.listingType,
+      startDate: appliedSearch.startDate,
+      endDate: appliedSearch.endDate,
+    }),
+    [
+      appliedSearch.location,
+      appliedSearch.category,
+      appliedSearch.listingType,
+      appliedSearch.startDate,
+      appliedSearch.endDate,
+    ]
+  );
+
+  const handleSearch = (formValues = {}, filterOverrides = {}) => {
+    const rawLocation = formValues.location?.trim() || '';
+    const nextCategory = formValues.category || appliedSearch.category;
+    const listingIntent = formValues.listingIntent || appliedSearch.listingType || 'all';
+    const nextStartDate = formValues.startDate || '';
+    const nextEndDate = formValues.endDate || '';
+    const nextPriceMin = filterOverrides.priceMin ?? priceMin;
+    const nextPriceMax = filterOverrides.priceMax ?? priceMax;
+    const nextDeliveryOnly = filterOverrides.deliveryOnly ?? deliveryOnly;
+    const nextVerifiedOnly = filterOverrides.verifiedOnly ?? verifiedOnly;
+    const nextAmenities = filterOverrides.amenities ?? selectedAmenities;
+
+    const params = new URLSearchParams();
+    if (rawLocation) params.set('location', rawLocation);
+    if (nextCategory && nextCategory !== 'all') params.set('category', nextCategory);
+    if (listingIntent && listingIntent !== 'all') params.set('intent', listingIntent);
+    if (nextStartDate) params.set('start', nextStartDate);
+    if (nextEndDate) params.set('end', nextEndDate);
+    if (nextPriceMin) params.set('price_min', nextPriceMin);
+    if (nextPriceMax) params.set('price_max', nextPriceMax);
+    if (nextDeliveryOnly) params.set('delivery', 'true');
+    if (nextVerifiedOnly) params.set('verified', 'true');
+    nextAmenities.forEach((amenity) => params.append('amenity', amenity));
+
     navigate(params.toString() ? `/listings?${params.toString()}` : '/listings');
 
-    setAppliedSearch((prev) => ({
-      ...prev,
-      listingType: listingIntent,
+    setAppliedSearch({
       location: rawLocation,
-      category: nextCategory,
       startDate: nextStartDate,
       endDate: nextEndDate,
-      priceMin,
-      priceMax,
-      amenities: selectedAmenities,
+      category: nextCategory,
+      listingType: listingIntent,
+      priceMin: nextPriceMin,
+      priceMax: nextPriceMax,
+      amenities: nextAmenities,
+      deliveryOnly: nextDeliveryOnly,
+      verifiedOnly: nextVerifiedOnly,
+    });
+  };
+
+  const handleAmenityToggle = (amenity) => {
+    setSelectedAmenities((prev) =>
+      prev.includes(amenity)
+        ? prev.filter((item) => item !== amenity)
+        : [...prev, amenity]
+    );
+  };
+
+  const handleApplyFilters = () => {
+    handleSearch(currentSearchPayload);
+  };
+
+  const handleClearFilters = () => {
+    setPriceMin('');
+    setPriceMax('');
+    setSelectedAmenities([]);
+    setDeliveryOnly(false);
+    setVerifiedOnly(false);
+    handleSearch(currentSearchPayload, {
+      priceMin: '',
+      priceMax: '',
+      amenities: [],
+      deliveryOnly: false,
+      verifiedOnly: false,
+    });
+  };
+
+  const filteredListings = useMemo(
+    () =>
+      normalizedListings.filter((listing) => {
+        if (deliveryOnly && !listing.deliveryAvailable) {
+          return false;
+        }
+        if (verifiedOnly && !listing.verified) {
+          return false;
+        }
+        if (priceMin && Number(listing.price) < Number(priceMin)) {
+          return false;
+        }
+        if (priceMax && Number(listing.price) > Number(priceMax)) {
+          return false;
+        }
+        if (
+          selectedAmenities.length &&
+          !selectedAmenities.every((amenity) =>
+            (listing.amenities || []).some((value) => value.toLowerCase().includes(amenity.toLowerCase()))
+          )
+        ) {
+          return false;
+        }
+        if (appliedSearch.category && appliedSearch.category !== 'all') {
+          return listing.category === appliedSearch.category;
+        }
+        return true;
+      }),
+    [
+      normalizedListings,
       deliveryOnly,
       verifiedOnly,
+      priceMin,
+      priceMax,
+      selectedAmenities,
+      appliedSearch.category,
+    ]
+  );
+
+  const categoryChips = useMemo(
+    () =>
+      CATEGORY_OPTIONS.map((option) => ({
+        ...option,
+        color: CATEGORY_COLORS[option.value] || '#FF5124',
+      })),
+    []
+  );
+
+  const handleCategoryClick = (value) => {
+    const nextIntent = CATEGORY_MAP[value]?.listingIntent || 'all';
+    setAppliedSearch((prev) => ({
+      ...prev,
+      category: value,
+      listingType: nextIntent,
     }));
   };
 
   const handleBookNow = (listing) => {
-    if (listing.category === 'for-sale') {
-      alert(`Interested in purchasing: ${listing.title}\nPrice: $${listing.price.toLocaleString()}\n\nNext steps:\n- Schedule inspection\n- Get financing options\n- Contact seller`);
-    } else {
-      alert(`Book: ${listing.title}\nPrice: $${listing.price}/${listing.priceType}\nLocation: ${listing.location}\n\nNext: Select dates and confirm booking`);
+    if (listing.category === 'for-sale' || listing.priceType === 'sale') {
+      alert(
+        `Interested in purchasing: ${listing.title}\nPrice: $${listing.price.toLocaleString()}\n\nNext steps:\n- Schedule inspection\n- Get financing options\n- Contact seller`
+      );
+      return;
     }
+    alert(
+      `Book: ${listing.title}\nPrice: $${listing.price}/${listing.priceType}\nLocation: ${listing.location}\n\nNext: Select dates and confirm booking`
+    );
   };
 
-  const toggleAmenity = (amenity) => {
-    if (selectedAmenities.includes(amenity)) {
-      setSelectedAmenities(selectedAmenities.filter(a => a !== amenity));
-    } else {
-      setSelectedAmenities([...selectedAmenities, amenity]);
-    }
-  };
+  const marketStats = useMemo(() => {
+    const verified = normalizedListings.filter((listing) => listing.verified).length;
+    const delivery = normalizedListings.filter((listing) => listing.deliveryAvailable).length;
+    const locations = new Set(
+      normalizedListings
+        .map((listing) => listing.location?.toString().trim())
+        .filter(Boolean)
+    ).size;
+    return {
+      total: normalizedListings.length,
+      verified,
+      delivery,
+      markets: locations || 1,
+    };
+  }, [normalizedListings]);
 
+  const toggleAmenityButtonStyle = (isActive) => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '10px 16px',
+    borderRadius: '999px',
+    border: isActive ? '1px solid #FF5124' : '1px solid #E0E0E0',
+    background: isActive ? 'rgba(255,81,36,0.08)' : 'white',
+    color: isActive ? '#FF5124' : '#222',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer',
+  });
 
   return (
-    <div style={{ minHeight: '100vh', background: 'white' }}>
-      {/* Header */}
-      <header style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        background: 'white',
-        borderBottom: '1px solid #EBEBEB',
-        boxShadow: '0 1px 0 rgba(0,0,0,0.05)'
-      }}>
-        <div style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '80px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                background: '#FF5124',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Truck style={{ width: '18px', height: '18px', color: 'white' }} />
-              </div>
-              <span style={{
-                fontSize: '20px',
-                fontWeight: '700',
-                color: '#FF5124',
-                letterSpacing: '-0.5px'
-              }}>
-                vendibook
+    <main className="bg-slate-50 pb-24 text-slate-900">
+      <section className="relative overflow-hidden bg-slate-950 text-white">
+        <div className="absolute inset-0">
+          <div className="absolute inset-x-0 top-0 h-60 bg-gradient-to-b from-orange-500/30 to-transparent" />
+          <div className="absolute right-[-25%] top-[-10%] h-[420px] w-[420px] rounded-full bg-orange-400/25 blur-[160px]" />
+          <div className="absolute left-[-15%] bottom-[-30%] h-[360px] w-[360px] rounded-full bg-rose-500/20 blur-[180px]" />
+        </div>
+        <div className="relative mx-auto max-w-6xl px-6 py-16 lg:py-20">
+          <div className="grid gap-10 lg:grid-cols-[1.1fr_minmax(0,0.9fr)] lg:items-center">
+            <div className="space-y-6">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-orange-100">
+                <Truck className="h-4 w-4" strokeWidth={1.6} />
+                Arizona marketplace
               </span>
+              <h1 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
+                Launch, rent, or scale your mobile food business with vetted equipment, pros, and locations.
+              </h1>
+              <p className="max-w-2xl text-base text-white/80 sm:text-lg">
+                Vendibook keeps your pipeline full with ready-to-work food trucks, commissary kitchens, vending lots,
+                and event professionals across Arizona. Filter by amenities, delivery options, and verification status to move fast.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {NAV_LINKS.map((link) => (
+                  <button
+                    key={link.path}
+                    type="button"
+                    onClick={() => navigate(link.path)}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+                  >
+                    {link.label}
+                  </button>
+                ))}
+              </div>
+              <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
+                  <div className="flex items-center gap-3 text-sm font-semibold text-white/80">
+                    <Sparkles className="h-5 w-5 text-orange-200" />
+                    Active listings
+                  </div>
+                  <dd className="mt-2 text-3xl font-semibold">{marketStats.total || 0}+</dd>
+                  <p className="text-sm text-white/70">Curated for high-performing concepts</p>
+                </div>
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
+                  <div className="flex items-center gap-3 text-sm font-semibold text-white/80">
+                    <Check className="h-5 w-5 text-emerald-200" />
+                    Verified hosts
+                  </div>
+                  <dd className="mt-2 text-3xl font-semibold">{marketStats.verified || 0}</dd>
+                  <p className="text-sm text-white/70">Identity + compliance reviewed</p>
+                </div>
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
+                  <div className="flex items-center gap-3 text-sm font-semibold text-white/80">
+                    <Store className="h-5 w-5 text-sky-200" />
+                    Markets served
+                  </div>
+                  <dd className="mt-2 text-3xl font-semibold">{marketStats.markets}</dd>
+                  <p className="text-sm text-white/70">{heroLocationLabel}</p>
+                </div>
+              </dl>
             </div>
+            <div className="space-y-6">
+              <div className="rounded-[32px] border border-white/20 bg-white/95 p-6 text-slate-900 shadow-[0_35px_120px_rgba(0,0,0,0.35)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Plan your next activation</p>
+                <div className="mt-4">
+                  <HeroSearch
+                    initialValues={{
+                      location: appliedSearch.location,
+                      startDate: appliedSearch.startDate,
+                      endDate: appliedSearch.endDate,
+                      category: appliedSearch.category,
+                    }}
+                    onSubmit={handleSearch}
+                  />
+                </div>
+                <p className="mt-4 text-xs text-slate-500">
+                  Results sync in real time with marketplace filters. Keep scrolling to apply amenities, price bands, and delivery preferences.
+                </p>
+              </div>
+              {needsVerification && (
+                <div className="rounded-2xl border border-orange-200/60 bg-orange-500/10 p-4 text-sm text-orange-50">
+                  <p className="font-semibold">Finish verification to unlock instant bookings.</p>
+                  <div className="mt-3 flex flex-wrap gap-3 text-xs text-orange-50/80">
+                    <span>1. Confirm email</span>
+                    <span>2. Add business docs</span>
+                    <span>3. Receive approval</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/verify-email')}
+                    className="mt-4 inline-flex items-center justify-center rounded-full bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-white/20"
+                  >
+                    Verify account
+                  </button>
+                </div>
+              )}
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm text-white/90 backdrop-blur">
+                <p>
+                  {isAuthenticated
+                    ? 'Signed in with priority access. Saved searches help us ping you when a matching truck, commissary, or lot drops.'
+                    : 'Sign in to save searches, message hosts instantly, and get notified when new lots or trucks match your filters.'}
+                </p>
+                <div className="mt-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-orange-200">
+                  <Sparkles className="h-3 w-3" />
+                  Curated for {heroCategoryLabel.toLowerCase()}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '32px', flexWrap: 'wrap' }}>
-              {navLinks.map((link) => (
+      <section className="border-b border-slate-200 bg-white">
+        <div className="mx-auto max-w-6xl px-6 py-10">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Showing</p>
+              <h2 className="text-2xl font-semibold text-slate-900">{heroLocationLabel}</h2>
+              <p className="text-sm text-slate-500">
+                {filteredListings.length} matches · {heroCategoryLabel} · {heroDateLabel}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowFilters((prev) => !prev)}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
+              >
+                {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {showFilters ? 'Hide filters' : 'Show filters'}
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyFilters}
+                className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition hover:bg-black"
+              >
+                Refresh results
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            {categoryChips.map((chip) => {
+              const isActive = chip.value === appliedSearch.category;
+              return (
                 <button
-                  key={link.path}
+                  key={chip.value}
                   type="button"
-                  onClick={() => navigate(link.path)}
-                  style={{
-                    color: '#222',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    textDecoration: 'none',
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
+                  onClick={() => handleCategoryClick(chip.value)}
+                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                    isActive
+                      ? 'border-transparent bg-slate-900 text-white shadow-lg shadow-slate-900/20'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                  style={{ boxShadow: isActive ? `0 10px 30px ${chip.color}30` : undefined }}
                 >
-                  {link.label}
+                  {chip.icon && <chip.icon className="h-4 w-4" />}
+                  {chip.label}
                 </button>
-              ))}
-            </nav>
+              );
+            })}
+          </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              {!isAuthenticated ? (
-                <>
-                  <button
-                    onClick={() => navigate('/signin')}
-                    style={{
-                      color: '#222',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '8px 16px',
-                      borderRadius: '22px',
-                      transition: 'background 0.2s'
-                    }}
-                  >
-                    Log in
-                  </button>
-                  <button
-                    onClick={() => navigate('/signup')}
-                    style={{
-                      background: '#FF5124',
-                      color: 'white',
-                      border: 'none',
-                      padding: '12px 24px',
-                      borderRadius: '24px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 8px rgba(255, 81, 36, 0.3)',
-                      transition: 'transform 0.2s, box-shadow 0.2s'
-                    }}
-                  >
-                    Get started
-                  </button>
-                </>
-              ) : (
+          {showFilters && (
+            <div className="mt-6 space-y-6 rounded-3xl border border-slate-100 bg-slate-50/70 p-6">
+              <div className="grid gap-6 md:grid-cols-2">
+                <label className="text-sm font-semibold text-slate-600">
+                  Min price
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={priceMin}
+                    onChange={(event) => setPriceMin(event.target.value)}
+                    placeholder="0"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base font-medium text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100"
+                  />
+                </label>
+                <label className="text-sm font-semibold text-slate-600">
+                  Max price
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={priceMax}
+                    onChange={(event) => setPriceMax(event.target.value)}
+                    placeholder="500"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base font-medium text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100"
+                  />
+                </label>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">Amenities</p>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {AMENITY_OPTIONS.map((option) => {
+                    const normalized = option.toLowerCase();
+                    const isActive = selectedAmenities.includes(normalized);
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => handleAmenityToggle(normalized)}
+                        style={toggleAmenityButtonStyle(isActive)}
+                      >
+                        {isActive && <Check className="h-4 w-4" />}
+                        <span>{option}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-6">
+                <label className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={deliveryOnly}
+                    onChange={(event) => setDeliveryOnly(event.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+                  />
+                  Delivery available
+                </label>
+                <label className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={verifiedOnly}
+                    onChange={(event) => setVerifiedOnly(event.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+                  />
+                  Verified hosts only
+                </label>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
                 <button
-                  onClick={() => navigate('/profile')}
-                  style={{
-                    background: '#FF5124',
-                    color: 'white',
-                    border: 'none',
-                    padding: '12px 24px',
-                    borderRadius: '24px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(255, 81, 36, 0.3)',
-                    transition: 'transform 0.2s, box-shadow 0.2s',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}
+                  type="button"
+                  onClick={handleApplyFilters}
+                  className="inline-flex items-center justify-center rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:bg-orange-600"
                 >
-                  <span>My profile</span>
-                  {needsVerification && (
-                    <span style={{
-                      background: '#FFD8BF',
-                      color: '#A0420F',
-                      borderRadius: '999px',
-                      padding: '2px 10px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      textTransform: 'uppercase'
-                    }}>
-                      Unverified
-                    </span>
-                  )}
+                  Apply filters
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  className="inline-flex items-center justify-center rounded-full border border-transparent px-5 py-3 text-sm font-semibold text-slate-600 hover:text-slate-900"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h2 className="text-3xl font-semibold text-slate-900">Featured marketplace picks</h2>
+            <p className="text-sm text-slate-500">Shortlist updates automatically as you adjust filters.</p>
+          </div>
+          <div className="text-sm font-semibold text-slate-600">
+            {filteredListings.length} available · {marketStats.delivery} delivery ready
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-12 text-center text-sm text-slate-500">
+            Syncing the latest trucks, trailers, and pros…
+          </div>
+        ) : filteredListings.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-12 text-center text-sm text-slate-500">
+            No listings match those filters. Try clearing a few amenities or widening your price range.
+          </div>
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+            {filteredListings.map((listing) => (
+              <article key={listing.id} className="group flex flex-col overflow-hidden rounded-[32px] border border-slate-100 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+                <div className="relative">
+                  <img
+                    src={listing.image}
+                    alt={listing.title}
+                    className="h-56 w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4 text-xs font-semibold">
+                    {listing.verified && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-emerald-600 shadow">
+                        <Check className="h-3 w-3" />
+                        Verified host
+                      </span>
+                    )}
+                    {listing.deliveryAvailable && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-900/80 px-3 py-1 text-white">
+                        <Truck className="h-3.5 w-3.5" strokeWidth={1.6} />
+                        Delivery ready
+                      </span>
+                    )}
+                  </div>
+                  <span className="absolute bottom-3 left-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-800">
+                    {listing.priceType === 'sale'
+                      ? 'For sale'
+                      : listing.priceType === 'hour'
+                        ? 'Per hour'
+                        : listing.priceType === 'event'
+                          ? 'Per event'
+                          : 'Per day'}
+                  </span>
+                </div>
+                <div className="flex flex-1 flex-col gap-4 px-6 py-5">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">{listing.location}</p>
+                    <h3 className="mt-2 text-xl font-semibold text-slate-900">{listing.title}</h3>
+                    <p className="text-sm text-slate-500">Hosted by {listing.host}</p>
+                  </div>
+                  <div className="flex items-center justify-between text-sm font-semibold text-slate-700">
+                    <div className="flex items-center gap-2">
+                      <Star className="h-4 w-4 fill-orange-400 text-orange-400" />
+                      <span>{Number(listing.rating).toFixed(1)}</span>
+                      <span className="text-slate-400">({listing.reviews} reviews)</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-semibold text-slate-900">
+                        ${listing.price.toLocaleString()}
+                        {listing.priceType === 'sale' ? null : (
+                          <span className="ml-1 text-sm font-medium text-slate-500">/{listing.priceType}</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <ul className="flex flex-wrap gap-2 text-xs text-slate-500">
+                    {listing.features.slice(0, 4).map((feature) => (
+                      <li key={feature} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1">
+                        <Check className="h-3 w-3 text-slate-400" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-auto flex flex-wrap gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleBookNow(listing)}
+                      className="flex-1 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+                    >
+                      {listing.priceType === 'sale' ? 'Inquire to buy' : 'Book now'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/listing/${listing.id}`)}
+                      className="flex-1 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-300"
+                    >
+                      View details
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="mx-auto max-w-5xl px-6 pb-24">
+        <div className="rounded-[36px] bg-gradient-to-r from-orange-500 via-rose-500 to-red-500 p-10 text-white shadow-[0_40px_120px_rgba(244,63,94,0.35)]">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">Hosts</p>
+              <h3 className="mt-3 text-3xl font-semibold">List your truck, kitchen, or lot in minutes.</h3>
+              <p className="mt-3 text-base text-white/80">
+                Tap into vetted operators, instant payouts, and marketing support. We back every activation with contracts and insurance guidance.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => navigate('/become-host')}
+                className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-rose-600 shadow-lg shadow-white/30 transition hover:shadow-white/50"
+              >
+                Become a host
+              </button>
+              {!isAuthenticated && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/signup')}
+                  className="rounded-full border border-white/50 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                >
+                  Create free account
                 </button>
               )}
             </div>
           </div>
         </div>
-      {/* Hero Section */}
-      <section style={{
-        background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #FF5124 100%)',
-        padding: '80px 40px 120px',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255, 81, 36, 0.1) 0%, transparent 50%)',
-          pointerEvents: 'none'
-        }} />
-
-        <div style={{ maxWidth: '1180px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
-          <h1 style={{
-            fontSize: '56px',
-            fontWeight: '700',
-            color: 'white',
-            marginBottom: '16px',
-            lineHeight: '1.1',
-            letterSpacing: '-2px'
-          }}>
-            Not sure? You can now <span style={{ color: '#FF5124' }}>try it</span>.
-          </h1>
-          <p style={{
-            fontSize: '20px',
-            color: 'rgba(255,255,255,0.9)',
-            marginBottom: '48px',
-            fontWeight: '400'
-          }}>
-            From food trucks to ghost kitchens—start your mobile business today
-          </p>
-
-          <div className="space-y-4" style={{ maxWidth: '960px' }}>
-            <HeroSearch
-              initialValues={{
-                location: appliedSearch.location,
-                startDate: appliedSearch.startDate,
-                endDate: appliedSearch.endDate,
-                category: appliedSearch.category,
-              }}
-              onSubmit={handleSearch}
-            />
-            <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-white/80">
-              <span>{heroLocationLabel}</span>
-              <span>•</span>
-              <span>{heroCategoryLabel}</span>
-              <span>•</span>
-              <span>{heroDateLabel}</span>
-            </div>
-          </div>
-        </div>
       </section>
-      <section style={{ background: 'white', padding: '32px 40px 16px', borderBottom: '1px solid #F2F2F2' }}>
-        <div style={{ maxWidth: '1180px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#222' }}>Dial in your search</span>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <p style={{ fontSize: '14px', color: '#717171' }}>Refine pricing, amenities, and delivery preferences</p>
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  border: '1px solid #E0E0E0',
-                  borderRadius: '999px',
-                  padding: '10px 18px',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  background: 'white',
-                  cursor: 'pointer'
-                }}
-              >
-                <Sparkles style={{ width: '16px', height: '16px', color: '#FF5124' }} />
-                {showFilters ? 'Hide advanced filters' : 'Show advanced filters'}
-                {showFilters ? <ChevronUp style={{ width: '16px', height: '16px' }} /> : <ChevronDown style={{ width: '16px', height: '16px' }} />}
-              </button>
-            </div>
-          </div>
-
-          {showFilters && (
-            <div style={{
-              border: '1px solid #EBEBEB',
-              borderRadius: '24px',
-              padding: '24px',
-              background: '#FCFCFC',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '24px'
-            }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Price Range
-                  </label>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <input
-                      type="number"
-                      value={priceMin}
-                      onChange={(e) => setPriceMin(e.target.value)}
-                      placeholder="Min"
-                      style={{
-                        flex: 1,
-                        padding: '12px',
-                        border: '1px solid #DDD',
-                        borderRadius: '12px',
-                        fontSize: '15px',
-                        outline: 'none'
-                      }}
-                    />
-                    <input
-                      type="number"
-                      value={priceMax}
-                      onChange={(e) => setPriceMax(e.target.value)}
-                      placeholder="Max"
-                      style={{
-                        flex: 1,
-                        padding: '12px',
-                        border: '1px solid #DDD',
-                        borderRadius: '12px',
-                        fontSize: '15px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Amenities
-                return (
-                  <div style={{ minHeight: '100vh', background: 'white' }}>
-                    {/* Hero Section */}
-                  }} />
-                  <span style={{
-                    fontSize: '12px',
-                    fontWeight: isActive ? '600' : '500',
-                    color: isActive ? option.color : '#222',
-                    whiteSpace: 'nowrap'
-                  }}>
-                    {option.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Listings Grid */}
-      <section style={{ maxWidth: '1760px', margin: '0 auto', padding: '48px 40px 80px' }}>
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ fontSize: '26px', fontWeight: '600', color: '#222', marginBottom: '8px' }}>
-            {filteredListings.length} {appliedSearch.listingType === 'event-pro' ? 'event pros' : appliedSearch.listingType === 'sale' ? 'listings for sale' : 'rentals'} in Arizona
-          </h2>
-          <p style={{ fontSize: '15px', color: '#717171' }}>
-            {appliedSearch.category !== 'all'
-              ? CATEGORY_MAP[appliedSearch.category]?.label
-              : 'All categories'}
-          </p>
-        </div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-          gap: '40px 24px'
-        }}>
-          {filteredListings.map((listing) => (
-            <div
-              key={listing.id}
-              style={{ cursor: 'pointer' }}
-              onClick={() => handleBookNow(listing)}
-            >
-              <div style={{
-                position: 'relative',
-                borderRadius: '12px',
-                overflow: 'hidden',
-                marginBottom: '12px',
-                aspectRatio: '20/19'
-              }}>
-                <img
-                  src={listing.image}
-                  alt={listing.title}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    transition: 'transform 0.3s'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                  onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                />
-                {listing.deliveryAvailable && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '12px',
-                    right: '12px',
-                    background: 'rgba(0,0,0,0.7)',
-                    color: 'white',
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: '600'
-                  }}>
-                    Delivery Available
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '4px' }}>
-                  <h3 style={{
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    color: '#222',
-                    lineHeight: '1.3',
-                    flex: 1
-                  }}>
-                    {listing.title}
-                  </h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px' }}>
-                    <span style={{ fontSize: '14px' }}>★</span>
-                    <span style={{ fontSize: '14px', fontWeight: '600' }}>{listing.rating}</span>
-                    <span style={{ fontSize: '14px', color: '#717171' }}>({listing.reviews})</span>
-                  </div>
-                </div>
-
-                <p style={{ fontSize: '14px', color: '#717171', marginBottom: '4px' }}>
-                  {listing.location}
-                </p>
-                <p style={{ fontSize: '14px', color: '#717171', marginBottom: '8px' }}>
-                  {listing.host}
-                </p>
-
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
-                  {(listing.features || []).slice(0, 3).map((feature, idx) => (
-                    <span
-                      key={idx}
-                      style={{
-                        fontSize: '11px',
-                        color: '#717171',
-                        padding: '3px 8px',
-                        background: '#F7F7F7',
-                        borderRadius: '4px',
-                        fontWeight: '500'
-                      }}
-                    >
-                      {feature}
-                    </span>
-                  ))}
-                </div>
-
-                <p style={{ fontSize: '15px', color: '#222', marginTop: '8px' }}>
-                  <span style={{ fontWeight: '600' }}>
-                    ${listing.priceType === 'sale' ? listing.price.toLocaleString() : listing.price}
-                  </span>
-                  <span style={{ fontWeight: '400', color: '#717171' }}>
-                    {listing.priceType === 'sale' ? '' : ` / ${listing.priceType}`}
-                  </span>
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {filteredListings.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#717171' }}>
-            <Store style={{ width: '48px', height: '48px', margin: '0 auto 16px', opacity: 0.5 }} />
-            <p style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>No results found</p>
-            <p style={{ fontSize: '15px' }}>Try adjusting your filters or search criteria</p>
-          </div>
-        )}
-      </section>
-
-      {/* How Vendibook Works Section */}
-      <section style={{ background: '#F7F7F7', padding: '80px 40px' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontWeight: '700', textAlign: 'center', marginBottom: '16px', color: '#222' }}>
-            How Vendibook Works
-          </h2>
-          <p style={{ fontSize: '18px', textAlign: 'center', color: '#717171', marginBottom: '60px' }}>
-            Start your mobile business in three simple steps
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '40px' }}>
-            {[
-              {
-                step: '1',
-                icon: '🔍',
-                title: 'Browse verified vehicles and kitchens',
-                description: 'Search our marketplace of food trucks, trailers, ghost kitchens, and event pros. All equipment is inspected and hosts are verified.'
-              },
-              {
-                step: '2',
-                icon: '✅',
-                title: 'Book secure rentals or event pros',
-                description: 'Select your dates, choose your location, and book instantly. Flexible payment options and insurance included for peace of mind.'
-              },
-              {
-                step: '3',
-                icon: '🚀',
-                title: 'Launch or grow your mobile business',
-                description: 'Get your equipment delivered or pick it up. Start serving customers and growing your business with our ongoing support.'
-              }
-            ].map((item, idx) => (
-              <div key={idx} style={{ textAlign: 'center' }}>
-                <div style={{
-                  width: '80px',
-                  height: '80px',
-                  borderRadius: '50%',
-                  background: '#FF5124',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 24px',
-                  fontSize: '36px'
-                }}>
-                  {item.icon}
-                </div>
-                <div style={{
-                  fontSize: '14px',
-                  fontWeight: '700',
-                  color: '#FF5124',
-                  marginBottom: '12px',
-                  letterSpacing: '1px'
-                }}>
-                  STEP {item.step}
-                </div>
-                <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px', color: '#222' }}>
-                  {item.title}
-                </h3>
-                <p style={{ fontSize: '15px', color: '#717171', lineHeight: '1.6' }}>
-                  {item.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Social Proof Section */}
-      <section style={{ padding: '80px 40px', background: 'white' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontWeight: '700', textAlign: 'center', marginBottom: '16px', color: '#222' }}>
-            Trusted by Mobile Business Owners
-          </h2>
-          <p style={{ fontSize: '18px', textAlign: 'center', color: '#717171', marginBottom: '60px' }}>
-            Join hundreds of entrepreneurs who've launched with Vendibook
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
-            {[
-              {
-                quote: "Vendibook made it so easy to start my taco truck business. Found the perfect truck, got it delivered, and was serving customers within a week!",
-                author: "Maria Rodriguez",
-                business: "Maria's Tacos, Phoenix",
-                rating: 5
-              },
-              {
-                quote: "As a ghost kitchen owner, Vendibook connects me with amazing chefs. The platform is reliable and the verification process gives me peace of mind.",
-                author: "James Chen",
-                business: "CloudKitchen AZ, Tempe",
-                rating: 5
-              },
-              {
-                quote: "I wanted to test my food concept before investing in my own truck. Vendibook let me rent by the week and see if my business idea worked. Now I'm thriving!",
-                author: "Sarah Thompson",
-                business: "Sweet Treats Mobile, Scottsdale",
-                rating: 5
-              }
-            ].map((review, idx) => (
-              <div key={idx} style={{
-                padding: '32px',
-                background: '#F7F7F7',
-                borderRadius: '16px',
-                border: '1px solid #EBEBEB'
-              }}>
-                <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
-                  {Array.from({ length: review.rating }).map((_, i) => (
-                    <Star key={i} style={{ width: '16px', height: '16px', fill: '#FF5124', color: '#FF5124' }} />
-                  ))}
-                </div>
-                <p style={{ fontSize: '15px', color: '#222', lineHeight: '1.6', marginBottom: '20px', fontStyle: 'italic' }}>
-                  "{review.quote}"
-                </p>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#222' }}>{review.author}</div>
-                  <div style={{ fontSize: '13px', color: '#717171' }}>{review.business}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section style={{
-        background: '#FF5124',
-        padding: '80px 40px',
-        marginTop: '0'
-      }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '42px', fontWeight: '700', color: 'white', marginBottom: '20px', letterSpacing: '-1px' }}>
-            Ready to start your mobile business?
-          </h2>
-          <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.95)', marginBottom: '32px' }}>
-            Browse equipment, book rentals, or list your own vehicles
-          </p>
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => handleSearch()}
-              style={{
-                background: 'white',
-                color: '#FF5124',
-                border: 'none',
-                padding: '16px 32px',
-                borderRadius: '12px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-              }}
-            >
-              Browse Equipment
-            </button>
-            <button
-              onClick={() => navigate('/become-host')}
-              style={{
-                background: 'rgba(0,0,0,0.2)',
-                color: 'white',
-                border: '2px solid white',
-                padding: '16px 32px',
-                borderRadius: '12px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              Become a Host
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer style={{ background: '#F7F7F7', padding: '48px 40px', marginTop: '0' }}>
-        <div style={{ maxWidth: '1760px', margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '32px', marginBottom: '32px' }}>
-            <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#222' }}>Rent</h4>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Food Trucks</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Trailers</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Ghost Kitchens</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Vending Lots</a>
-            </div>
-            <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#222' }}>Buy</h4>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Buy Equipment</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Financing Options</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Inspection Services</a>
-            </div>
-            <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#222' }}>Host</h4>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Become a Host</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Host Protection</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Pricing Calculator</a>
-            </div>
-            <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#222' }}>Support</h4>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Help Center</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>FAQ</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Contact Us</a>
-            </div>
-          </div>
-          <div style={{ borderTop: '1px solid #DDD', paddingTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-            <p style={{ fontSize: '14px', color: '#717171' }}>
-              © 2025 Vendibook LLC · All rights reserved
-            </p>
-            <div style={{ display: 'flex', gap: '16px' }}>
-              <a href="#" style={{ fontSize: '14px', color: '#717171', textDecoration: 'none' }}>Privacy</a>
-              <a href="#" style={{ fontSize: '14px', color: '#717171', textDecoration: 'none' }}>Terms</a>
-              <a href="#" style={{ fontSize: '14px', color: '#717171', textDecoration: 'none' }}>Sitemap</a>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </main>
   );
 }
 
