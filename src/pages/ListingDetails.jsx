@@ -19,6 +19,9 @@ const formatListingType = (type, category) => {
     case 'food_truck':
     case 'foodtrucks':
       return 'Food truck rental';
+    case 'food-trailer':
+    case 'food_trailer':
+    case 'foodtrailers':
     case 'trailer':
     case 'trailers':
       return 'Food trailer rental';
@@ -31,6 +34,10 @@ const formatListingType = (type, category) => {
       return 'Event Pro – Catering / Service';
     case 'vending-lots':
     case 'vending_lots':
+    case 'lot':
+    case 'lots':
+    case 'vending-lot':
+    case 'vending_lot':
       return 'Vending location rental';
     case 'for-sale':
     case 'for_sale':

@@ -4,6 +4,7 @@ import ListingsPage from './pages/ListingsPage';
 import ListingDetails from './pages/ListingDetails';
 import BecomeHostLanding from './pages/BecomeHostLanding';
 import HostOnboardingWizard from './pages/HostOnboardingWizard';
+import CreateListingPage from './pages/CreateListingPage.jsx';
 import HostDashboard from './pages/HostDashboard';
 import { MessagesInboxPage } from './pages/MessagesInboxPage';
 import { MessageDetailPage } from './pages/MessageDetailPage';
@@ -55,7 +56,7 @@ function App() {
           path="/host/create-listing"
           element={
             <RequireAuth>
-              <HostOnboardingWizard />
+              <CreateListingPage />
             </RequireAuth>
           }
         />
@@ -63,7 +64,7 @@ function App() {
           path="/create-listing"
           element={
             <RequireAuth>
-              <HostOnboardingWizard />
+              <CreateListingPage />
             </RequireAuth>
           }
         />
