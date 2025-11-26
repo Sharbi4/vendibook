@@ -458,6 +458,21 @@ function ListingDetails() {
     }
     return 'Service area details will be confirmed after booking.';
   }, [serviceZone, locationSummary]);
+  const addOns = useMemo(() => {
+    const raw = listing?.addOns || listing?.add_ons || [];
+    if (Array.isArray(raw)) {
+      return raw;
+    }
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_error) {
+        return [];
+      }
+    }
+    return [];
+  }, [listing?.addOns, listing?.add_ons]);
   // TODO: Once renters provide event addresses, validate them against the service zone before confirming availability.
   const hostUserId = extractHostUserId(listing);
   const createdAt = listing?.created_at || listing?.createdAt;
@@ -787,6 +802,37 @@ function ListingDetails() {
                         );
                       })
                     )}
+                  </div>
+                </section>
+              </article>
+            )}
+
+            {addOns.length > 0 && (
+              <article className="rounded-3xl bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-8">
+                <section>
+                  <h2 className="text-lg font-semibold text-slate-900">Add-ons & Upgrades</h2>
+                  <p className="mt-2 text-sm text-slate-600">Enhance the experience with curated extras the host offers.</p>
+                  <div className="mt-5 space-y-4">
+                    {addOns.map((addOn, index) => (
+                      <div key={addOn.id || index} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">{addOn.name || 'Custom add-on'}</p>
+                            {addOn.description ? (
+                              <p className="mt-1 text-sm text-slate-600">{addOn.description}</p>
+                            ) : null}
+                          </div>
+                          <div className="text-right">
+                            <p className="text-base font-semibold text-slate-900">
+                              {Number.isFinite(Number(addOn.price)) ? `$${Number(addOn.price).toLocaleString()}` : 'Contact'}
+                            </p>
+                            {addOn.priceType ? (
+                              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{addOn.priceType.replace(/-/g, ' ')}</p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </section>
               </article>
