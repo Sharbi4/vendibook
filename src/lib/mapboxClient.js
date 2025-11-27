@@ -48,14 +48,14 @@ async function fetchMapbox(url, { signal } = {}) {
   return response.json();
 }
 
-export async function geocodePlace(query, { proximity, limit = 5, signal } = {}) {
+export async function geocodePlace(query, { proximity, limit = 5, signal, types } = {}) {
   if (!query || !query.trim()) {
     return [];
   }
 
   const url = new URL(`${MAPBOX_BASE_URL}/${encodeURIComponent(query)}.json`);
   url.searchParams.set('limit', String(Math.min(Math.max(limit, 1), 10)));
-  url.searchParams.set('types', 'place,postcode,address,region,district,neighborhood');
+  url.searchParams.set('types', types || 'place,postcode,address,region,district,neighborhood');
   if (proximity && typeof proximity.lng === 'number' && typeof proximity.lat === 'number') {
     url.searchParams.set('proximity', `${proximity.lng},${proximity.lat}`);
   }

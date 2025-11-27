@@ -14,8 +14,7 @@ import {
   Truck,
   Users,
   ShoppingCart,
-  UtensilsCrossed,
-  Grid2x2
+  UtensilsCrossed
 } from 'lucide-react';
 import AppLayout from '../layouts/AppLayout.jsx';
 import LocationAutocomplete from '../components/LocationAutocomplete.jsx';
@@ -35,6 +34,24 @@ import {
 // TODO: Replace with curated Vendibook brand photography once the production asset is finalized.
 const HERO_IMAGE_URL = '/images/hero-food-truck.jpg';
 const CATEGORY_COLOR_PALETTE = ['#FF5124', '#FFB42C', '#343434', '#F8F8F8'];
+
+const VendibookGridIcon = ({ className = 'h-5 w-5 text-charcoal', strokeWidth = 1.75 }) => (
+  <svg
+    viewBox="0 0 24 24"
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="4" y="4" width="6" height="6" rx="1.25" />
+    <rect x="14" y="4" width="6" height="6" rx="1.25" />
+    <rect x="4" y="14" width="6" height="6" rx="1.25" />
+    <rect x="14" y="14" width="6" height="6" rx="1.25" />
+  </svg>
+);
+
 const CATEGORY_ICON_COMPONENTS = {
   truck: Truck,
   trailer: Truck,
@@ -43,7 +60,21 @@ const CATEGORY_ICON_COMPONENTS = {
   users: Users,
   cart: ShoppingCart,
   store: Store,
-  grid: Grid2x2
+  grid: VendibookGridIcon
+};
+
+const RECENT_SEARCHES = [
+  { id: 'phoenix', label: 'Phoenix, AZ', meta: 'Food truck capitals' },
+  { id: 'tucson', label: 'Tucson, AZ', meta: 'Pop-up friendly' },
+  { id: 'scottsdale', label: 'Scottsdale, AZ', meta: 'Premium catering' },
+  { id: 'tempe', label: 'Tempe, AZ', meta: 'University crowd' }
+];
+
+const POPULAR_CITY_CATEGORIES = {
+  phoenix: ['Food trucks', 'Kitchen rentals', 'Event pros', 'Vendor markets'],
+  tucson: ['Coffee carts', 'Markets', 'BBQ trailers'],
+  scottsdale: ['Luxury catering', 'Chef partners', 'Brand activations'],
+  default: ['Food trucks', 'Trailers', 'Host kitchens', 'Activation lots']
 };
 
 function HomePage() {
@@ -125,6 +156,22 @@ function HomePage() {
   const modalCtaLabel = getModeCtaCopy(filters.mode);
   const appliedCategoryLabel = getCategoryLabel(appliedFilters.mode, appliedFilters.listingType);
   const appliedLocationLabel = appliedFilters.locationLabel || appliedFilters.locationText || [appliedFilters.city, appliedFilters.state].filter(Boolean).join(', ');
+  const normalizedCityKey = (filters.city || appliedFilters.city || '').toLowerCase();
+  const popularCategoryChips = useMemo(() => {
+    const list = POPULAR_CITY_CATEGORIES[normalizedCityKey] || POPULAR_CITY_CATEGORIES.default;
+    return Array.isArray(list) ? list : POPULAR_CITY_CATEGORIES.default;
+  }, [normalizedCityKey]);
+
+  const recentSearchChips = useMemo(() => {
+    if (!appliedLocationLabel) {
+      return RECENT_SEARCHES;
+    }
+    const alreadyTracked = RECENT_SEARCHES.some((chip) => chip.label === appliedLocationLabel);
+    if (alreadyTracked) {
+      return RECENT_SEARCHES;
+    }
+    return [{ id: 'active-location', label: appliedLocationLabel }, ...RECENT_SEARCHES].slice(0, 5);
+  }, [appliedLocationLabel]);
   const heroSummaryParts = [
     appliedLocationLabel || 'Any location',
     appliedCategoryLabel,
@@ -696,62 +743,72 @@ function HomePage() {
 
       {/* Search Modal */}
       {searchModalOpen && (
-        <div className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-[80]">
           <div
-            className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#050608]/70 backdrop-blur-md"
             onClick={() => setSearchModalOpen(false)}
           />
-          <div className="relative z-10 flex min-h-full items-end justify-center p-4 sm:items-center">
-            <div className="w-full max-w-3xl rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-orange-500">Plan your next activation</p>
-                  <h2 className="mt-2 text-2xl font-bold text-slate-900">Search Vendibook</h2>
-                  <p className="text-sm text-slate-600">Rent equipment, buy inventory, or book event pros—all from one polished modal.</p>
+          <div className="relative z-[85] flex min-h-full items-end justify-center px-4 pb-6 pt-10 sm:items-center">
+            <div
+              className="w-full max-w-4xl transform-gpu rounded-[32px] border border-white/30 bg-white/95 text-[#343434] shadow-[0_35px_120px_rgba(15,17,20,0.28)] backdrop-blur-2xl transition duration-300 ease-out animate-[vendibookModalEnter_0.4s_ease-out]"
+              style={{ fontFamily: "'Sofia Pro Soft','Inter',sans-serif", paddingBottom: 'calc(env(safe-area-inset-bottom, 24px) + 24px)' }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex flex-col gap-4 border-b border-black/5 px-6 pb-6 pt-8 sm:flex-row sm:items-start sm:justify-between sm:px-10">
+                <div className="max-w-2xl space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#FFB42C]">Plan your next activation</p>
+                  <h2 className="text-3xl font-bold text-[#343434]">Plan your next activation</h2>
+                  <p className="text-sm text-[#5C5C5C]">
+                    Search rentals, buy equipment, book event pros, or browse vendor markets — all from one polished modal.
+                  </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSearchModalOpen(false)}
-                  className="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:text-slate-900"
+                  className="ml-auto rounded-full border border-black/10 bg-white/80 p-2 text-[#343434] transition hover:scale-105 hover:border-[#FF5124] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFB42C]"
                   aria-label="Close search modal"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <div className="space-y-6 px-6 py-6">
+              <div className="space-y-7 px-6 pt-6 sm:px-10">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">I'm looking to</p>
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    {modeOptions.map((option) => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => handleModeChange(option.id)}
-                        className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
-                          filters.mode === option.id
-                            ? 'border-orange-500 bg-orange-50 text-orange-600 shadow'
-                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                        }`}
-                        aria-pressed={filters.mode === option.id}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#FFB42C]">I'm looking to</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    {modeOptions.map((option) => {
+                      const isActive = filters.mode === option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => handleModeChange(option.id)}
+                          className={`rounded-full border px-4 py-3 text-sm font-semibold tracking-tight transition duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FFB42C] ${
+                            isActive
+                              ? 'border-[#FF5124] bg-[#FFE7DE] text-[#FF5124] shadow-[0_8px_25px_rgba(255,81,36,0.25)]'
+                              : 'border-neutral-200 bg-white text-[#5C5C5C] hover:border-[#FF5124]/40 hover:scale-[0.98]'
+                          }`}
+                          aria-pressed={isActive}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-5 md:grid-cols-2">
                   <LocationAutocomplete
                     label="Location"
                     value={locationSelection}
                     onChange={handleLocationSelect}
                     onQueryChange={handleLocationQueryChange}
-                    placeholder="Search by city, ZIP, or landmark"
+                    placeholder="Enter city & state"
+                    className="rounded-[30px]"
                   />
                   <div>
-                    <p className="text-sm font-semibold text-slate-700">Category</p>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#FFB42C]">Category</p>
+                    <div className="mt-3 flex flex-wrap gap-3">
                       {modalCategoryOptions.map((category) => {
                         const Icon = category.Icon;
                         const isActive = filters.listingType
@@ -762,14 +819,14 @@ function HomePage() {
                             type="button"
                             key={category.value || 'all'}
                             onClick={() => handleCategoryChange(category.value)}
-                            className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                            className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition duration-150 ${
                               isActive
-                                ? 'border-orange-500 bg-orange-50 text-orange-600 shadow'
-                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                            }`}
+                                ? 'border-[#FF5124] bg-[#FFE7DE] text-[#FF5124] shadow-[0_6px_20px_rgba(255,81,36,0.25)]'
+                                : 'border-neutral-200 bg-white text-[#5C5C5C] hover:border-[#FF5124]/40'
+                            } hover:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFB42C]`}
                             aria-pressed={isActive}
                           >
-                            <Icon className="h-5 w-5" />
+                            <Icon className="h-[18px] w-[18px] text-current" strokeWidth={1.8} />
                             <span>{category.label}</span>
                           </button>
                         );
@@ -778,22 +835,25 @@ function HomePage() {
                   </div>
                 </div>
 
-                <div className="text-sm font-semibold text-slate-700">
-                  Dates
-                  <div className="relative mt-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#FFB42C]">Dates</p>
+                  <div className="relative mt-3">
                     <button
                       type="button"
                       onClick={() => setShowCalendar((prev) => !prev)}
-                      className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-left text-base font-semibold text-slate-900 shadow-sm focus:outline-none"
+                      className="flex w-full items-center rounded-[28px] border border-[#E8E1DB] bg-white/90 px-5 py-3 pr-12 text-left text-sm font-semibold text-[#343434] shadow-[0_10px_30px_rgba(0,0,0,0.04)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFB42C]"
                     >
-                      <Calendar className="h-5 w-5 text-slate-400" />
-                      <span className="text-sm font-medium text-slate-600">
-                        {filters.startDate && filters.endDate
-                          ? `${filters.startDate} → ${filters.endDate}`
-                          : filters.startDate
-                            ? `${filters.startDate} (select end date)`
-                            : 'Select dates'}
-                      </span>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-medium uppercase tracking-[0.28em] text-[#A3A3A3]">Dates</span>
+                        <span className="text-base font-semibold text-[#343434]">
+                          {filters.startDate && filters.endDate
+                            ? `${filters.startDate} → ${filters.endDate}`
+                            : filters.startDate
+                              ? `${filters.startDate} (select end date)`
+                              : 'Select start & end dates'}
+                        </span>
+                      </div>
+                      <Calendar className="pointer-events-none absolute right-6 top-1/2 h-4 w-4 -translate-y-1/2 text-[#FF5124]" />
                     </button>
                     {showCalendar && <SimpleDatePicker />}
                   </div>
@@ -802,38 +862,83 @@ function HomePage() {
                 <button
                   type="button"
                   onClick={() => setShowFilters((prev) => !prev)}
-                  className="flex w-full items-center justify-between border-t border-slate-200 pt-4 text-sm font-semibold text-orange-600"
+                  className="flex w-full items-center justify-between rounded-2xl border border-dashed border-[#F1E7DE] bg-[#FDF9F5] px-5 py-3 text-sm font-semibold text-[#FF5124] transition hover:border-[#FFB42C]"
                 >
-                  More filters
+                  Advanced filters
                   {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </button>
 
                 {showFilters && (
-                  <div className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50/70 p-5">
+                  <div className="space-y-4 rounded-3xl border border-[#F1E7DE] bg-[#FFFCF9] p-5">
                     {ADVANCED_FILTER_PLACEHOLDERS.map((placeholder) => (
                       <div
                         key={placeholder.key}
-                        className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-4"
+                        className="rounded-2xl border border-dashed border-[#E4D7CB] bg-white/90 p-4"
                       >
-                        <p className="text-sm font-semibold text-slate-900">{placeholder.label}</p>
-                        <p className="text-xs text-slate-500">{placeholder.description}</p>
-                        <span className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-orange-600">
+                        <p className="text-sm font-semibold text-[#343434]">{placeholder.label}</p>
+                        <p className="text-xs text-[#7C7C7C]">{placeholder.description}</p>
+                        <span className="mt-3 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.35em] text-[#FF5124]">
                           <Zap className="h-4 w-4" />
-                          In design sprint
+                          In sprint
                         </span>
                       </div>
                     ))}
                   </div>
                 )}
 
-                <button
-                  type="button"
-                  onClick={handleSearch}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-6 py-4 text-base font-semibold text-white shadow-lg transition hover:bg-orange-600"
-                >
-                  <Search className="h-5 w-5" />
-                  {modalCtaLabel}
-                </button>
+                <div className="space-y-5">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#FFB42C]">Recently searched locations</p>
+                    <div className="mt-3 flex gap-3 overflow-x-auto pb-1">
+                      {recentSearchChips.map((chip) => (
+                        <button
+                          key={chip.id}
+                          type="button"
+                          onClick={() => {
+                            handleLocationQueryChange(chip.label);
+                            handleLocationSelect({
+                              label: chip.label,
+                              placeName: chip.label,
+                              city: chip.label.split(',')[0]?.trim(),
+                              state: chip.label.split(',')[1]?.trim(),
+                              lat: null,
+                              lng: null
+                            });
+                          }}
+                          className="rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-[#343434] shadow-sm transition hover:border-[#FF5124]/40 hover:text-[#FF5124]"
+                        >
+                          {chip.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#FFB42C]">Popular categories in your city</p>
+                    <div className="mt-3 flex gap-3 overflow-x-auto pb-1">
+                      {popularCategoryChips.map((chip) => (
+                        <span
+                          key={chip}
+                          className="rounded-full border border-transparent bg-[#343434] px-4 py-2 text-sm font-semibold text-white shadow-sm"
+                        >
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-4 pt-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-[#5C5C5C]">Filters sync instantly with the listings grid so you can book faster.</p>
+                  <button
+                    type="button"
+                    onClick={handleSearch}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#FF5124] via-[#FF6A1F] to-[#FFB42C] px-8 py-4 text-base font-semibold text-white shadow-xl transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#FF5124] sm:w-auto"
+                  >
+                    <Search className="h-5 w-5" />
+                    {modalCtaLabel || 'Search rentals'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

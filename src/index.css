@@ -146,3 +146,14 @@ textarea {
   background: rgba(255, 81, 36, 0.35);
   color: var(--vb-white);
 }
+
+@keyframes vendibookModalEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(32px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

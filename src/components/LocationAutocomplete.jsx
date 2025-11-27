@@ -43,7 +43,11 @@ export default function LocationAutocomplete({
     setIsLoading(true);
     setError(null);
 
-    geocodePlace(debouncedQuery, { limit: 5, signal: controller.signal })
+    geocodePlace(debouncedQuery, {
+      limit: 5,
+      signal: controller.signal,
+      types: 'place,region,locality'
+    })
       .then((places) => {
         if (!isMounted) return;
         setResults(places);
@@ -138,7 +142,7 @@ export default function LocationAutocomplete({
         </div>
       </label>
       <p className="mt-2 text-xs text-charcoal-subtle">
-        We’ll only show city and state publicly. Exact address is masked until booking.
+        Powered by Mapbox. We’ll only show city and state publicly—exact addresses stay masked until booking.
       </p>
 
       {isOpen && (
