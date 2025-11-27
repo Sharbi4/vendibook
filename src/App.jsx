@@ -8,7 +8,6 @@ import HostListings from './pages/HostListings';
 import HostEditListing from './pages/HostEditListing';
 import HostDashboardPage from './pages/HostDashboardPage';
 import { MessagesInboxPage } from './pages/MessagesInboxPage';
-import { MessageDetailPage } from './pages/MessageDetailPage';
 import { MyBookingsPage } from './pages/MyBookingsPage';
 import { HostBookingsPage } from './pages/HostBookingsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
@@ -18,6 +17,9 @@ import CommunityPage from './pages/CommunityPage';
 import ProfilePage from './pages/ProfilePage';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
+import BlogIndexPage from './pages/BlogIndexPage';
+import BlogPostPage from './pages/BlogPostPage';
+import AboutPage from './pages/AboutPage';
 
 function App() {
   return (
@@ -31,6 +33,9 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/signin" element={<SignInPage />} />
         <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/blog" element={<BlogIndexPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
+        <Route path="/about" element={<AboutPage />} />
         
         {/* Host Pages */}
         <Route path="/become-host" element={<BecomeHostLanding />} />
@@ -46,7 +51,7 @@ function App() {
         
         {/* Messaging */}
         <Route path="/messages" element={<MessagesInboxPage />} />
-        <Route path="/messages/:threadId" element={<MessageDetailPage />} />
+        <Route path="/messages/:threadId" element={<MessagesInboxPage />} />
         
         {/* Notifications */}
         <Route path="/notifications" element={<NotificationsPage />} />

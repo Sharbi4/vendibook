@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Megaphone, CalendarDays, Sparkles, MapPin, MessageCircle, HeartHandshake } from 'lucide-react';
-import PageShell from '../components/PageShell';
+import AppLayout from '../layouts/AppLayout.jsx';
 
 const motto =
   "Vendibook keeps every mobile business in motion — no empty lots, no idle gear, and no dream left parked.";
@@ -64,152 +64,171 @@ function CommunityPage() {
   const navigate = useNavigate();
 
   return (
-    <PageShell
-      title="Community"
-      subtitle={`${motto} Jump into the conversation and help shape every corner of Vendibook.`}
-      action={{
-        label: 'Start a thread',
-        icon: MessageCircle,
-        onClick: () => navigate('/messages'),
-        variant: 'primary'
-      }}
-    >
-      <section className="mb-8 overflow-hidden rounded-3xl border border-orange-200 bg-gradient-to-br from-orange-500 via-orange-400 to-rose-400 p-8 text-white shadow-lg">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,2.5fr)_minmax(0,1fr)] lg:items-center">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-white/80">Community programs</p>
-            <h2 className="mt-3 text-3xl font-bold leading-tight">Stay plugged into real operators, not random forums.</h2>
-            <p className="mt-3 text-white/90">
-              Weekly meetups, live office hours, and curated topic threads help every host, vendor organizer, and Event Pro stay booked and resourced.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3 text-sm font-semibold">
-              {['Accountability pods', 'Office hours every week', 'Curated vendor drills'].map((pill) => (
-                <span key={pill} className="rounded-full bg-white/15 px-4 py-2 text-white/90 backdrop-blur">
-                  {pill}
-                </span>
-              ))}
+    <AppLayout contentClassName="py-10">
+      <div className="space-y-10">
+        <div className="space-y-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-100 sm:p-10">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-orange-500">Community</p>
+              <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Where operators, hosts, and event pros stay in sync.</h1>
+              <p className="text-base text-slate-600">{motto} Jump into the conversation and help shape every corner of Vendibook.</p>
             </div>
-          </div>
-          <div className="grid gap-4">
-            {[{
-              label: 'Markets collaborating',
-              value: '42'
-            }, {
-              label: 'Threads resolved monthly',
-              value: '180+'
-            }, {
-              label: 'Live mentorship seats',
-              value: '60 per month'
-            }].map((stat) => (
-              <div key={stat.label} className="rounded-2xl border border-white/30 bg-white/10 p-4 text-white">
-                <p className="text-2xl font-bold">{stat.value}</p>
-                <p className="text-xs uppercase tracking-[0.35em] text-white/80">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-            <div className="flex items-center gap-3">
-              <Megaphone className="h-5 w-5 text-orange-500" />
-              <p className="text-sm font-medium text-gray-700">Community pulse</p>
-            </div>
-            <p className="mt-4 text-xl font-semibold text-gray-900">
-              "{motto}" is our promise — a marketplace where every operator, host, and vendor gets seen.
-            </p>
-            <p className="mt-2 text-sm text-gray-600">
-              Share wins, troubleshoot roadblocks, and keep deals moving. The more you post, the more Vendibook
-              can prioritize the features you need next.
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-orange-500" />
-                <h2 className="text-lg font-semibold text-gray-900">Trending threads</h2>
-              </div>
+            <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={() => navigate('/messages')}
-                className="text-sm font-semibold text-orange-600 hover:text-orange-700"
+                className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Start a thread
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/messages')}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
               >
                 View inbox
               </button>
             </div>
-            <div className="space-y-3">
-              {threads.map((thread) => (
-                <div
-                  key={thread.title}
-                  className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
-                >
-                  <div>
-                    <p className="font-semibold text-gray-900">{thread.title}</p>
-                    <p className="text-sm text-gray-600">{thread.tag}</p>
-                  </div>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm">
-                    {thread.replies} replies
+          </div>
+        </div>
+
+        <section className="overflow-hidden rounded-3xl border border-orange-200 bg-gradient-to-br from-orange-500 via-orange-400 to-rose-400 p-8 text-white shadow-lg">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,2.5fr)_minmax(0,1fr)] lg:items-center">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-white/80">Community programs</p>
+              <h2 className="mt-3 text-3xl font-bold leading-tight">Stay plugged into real operators, not random forums.</h2>
+              <p className="mt-3 text-white/90">
+                Weekly meetups, live office hours, and curated topic threads help every host, vendor organizer, and Event Pro stay booked and resourced.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3 text-sm font-semibold">
+                {['Accountability pods', 'Office hours every week', 'Curated vendor drills'].map((pill) => (
+                  <span key={pill} className="rounded-full bg-white/15 px-4 py-2 text-white/90 backdrop-blur">
+                    {pill}
                   </span>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-4">
+              {[{
+                label: 'Markets collaborating',
+                value: '42'
+              }, {
+                label: 'Threads resolved monthly',
+                value: '180+'
+              }, {
+                label: 'Live mentorship seats',
+                value: '60 per month'
+              }].map((stat) => (
+                <div key={stat.label} className="rounded-2xl border border-white/30 bg-white/10 p-4 text-white">
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                  <p className="text-xs uppercase tracking-[0.35em] text-white/80">{stat.label}</p>
                 </div>
               ))}
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="space-y-6">
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-            <div className="mb-3 flex items-center gap-2">
-              <CalendarDays className="h-5 w-5 text-orange-500" />
-              <h3 className="text-lg font-semibold text-gray-900">Meetups & office hours</h3>
+        <section className="grid gap-6 lg:grid-cols-3">
+          <div className="space-y-6 lg:col-span-2">
+            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+              <div className="flex items-center gap-3">
+                <Megaphone className="h-5 w-5 text-orange-500" />
+                <p className="text-sm font-medium text-slate-700">Community pulse</p>
+              </div>
+              <p className="mt-4 text-xl font-semibold text-slate-900">
+                "{motto}" is our promise — a marketplace where every operator, host, and vendor gets seen.
+              </p>
+              <p className="mt-2 text-sm text-slate-600">
+                Share wins, troubleshoot roadblocks, and keep deals moving. The more you post, the more Vendibook can prioritize the features you need next.
+              </p>
             </div>
-            <div className="space-y-3">
-              {meetups.map((event) => (
-                <div key={event.name} className="rounded-xl bg-gray-50 px-4 py-3">
-                  <p className="font-semibold text-gray-900">{event.name}</p>
-                  <p className="text-sm text-gray-600">{event.location} · {event.time}</p>
-                  <p className="text-sm text-gray-500">{event.theme}</p>
+
+            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5 text-orange-500" />
+                  <h2 className="text-lg font-semibold text-slate-900">Trending threads</h2>
                 </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/host/onboarding')}
-              className="mt-4 w-full rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600"
-            >
-              Save my spot
-            </button>
-          </div>
-
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-            <div className="mb-4 flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-orange-500" />
-              <h3 className="text-lg font-semibold text-gray-900">Spotlight</h3>
-            </div>
-            <div className="space-y-3">
-              {spotlight.map((item) => (
                 <button
-                  key={item.title}
                   type="button"
-                  onClick={() => navigate(item.link)}
-                  className="flex w-full items-start gap-3 rounded-xl border border-gray-100 bg-gray-50 p-4 text-left transition hover:border-orange-200"
+                  onClick={() => navigate('/messages')}
+                  className="text-sm font-semibold text-orange-600 hover:text-orange-700"
                 >
-                  <div className="rounded-lg bg-white p-2 shadow-sm">
-                    <item.icon className="h-5 w-5 text-orange-500" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-900">{item.title}</p>
-                    <p className="text-sm text-gray-600">{item.description}</p>
-                  </div>
+                  View inbox
                 </button>
-              ))}
+              </div>
+              <div className="space-y-3">
+                {threads.map((thread) => (
+                  <div
+                    key={thread.title}
+                    className="flex flex-col gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-900">{thread.title}</p>
+                      <p className="text-sm text-slate-600">{thread.tag}</p>
+                    </div>
+                    <span className="inline-flex items-center justify-center rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                      {thread.replies} replies
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
-    </PageShell>
+
+          <div className="space-y-6">
+            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+              <div className="mb-3 flex items-center gap-2">
+                <CalendarDays className="h-5 w-5 text-orange-500" />
+                <h3 className="text-lg font-semibold text-slate-900">Meetups & office hours</h3>
+              </div>
+              <div className="space-y-3">
+                {meetups.map((event) => (
+                  <div key={event.name} className="rounded-xl bg-slate-50 px-4 py-3">
+                    <p className="font-semibold text-slate-900">{event.name}</p>
+                    <p className="text-sm text-slate-600">{event.location} · {event.time}</p>
+                    <p className="text-sm text-slate-500">{event.theme}</p>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/host/onboarding')}
+                className="mt-4 w-full rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600"
+              >
+                Save my spot
+              </button>
+            </div>
+
+            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+              <div className="mb-4 flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-orange-500" />
+                <h3 className="text-lg font-semibold text-slate-900">Spotlight</h3>
+              </div>
+              <div className="space-y-3">
+                {spotlight.map((item) => (
+                  <button
+                    key={item.title}
+                    type="button"
+                    onClick={() => navigate(item.link)}
+                    className="flex w-full items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left transition hover:border-orange-200"
+                  >
+                    <div className="rounded-lg bg-white p-2 shadow-sm">
+                      <item.icon className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-slate-900">{item.title}</p>
+                      <p className="text-sm text-slate-600">{item.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </AppLayout>
   );
 }
 

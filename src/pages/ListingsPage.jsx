@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ListingCard from '../components/ListingCard';
 import { useListingsQuery } from '../hooks/useListingsQuery';
-import AppHeader from '../components/AppHeader';
+import AppLayout from '../layouts/AppLayout.jsx';
 
 const LISTING_TYPE_OPTIONS = [
   { label: 'All listing types', value: '' },
@@ -95,9 +95,8 @@ function ListingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AppHeader />
-      <header className="bg-white border-b border-gray-200">
+    <AppLayout fullWidth contentClassName="bg-gray-50">
+      <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-10">
           <p className="text-sm font-semibold uppercase tracking-wide text-orange-500">The marketplace</p>
           <h1 className="mt-3 text-3xl font-bold text-gray-900">Browse available mobile food assets</h1>
@@ -261,7 +260,7 @@ function ListingsPage() {
           </div>
         )}
       </main>
-    </div>
+    </AppLayout>
   );
 }
 

@@ -26,10 +26,10 @@ export const MODE_LABELS = {
 };
 
 export const MODE_CTA_COPY = {
-  [SEARCH_MODE.RENT]: 'Find rentals',
-  [SEARCH_MODE.BUY]: 'Find equipment for sale',
-  [SEARCH_MODE.EVENT_PRO]: 'Find Event Pros',
-  [SEARCH_MODE.VENDOR_MARKET]: 'Find vendor markets'
+  [SEARCH_MODE.RENT]: 'Search rentals',
+  [SEARCH_MODE.BUY]: 'Search listings',
+  [SEARCH_MODE.EVENT_PRO]: 'Search event pros',
+  [SEARCH_MODE.VENDOR_MARKET]: 'Search vendor markets'
 };
 
 export const CATEGORY_OPTIONS = {

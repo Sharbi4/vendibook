@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useListings } from '../hooks/useListings.js';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, MapPin, Calendar, X, ChevronDown, ChevronUp, Star, Zap, Store } from 'lucide-react';
-import AppHeader from '../components/AppHeader';
+import AppLayout from '../layouts/AppLayout.jsx';
 import {
   ADVANCED_FILTER_PLACEHOLDERS,
   SEARCH_MODE,
@@ -43,8 +43,7 @@ function HomePage() {
   const modeOptions = [
     { id: SEARCH_MODE.RENT, label: 'Rent equipment' },
     { id: SEARCH_MODE.BUY, label: 'Buy equipment' },
-    { id: SEARCH_MODE.EVENT_PRO, label: 'Book event pros' },
-    { id: SEARCH_MODE.VENDOR_MARKET, label: 'Vendor markets' }
+    { id: SEARCH_MODE.EVENT_PRO, label: 'Book event pros' }
   ];
 
   const modalCategoryOptions = useMemo(
@@ -494,17 +493,17 @@ function HomePage() {
   }, [searchModalOpen]);
 
   return (
-    <div className="min-h-screen bg-white">
-      <AppHeader />
-
+    <AppLayout fullWidth contentClassName="bg-white">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-slate-950">
-        <img
-          src={HERO_IMAGE_URL}
-          alt="Food truck serving happy guests"
-          className="absolute inset-0 h-full w-full object-cover opacity-60"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/50 to-orange-900/40" />
+      <section
+        className="relative overflow-hidden bg-slate-950"
+        style={{
+          backgroundImage: `linear-gradient(135deg, rgba(3,7,18,0.95), rgba(15,23,42,0.55)), url(${HERO_IMAGE_URL})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
+        <div className="absolute inset-0 bg-black/20" />
 
         <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-10 px-4 py-16 text-white sm:px-6 lg:px-8 lg:py-24">
           <div className="max-w-3xl">
@@ -621,16 +620,16 @@ function HomePage() {
               <div className="space-y-6 px-6 py-6">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">I'm looking to</p>
-                  <div className="mt-3 flex flex-wrap gap-2 rounded-full bg-slate-100 p-1">
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     {modeOptions.map((option) => (
                       <button
                         key={option.id}
                         type="button"
                         onClick={() => handleModeChange(option.id)}
-                        className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                        className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
                           filters.mode === option.id
-                            ? 'bg-white text-orange-600 shadow'
-                            : 'text-slate-500 hover:text-slate-700'
+                            ? 'border-orange-500 bg-orange-50 text-orange-600 shadow'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                         }`}
                       >
                         {option.label}
@@ -695,7 +694,7 @@ function HomePage() {
                 <button
                   type="button"
                   onClick={() => setShowFilters((prev) => !prev)}
-                  className="flex w-full items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm"
+                  className="flex w-full items-center justify-between border-t border-slate-200 pt-4 text-sm font-semibold text-orange-600"
                 >
                   More filters
                   {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -1160,11 +1159,18 @@ function HomePage() {
               <a href="#" style={{ fontSize: '14px', color: '#717171', textDecoration: 'none' }}>Privacy</a>
               <a href="#" style={{ fontSize: '14px', color: '#717171', textDecoration: 'none' }}>Terms</a>
               <a href="#" style={{ fontSize: '14px', color: '#717171', textDecoration: 'none' }}>Sitemap</a>
+              <button
+                type="button"
+                onClick={() => navigate('/about')}
+                style={{ fontSize: '14px', color: '#717171', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                About
+              </button>
             </div>
           </div>
         </div>
       </footer>
-    </div>
+    </AppLayout>
   );
 }
 
