@@ -11,45 +11,26 @@
  */
 function EmptyState({ icon, title, description, action }) {
   return (
-    <div style={{
-      textAlign: 'center',
-      padding: '80px 40px',
-      background: '#FAFAFA',
-      borderRadius: '16px'
-    }}>
+    <div className="brand-card text-center px-10 py-20 shadow-brand-soft">
       {icon && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          marginBottom: '16px',
-          opacity: 0.5
-        }}>
+        <div className="mb-4 flex justify-center text-charcoal/50">
           {icon}
         </div>
       )}
 
       {title && (
-        <h2 style={{
-          fontSize: '24px',
-          fontWeight: '600',
-          marginBottom: '12px',
-          color: '#343434'
-        }}>
+        <h2 className="text-2xl font-semibold text-charcoal">
           {title}
         </h2>
       )}
 
       {description && (
-        <p style={{
-          fontSize: '16px',
-          color: '#717171',
-          marginBottom: '24px'
-        }}>
+        <p className="mt-3 text-base text-charcoal/70">
           {description}
         </p>
       )}
 
-      {action && <div>{action}</div>}
+      {action && <div className="mt-8 flex justify-center">{action}</div>}
     </div>
   );
 }
