@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { SEARCH_MODE } from '../constants/filters';
 
 const DEFAULT_LIMIT = 12;
 
@@ -10,15 +11,22 @@ const buildQueryString = (params = {}) => {
   if (params.city) searchParams.set('city', params.city.trim());
   if (params.state) searchParams.set('state', params.state.trim());
   if (params.listingType) searchParams.set('listing_type', params.listingType);
+  if (params.mode) searchParams.set('mode', params.mode);
+  if (params.startDate) searchParams.set('startDate', params.startDate);
+  if (params.endDate) searchParams.set('endDate', params.endDate);
+  // TODO: Wire mode and date filters into Neon queries once backend support lands.
 
   return searchParams.toString();
 };
 
 export function useListingsQuery(initialState = {}) {
   const [queryState, setQueryState] = useState(() => ({
+    mode: initialState.mode || SEARCH_MODE.RENT,
     city: initialState.city || '',
     state: initialState.state || '',
     listingType: initialState.listingType || '',
+    startDate: initialState.startDate || '',
+    endDate: initialState.endDate || '',
     page: Number(initialState.page) > 0 ? Number(initialState.page) : 1,
     limit: initialState.limit || DEFAULT_LIMIT,
   }));
@@ -83,9 +91,12 @@ export function useListingsQuery(initialState = {}) {
   const setFilters = useCallback((updates = {}) => {
     setQueryState((prev) => ({
       ...prev,
+      mode: updates.mode ?? prev.mode,
       city: updates.city ?? prev.city,
       state: updates.state ?? prev.state,
       listingType: updates.listingType ?? prev.listingType,
+      startDate: updates.startDate ?? prev.startDate,
+      endDate: updates.endDate ?? prev.endDate,
       page: 1,
     }));
   }, []);

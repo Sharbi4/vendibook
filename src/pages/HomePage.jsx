@@ -1,7 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useListings } from '../hooks/useListings.js';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Search, MapPin, Calendar, X, ChevronDown, ChevronUp, Star, Zap, Store } from 'lucide-react';
+import {
+  Search,
+  MapPin,
+  Calendar,
+  X,
+  ChevronDown,
+  ChevronUp,
+  Star,
+  Zap,
+  Store,
+  Truck,
+  Users,
+  ShoppingCart,
+  UtensilsCrossed,
+  Grid2x2
+} from 'lucide-react';
 import AppLayout from '../layouts/AppLayout.jsx';
 import {
   ADVANCED_FILTER_PLACEHOLDERS,
@@ -9,7 +24,7 @@ import {
   buildSearchParamsFromFilters,
   deriveCityState,
   formatDateRange,
-  getCategoryIconComponent,
+  getCategoryIcon,
   getCategoryLabel,
   getCategoryOptionsForMode,
   getModeCtaCopy,
@@ -19,6 +34,16 @@ import {
 // TODO: Replace with curated Vendibook brand photography once the production asset is finalized.
 const HERO_IMAGE_URL = '/images/hero-food-truck.jpg';
 const CATEGORY_COLOR_PALETTE = ['#FF5124', '#FF8C42', '#FFA500', '#FFB84D', '#FFC966', '#FF6B6B'];
+const CATEGORY_ICON_COMPONENTS = {
+  truck: Truck,
+  trailer: Truck,
+  kitchen: UtensilsCrossed,
+  map_pin: MapPin,
+  users: Users,
+  cart: ShoppingCart,
+  store: Store,
+  grid: Grid2x2
+};
 
 function HomePage() {
   const navigate = useNavigate();
@@ -43,26 +68,32 @@ function HomePage() {
   const modeOptions = [
     { id: SEARCH_MODE.RENT, label: 'Rent equipment' },
     { id: SEARCH_MODE.BUY, label: 'Buy equipment' },
-    { id: SEARCH_MODE.EVENT_PRO, label: 'Book event pros' }
+    { id: SEARCH_MODE.EVENT_PRO, label: 'Book event pros' },
+    { id: SEARCH_MODE.VENDOR_MARKET, label: 'Vendor markets' }
   ];
 
+  const mapCategoryOptionsForMode = (mode) => (
+    [{ value: '', label: 'All categories', iconName: 'grid' }, ...getCategoryOptionsForMode(mode)].map((option) => {
+      const iconName = option.iconName || getCategoryIcon(option.value);
+      const Icon = CATEGORY_ICON_COMPONENTS[iconName] || CATEGORY_ICON_COMPONENTS.grid;
+      return { ...option, iconName, Icon };
+    })
+  );
+
   const modalCategoryOptions = useMemo(
-    () => [{ value: '', label: 'All categories' }, ...getCategoryOptionsForMode(filters.mode)],
+    () => mapCategoryOptionsForMode(filters.mode),
     [filters.mode]
   );
 
   const appliedCategoryOptions = useMemo(
     () => (
-      [{ value: '', label: 'All categories' }, ...getCategoryOptionsForMode(appliedFilters.mode)].map((option, index) => ({
+      mapCategoryOptionsForMode(appliedFilters.mode).map((option, index) => ({
         ...option,
-        color: CATEGORY_COLOR_PALETTE[index % CATEGORY_COLOR_PALETTE.length],
-        Icon: getCategoryIconComponent(option.value)
+        color: CATEGORY_COLOR_PALETTE[index % CATEGORY_COLOR_PALETTE.length]
       }))
     ),
     [appliedFilters.mode]
   );
-
-  const SelectedCategoryIcon = getCategoryIconComponent(filters.listingType);
   const modalCtaLabel = getModeCtaCopy(filters.mode);
   const appliedCategoryLabel = getCategoryLabel(appliedFilters.mode, appliedFilters.listingType);
   const appliedLocationLabel = appliedFilters.locationText || [appliedFilters.city, appliedFilters.state].filter(Boolean).join(', ');
@@ -156,10 +187,15 @@ function HomePage() {
   };
 
   const handleCategoryPillClick = (categoryValue) => {
-    applyAndSyncFilters((prev) => ({
-      ...prev,
+    const nextFilters = {
+      ...appliedFilters,
+      mode: SEARCH_MODE.RENT,
       listingType: categoryValue
-    }));
+    };
+    applyAndSyncFilters(nextFilters);
+    const params = buildSearchParamsFromFilters(nextFilters);
+    // Clicking hero chips routes directly to /listings for a faster browse handoff.
+    navigate(`/listings?${params.toString()}`);
   };
 
   const activeFilterChips = [];
@@ -620,7 +656,7 @@ function HomePage() {
               <div className="space-y-6 px-6 py-6">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">I'm looking to</p>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div className="mt-4 flex flex-wrap gap-3">
                     {modeOptions.map((option) => (
                       <button
                         key={option.id}
@@ -631,6 +667,7 @@ function HomePage() {
                             ? 'border-orange-500 bg-orange-50 text-orange-600 shadow'
                             : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                         }`}
+                        aria-pressed={filters.mode === option.id}
                       >
                         {option.label}
                       </button>
@@ -647,27 +684,38 @@ function HomePage() {
                         type="text"
                         value={filters.locationText}
                         onChange={(e) => handleLocationChange(e.target.value)}
-                        placeholder="Phoenix, AZ"
+                        placeholder="Enter city and state"
                         className="w-full rounded-2xl border border-slate-200 px-4 py-3 pl-10 text-base text-slate-900 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
                       />
                     </div>
                   </label>
-                  <label className="block text-sm font-semibold text-slate-700">
-                    Category
-                    <div className="relative mt-2">
-                      <SelectedCategoryIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                      <select
-                        value={filters.listingType}
-                        onChange={(e) => handleCategoryChange(e.target.value)}
-                        className="w-full appearance-none rounded-2xl border border-slate-200 px-4 py-3 pl-10 pr-10 text-base text-slate-900 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
-                      >
-                        {modalCategoryOptions.map((cat) => (
-                          <option key={cat.value || 'all'} value={cat.value}>{cat.label}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Category</p>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      {modalCategoryOptions.map((category) => {
+                        const Icon = category.Icon;
+                        const isActive = filters.listingType
+                          ? filters.listingType === category.value
+                          : category.value === '';
+                        return (
+                          <button
+                            type="button"
+                            key={category.value || 'all'}
+                            onClick={() => handleCategoryChange(category.value)}
+                            className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                              isActive
+                                ? 'border-orange-500 bg-orange-50 text-orange-600 shadow'
+                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                            }`}
+                            aria-pressed={isActive}
+                          >
+                            <Icon className="h-5 w-5" />
+                            <span>{category.label}</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                  </label>
+                  </div>
                 </div>
 
                 <div className="text-sm font-semibold text-slate-700">

@@ -1,5 +1,3 @@
-import { MapPin, ShoppingCart, Store, Truck, Users, UtensilsCrossed } from 'lucide-react';
-
 export const SEARCH_MODE = {
   RENT: 'rent',
   BUY: 'buy',
@@ -27,9 +25,9 @@ export const MODE_LABELS = {
 
 export const MODE_CTA_COPY = {
   [SEARCH_MODE.RENT]: 'Search rentals',
-  [SEARCH_MODE.BUY]: 'Search listings',
-  [SEARCH_MODE.EVENT_PRO]: 'Search event pros',
-  [SEARCH_MODE.VENDOR_MARKET]: 'Search vendor markets'
+  [SEARCH_MODE.BUY]: 'Search for sale listings',
+  [SEARCH_MODE.EVENT_PRO]: 'Find event pros',
+  [SEARCH_MODE.VENDOR_MARKET]: 'Find vendor markets'
 };
 
 export const CATEGORY_OPTIONS = {
@@ -46,19 +44,23 @@ export const CATEGORY_OPTIONS = {
     { value: LISTING_TYPES.EVENT_PRO, label: 'Event pros' }
   ],
   [SEARCH_MODE.VENDOR_MARKET]: [
-    { value: LISTING_TYPES.VENDOR_SPACE, label: 'Vendor markets' }
+    { value: LISTING_TYPES.VENDOR_SPACE, label: 'Vendor markets & vendor spaces' }
   ]
 };
 
-const CATEGORY_ICON_MAP = {
-  [LISTING_TYPES.FOOD_TRUCK]: Truck,
-  [LISTING_TYPES.TRAILER]: Truck,
-  [LISTING_TYPES.GHOST_KITCHEN]: UtensilsCrossed,
-  [LISTING_TYPES.VENDING_LOT]: MapPin,
-  [LISTING_TYPES.EVENT_PRO]: Users,
-  [LISTING_TYPES.FOR_SALE]: ShoppingCart,
-  [LISTING_TYPES.VENDOR_SPACE]: Store
+const CATEGORY_ICON_NAMES = {
+  [LISTING_TYPES.FOOD_TRUCK]: 'truck',
+  [LISTING_TYPES.TRAILER]: 'trailer',
+  [LISTING_TYPES.GHOST_KITCHEN]: 'kitchen',
+  [LISTING_TYPES.VENDING_LOT]: 'map_pin',
+  [LISTING_TYPES.EVENT_PRO]: 'users',
+  [LISTING_TYPES.FOR_SALE]: 'cart',
+  [LISTING_TYPES.VENDOR_SPACE]: 'store'
 };
+
+export function getCategoryIcon(value) {
+  return CATEGORY_ICON_NAMES[value] || 'store';
+}
 
 export const DEFAULT_FILTERS = {
   mode: SEARCH_MODE.RENT,
@@ -93,10 +95,6 @@ export function getModeLabel(mode) {
 
 export function getModeCtaCopy(mode) {
   return MODE_CTA_COPY[mode] || MODE_CTA_COPY[SEARCH_MODE.RENT];
-}
-
-export function getCategoryIconComponent(value) {
-  return CATEGORY_ICON_MAP[value] || Store;
 }
 
 export function deriveCityState(rawText = '') {

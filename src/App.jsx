@@ -12,7 +12,7 @@ import { MyBookingsPage } from './pages/MyBookingsPage';
 import { HostBookingsPage } from './pages/HostBookingsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { AnalyticsDashboardPage } from './pages/AnalyticsDashboardPage';
-import { AdminDashboard } from './pages/AdminDashboard';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 import CommunityPage from './pages/CommunityPage';
 import ProfilePage from './pages/ProfilePage';
 import SignInPage from './pages/SignInPage';
@@ -57,7 +57,7 @@ function App() {
         <Route path="/notifications" element={<NotificationsPage />} />
         
         {/* Admin */}
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin" element={<AdminDashboardPage />} />
       </Routes>
     </Router>
   );
