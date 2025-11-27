@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
+import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
+import { clerkPublishableKey } from '../config/clerkConfig';
 
 const NAV_LINKS = [
   { label: 'Rent Equipment', to: '/listings?mode=rent', match: { pathname: '/listings', queryKey: 'mode', queryValue: 'rent' } },
@@ -16,13 +18,14 @@ function AppHeader({ className = '' }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const clerkEnabled = Boolean(clerkPublishableKey);
 
   const handleNavigate = (path) => {
     setMobileOpen(false);
     navigate(path);
   };
 
-  const authButtons = (
+  const signedOutButtons = (
     <div className="flex items-center gap-3">
       <button
         type="button"
@@ -38,6 +41,34 @@ function AppHeader({ className = '' }) {
       >
         Sign up
       </button>
+    </div>
+  );
+
+  const signedInButtons = (
+    <div className="flex items-center gap-3">
+      <button
+        type="button"
+        onClick={() => handleNavigate('/messages')}
+        className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+      >
+        Inbox
+      </button>
+      <button
+        type="button"
+        onClick={() => handleNavigate('/host/dashboard')}
+        className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+      >
+        Dashboard
+      </button>
+      <UserButton
+        afterSignOutUrl="/"
+        appearance={{
+          elements: {
+            avatarBox: 'h-9 w-9',
+            userButtonPopoverMain: 'min-w-[220px]'
+          }
+        }}
+      />
     </div>
   );
 
@@ -85,7 +116,16 @@ function AppHeader({ className = '' }) {
           {NAV_LINKS.map(navButton)}
         </nav>
 
-        <div className="hidden xl:flex">{authButtons}</div>
+        <div className="hidden xl:flex">
+          {clerkEnabled ? (
+            <>
+              <SignedIn>{signedInButtons}</SignedIn>
+              <SignedOut>{signedOutButtons}</SignedOut>
+            </>
+          ) : (
+            signedOutButtons
+          )}
+        </div>
 
         <button
           type="button"
@@ -133,7 +173,16 @@ function AppHeader({ className = '' }) {
                 </button>
               ))}
             </nav>
-            <div className="border-t border-slate-200 px-5 py-4">{authButtons}</div>
+            <div className="border-t border-slate-200 px-5 py-4">
+              {clerkEnabled ? (
+                <>
+                  <SignedIn>{signedInButtons}</SignedIn>
+                  <SignedOut>{signedOutButtons}</SignedOut>
+                </>
+              ) : (
+                signedOutButtons
+              )}
+            </div>
           </div>
         </div>
       )}

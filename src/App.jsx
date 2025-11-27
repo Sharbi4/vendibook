@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ListingsPage from './pages/ListingsPage';
 import ListingDetails from './pages/ListingDetails';
@@ -20,17 +20,24 @@ import SignUpPage from './pages/SignUpPage';
 import BlogIndexPage from './pages/BlogIndexPage';
 import BlogPostPage from './pages/BlogPostPage';
 import AboutPage from './pages/AboutPage';
+import RequireAuth from './auth/RequireAuth.jsx';
 
 function App() {
   return (
-    <Router>
-      <Routes>
+    <Routes>
         {/* Main Pages */}
         <Route path="/" element={<HomePage />} />
         <Route path="/listings" element={<ListingsPage />} />
         <Route path="/listing/:id" element={<ListingDetails />} />
         <Route path="/community" element={<CommunityPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
+        <Route
+          path="/profile"
+          element={(
+            <RequireAuth>
+              <ProfilePage />
+            </RequireAuth>
+          )}
+        />
         <Route path="/signin" element={<SignInPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/blog" element={<BlogIndexPage />} />
@@ -39,27 +46,103 @@ function App() {
         
         {/* Host Pages */}
         <Route path="/become-host" element={<BecomeHostLanding />} />
-        <Route path="/host/onboarding" element={<HostOnboardingWizard />} />
-        <Route path="/host/listings" element={<HostListings />} />
-        <Route path="/host/listings/:id/edit" element={<HostEditListing />} />
-        <Route path="/host/dashboard" element={<HostDashboardPage />} />
-        <Route path="/host/bookings" element={<HostBookingsPage />} />
-        <Route path="/analytics" element={<AnalyticsDashboardPage />} />
+        <Route
+          path="/host/onboarding"
+          element={(
+            <RequireAuth>
+              <HostOnboardingWizard />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/host/listings"
+          element={(
+            <RequireAuth>
+              <HostListings />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/host/listings/:id/edit"
+          element={(
+            <RequireAuth>
+              <HostEditListing />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/host/dashboard"
+          element={(
+            <RequireAuth>
+              <HostDashboardPage />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/host/bookings"
+          element={(
+            <RequireAuth>
+              <HostBookingsPage />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/analytics"
+          element={(
+            <RequireAuth>
+              <AnalyticsDashboardPage />
+            </RequireAuth>
+          )}
+        />
         
         {/* Renter Pages */}
-        <Route path="/bookings" element={<MyBookingsPage />} />
+        <Route
+          path="/bookings"
+          element={(
+            <RequireAuth>
+              <MyBookingsPage />
+            </RequireAuth>
+          )}
+        />
         
         {/* Messaging */}
-        <Route path="/messages" element={<MessagesInboxPage />} />
-        <Route path="/messages/:threadId" element={<MessagesInboxPage />} />
+        <Route
+          path="/messages"
+          element={(
+            <RequireAuth>
+              <MessagesInboxPage />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/messages/:threadId"
+          element={(
+            <RequireAuth>
+              <MessagesInboxPage />
+            </RequireAuth>
+          )}
+        />
         
         {/* Notifications */}
-        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route
+          path="/notifications"
+          element={(
+            <RequireAuth>
+              <NotificationsPage />
+            </RequireAuth>
+          )}
+        />
         
         {/* Admin */}
-        <Route path="/admin" element={<AdminDashboardPage />} />
+        <Route
+          path="/admin"
+          element={(
+            <RequireAuth>
+              <AdminDashboardPage />
+            </RequireAuth>
+          )}
+        />
       </Routes>
-    </Router>
   );
 }
 
