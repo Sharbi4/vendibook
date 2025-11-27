@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import {
   ArrowRight,
@@ -16,6 +17,134 @@ import {
   Video
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
+import { buildListingPath, buildShareUrl, formatListingTypeLabel } from '../../utils/listingRoutes';
+
+export const ListingWizardContext = createContext(null);
+
+export const useListingWizard = () => {
+  const context = useContext(ListingWizardContext);
+  if (!context) {
+    throw new Error('useListingWizard must be used within ListingWizardContext');
+  }
+  return context;
+};
+
+const usdFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0
+});
+
+const formatUSD = (value) => {
+  if (value === null || value === undefined) return '';
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return '';
+  }
+  return usdFormatter.format(parsed);
+};
+
+const buildDisplayValue = (value, fallback) => ({
+  text: value || fallback,
+  isPlaceholder: !value
+});
+
+const resolvePrimaryPrice = (data) => {
+  if (!data) return null;
+
+  const toNumber = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  };
+
+  const pricing = data.pricing || {};
+  const packages = Array.isArray(pricing.packages) ? pricing.packages : [];
+
+  if ((data.listingType || '').toLowerCase().includes('event')) {
+    for (const pkg of packages) {
+      const possible = toNumber(pkg?.price);
+      if (possible) {
+        return possible;
+      }
+    }
+    const hourlyRate = toNumber(pricing.hourlyRate);
+    if (hourlyRate) return hourlyRate;
+  }
+
+  return (
+    toNumber(pricing.baseDailyRate) ??
+    toNumber(pricing.weekendRate) ??
+    toNumber(pricing.weeklyRate) ??
+    toNumber(pricing.hourlyRate) ??
+    null
+  );
+};
+
+const mapWizardListingType = (value) => {
+  const normalized = (value || '').toString().trim().toLowerCase();
+  if (normalized.includes('event')) return 'EVENT_PRO';
+  if (normalized.includes('sale')) return 'SALE';
+  return 'RENT';
+};
+
+const mapApiListingTypeToWizard = (value) => {
+  const normalized = (value || '').toString().trim().toUpperCase();
+  if (normalized === 'EVENT_PRO') return 'eventPro';
+  return 'rental';
+};
+
+const toTimeInputValue = (value, fallback) => {
+  if (!value) return fallback;
+  const stringValue = value.toString();
+  if (!stringValue.includes(':')) {
+    return fallback;
+  }
+  return stringValue.slice(0, 5);
+};
+
+const hydrateFormDataFromListing = (listing) => {
+  if (!listing) return INITIAL_FORM_DATA;
+
+  const serviceZone = listing.service_zone || {};
+  const radiusValue =
+    typeof serviceZone.radius_miles === 'number'
+      ? serviceZone.radius_miles
+      : typeof listing.service_radius_miles === 'number'
+        ? listing.service_radius_miles
+        : INITIAL_FORM_DATA.basics.serviceRadius;
+
+  return {
+    ...INITIAL_FORM_DATA,
+    listingType: mapApiListingTypeToWizard(listing.listing_type || listing.listingType),
+    basics: {
+      ...INITIAL_FORM_DATA.basics,
+      title: listing.title || '',
+      category: listing.category || INITIAL_FORM_DATA.basics.category,
+      subcategory: listing.subcategory || INITIAL_FORM_DATA.basics.subcategory,
+      city: listing.city || '',
+      state: listing.state || '',
+      serviceRadius: radiusValue,
+      serviceLabel: serviceZone.label || listing.display_zone_label || ''
+    },
+    schedule: {
+      ...INITIAL_FORM_DATA.schedule,
+      bookingMode: listing.booking_mode || listing.bookingMode || INITIAL_FORM_DATA.schedule.bookingMode,
+      defaultPickupTime: toTimeInputValue(listing.default_start_time, INITIAL_FORM_DATA.schedule.defaultPickupTime),
+      defaultReturnTime: toTimeInputValue(listing.default_end_time, INITIAL_FORM_DATA.schedule.defaultReturnTime),
+      earliestStartTime: toTimeInputValue(listing.default_start_time, INITIAL_FORM_DATA.schedule.earliestStartTime),
+      latestEndTime: toTimeInputValue(listing.default_end_time, INITIAL_FORM_DATA.schedule.latestEndTime)
+    },
+    pricing: {
+      ...INITIAL_FORM_DATA.pricing,
+      baseDailyRate: listing.price ? String(listing.price) : '',
+      hourlyRate: listing.hourly_rate ? String(listing.hourly_rate) : INITIAL_FORM_DATA.pricing.hourlyRate,
+      packages: (INITIAL_FORM_DATA.pricing.packages || []).map(pkg => ({ ...pkg }))
+    },
+    addOns: (INITIAL_FORM_DATA.addOns || []).map(addOn => ({ ...addOn })),
+    notes: listing.description || ''
+  };
+};
 
 const createId = () => (
   typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -121,43 +250,103 @@ const INITIAL_FORM_DATA = {
   notes: ''
 };
 
-function ListingCreationWizard({ onClose }) {
+function ListingCreationWizard({ onClose, mode = 'create', initialData = null, listingId: listingIdProp = null }) {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const [formData, setFormData] = useState(() => INITIAL_FORM_DATA);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submissionState, setSubmissionState] = useState({ status: 'idle', shareUrl: '', listingId: '' });
+  const [submissionState, setSubmissionState] = useState({ status: 'idle', errorMessage: '', listing: null, shareUrl: '' });
+  const [viewMode, setViewMode] = useState('editing');
+  const [inlineNotice, setInlineNotice] = useState('');
+  const [copyFeedback, setCopyFeedback] = useState('');
   const qrCanvasRef = useRef(null);
+  const copyTimeoutRef = useRef(null);
+  const derivedMode = initialData || listingIdProp ? 'edit' : mode;
+  const isEditMode = derivedMode === 'edit';
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!initialData) return;
+    setFormData(hydrateFormDataFromListing(initialData));
+    setCurrentStep(0);
+    setViewMode('editing');
+    setSubmissionState({ status: 'idle', errorMessage: '', listing: null, shareUrl: '' });
+    setInlineNotice('');
+    setCopyFeedback('');
+  }, [initialData]);
 
   const totalSteps = STEP_CONFIG.length;
+  const activeStepKey = STEP_CONFIG[currentStep]?.key || STEP_CONFIG[0].key;
+  const isTypeStepActive = activeStepKey === 'type';
+  const isContinueDisabled = currentStep === totalSteps - 1 || (isTypeStepActive && !formData.listingType);
+  const contextValue = useMemo(() => ({ formData, setFormData }), [formData]);
 
   const derivedPreview = useMemo(() => {
     const { basics, schedule, pricing, media, addOns, listingType } = formData;
     const cityState = [basics.city, basics.state].filter(Boolean).join(', ');
-    const serviceText = basics.serviceRadius
-      ? `Serves locations within ${basics.serviceRadius} miles${basics.serviceLabel ? ` of ${basics.serviceLabel}` : cityState ? ` of ${cityState}` : ''}`
-      : basics.serviceLabel;
+    const trimmedServiceLabel = basics.serviceLabel?.trim() || '';
+    const hasRadius = Boolean(basics.serviceRadius);
+    const serviceAreaText = hasRadius
+      ? trimmedServiceLabel
+        ? `Serves ${trimmedServiceLabel} within ${basics.serviceRadius} miles`
+        : cityState
+          ? `Serves locations within ${basics.serviceRadius} miles of ${cityState}`
+          : ''
+      : trimmedServiceLabel;
 
-    const heroImage = media.coverPreview ||
-      (listingType === 'eventPro'
-        ? 'https://images.unsplash.com/photo-1481833761820-0509d3217039?w=900&auto=format&fit=crop&q=80'
-        : 'https://images.unsplash.com/photo-1505471768190-0af6755fab1c?w=900&auto=format&fit=crop&q=80');
+    const primaryMedia = media.coverPreview || media.gallery?.[0]?.preview || '';
+    const fallbackImage = listingType === 'eventPro'
+      ? 'https://images.unsplash.com/photo-1481833761820-0509d3217039?w=900&auto=format&fit=crop&q=80'
+      : 'https://images.unsplash.com/photo-1505471768190-0af6755fab1c?w=900&auto=format&fit=crop&q=80';
+
+    const heroImage = primaryMedia || fallbackImage;
+    const primaryPrice = resolvePrimaryPrice(formData);
+    const formattedPrice = formatUSD(primaryPrice);
+
+    const bookingModeLookup = {
+      daily: 'Daily rental',
+      'daily-with-time': 'Daily rental with pickup & return times',
+      hourly: 'Hourly rental',
+      'event-pro': 'Event Pro booking',
+      'per-event': 'Event Pro booking'
+    };
+
+    const bookingModeKey = schedule.bookingMode || (listingType === 'eventPro' ? 'event-pro' : 'daily');
+    const bookingModeLabel = bookingModeLookup[bookingModeKey];
+
+    const previewPackages = (pricing.packages || []).map(pkg => ({
+      id: pkg.id,
+      name: buildDisplayValue(pkg.name, 'Package name not set'),
+      description: buildDisplayValue(pkg.description, 'Describe this package'),
+      price: buildDisplayValue(formatUSD(pkg.price), 'Pricing not yet added')
+    }));
+
+    const previewAddOns = (addOns || []).map(addOn => ({
+      id: addOn.id,
+      name: buildDisplayValue(addOn.name, 'Add-on name not set'),
+      price: buildDisplayValue(formatUSD(addOn.price), 'Pricing not yet added')
+    }));
 
     return {
-      title: basics.title || 'Untitled listing',
-      category: basics.category || (listingType === 'eventPro' ? 'Event professional' : 'Rental equipment'),
-      location: cityState || 'Location TBD',
-      serviceText,
-      bookingSummary:
-        listingType === 'eventPro'
-          ? `Event window: ${schedule.eventDurationHours || 4} hrs • ${schedule.earliestStartTime} - ${schedule.latestEndTime}`
-          : `Rental mode: ${schedule.bookingMode || 'daily'} • ${schedule.minRentalDays}-${schedule.maxRentalDays} day(s)` ,
-      basePrice:
-        listingType === 'eventPro'
-          ? (pricing.packages[0]?.price || pricing.hourlyRate || '—')
-          : pricing.baseDailyRate || '—',
+      title: buildDisplayValue(basics.title, 'Untitled listing'),
+      category: buildDisplayValue(
+        basics.category || (listingType === 'eventPro' ? 'Event professional' : 'Rental equipment'),
+        listingType === 'eventPro' ? 'Event professional' : 'Rental equipment'
+      ),
+      location: buildDisplayValue(cityState, 'Location not set'),
+      service: buildDisplayValue(serviceAreaText, 'Service area not set'),
+      bookingMode: buildDisplayValue(bookingModeLabel, 'Rental mode not set'),
+      price: buildDisplayValue(formattedPrice, 'Pricing not yet added'),
       heroImage,
-      packages: pricing.packages,
-      addOns,
+      packages: previewPackages,
+      addOns: previewAddOns,
       listingType
     };
   }, [formData]);
@@ -260,41 +449,152 @@ function ListingCreationWizard({ onClose }) {
     setCurrentStep(Math.min(Math.max(nextStep, 0), totalSteps - 1));
   };
 
-  const handleSubmit = async (status = 'published') => {
+  const handleBackNav = () => {
+    if (currentStep === 0) return;
+    goToStep(currentStep - 1);
+  };
+
+  const handleContinueNav = () => {
+    if (currentStep === totalSteps - 1) return;
+    if (isTypeStepActive && !formData.listingType) return;
+    goToStep(currentStep + 1);
+  };
+
+  const buildListingPayload = () => {
+    if (!formData.listingType) {
+      throw new Error('Select a listing type before publishing.');
+    }
+
+    const title = formData.basics.title?.trim();
+    if (!title) {
+      throw new Error('Add a listing title before publishing.');
+    }
+
+    const city = formData.basics.city?.trim();
+    if (!city) {
+      throw new Error('City is required.');
+    }
+
+    const state = formData.basics.state?.trim();
+    if (!state) {
+      throw new Error('State is required.');
+    }
+
+    const primaryPrice = resolvePrimaryPrice(formData);
+    if (!primaryPrice) {
+      throw new Error('Add at least one price before publishing.');
+    }
+
+    const bookingMode = formData.schedule.bookingMode || (formData.listingType === 'eventPro' ? 'per-event' : 'daily-with-time');
+    const defaultStartTime = formData.listingType === 'eventPro'
+      ? formData.schedule.earliestStartTime
+      : formData.schedule.defaultPickupTime;
+    const defaultEndTime = formData.listingType === 'eventPro'
+      ? formData.schedule.latestEndTime
+      : formData.schedule.defaultReturnTime;
+
+    return {
+      title,
+      description: formData.notes?.trim() || '',
+      city,
+      state,
+      price: primaryPrice,
+      listing_type: mapWizardListingType(formData.listingType),
+      booking_mode: bookingMode,
+      default_start_time: defaultStartTime || null,
+      default_end_time: defaultEndTime || null,
+      display_city: city,
+      display_state: state,
+      display_zone_label: formData.basics.serviceLabel?.trim() || null,
+      service_zone_type: 'radius',
+      service_radius_miles: Number(formData.basics.serviceRadius) || 15,
+      // TODO: connect packages, add-ons, and media uploads once schema supports them.
+    };
+  };
+
+  const handlePublish = async (intent = 'published') => {
+    if (intent !== 'published') {
+      setInlineNotice('Draft saving is coming soon. Publish to share your listing.');
+      return;
+    }
+
+    setInlineNotice('');
     setIsSubmitting(true);
-    setSubmissionState({ status: 'submitting', shareUrl: '', listingId: '' });
+    setSubmissionState((prev) => ({ ...prev, status: 'submitting', errorMessage: '', listing: null, shareUrl: '' }));
+
+    const resolvedListingId = listingIdProp || initialData?.id || submissionState.listing?.id;
+    const actionVerb = isEditMode ? 'update' : 'publish';
 
     try {
-      const payload = {
-        ...formData,
-        status
-      };
+      const payload = buildListingPayload();
+      let response;
 
-      // TODO: Replace with real POST /api/listings endpoint when backend is ready.
-      const fakeListingId = createId();
-      const url = `${window.location.origin}/listing/${fakeListingId}`;
+      if (isEditMode) {
+        if (!resolvedListingId) {
+          throw new Error('Unable to update listing: missing listing ID.');
+        }
 
-      console.info('Stubbed listing payload', payload);
+        const updatePayload = { ...payload, id: resolvedListingId };
+        response = await fetch('/api/listings', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatePayload)
+        });
+      } else {
+        response = await fetch('/api/listings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
 
-      setSubmissionState({ status: 'success', shareUrl: url, listingId: fakeListingId });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result) {
+        throw new Error(result?.error || `Failed to ${actionVerb} listing`);
+      }
+
+      if (result.success === false) {
+        throw new Error(result.error || `Failed to ${actionVerb} listing`);
+      }
+
+      const listing = result.data || result.listing;
+      if (!listing) {
+        throw new Error('Listing response was empty.');
+      }
+
+      const shareUrl = buildShareUrl(listing);
+
+      setSubmissionState({ status: 'success', errorMessage: '', listing, shareUrl });
+      setViewMode('published');
+      setCopyFeedback('');
     } catch (error) {
-      console.error('Failed to submit listing', error);
-      setSubmissionState({ status: 'error', shareUrl: '', listingId: '' });
+      console.error('Failed to save listing', error);
+      setSubmissionState({ status: 'error', errorMessage: error.message || `Failed to ${actionVerb} listing`, listing: null, shareUrl: '' });
+      setViewMode('editing');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const copyLink = async () => {
+    const urlToCopy = submissionState.shareUrl || (submissionState.listing ? buildShareUrl(submissionState.listing) : '');
+    if (!urlToCopy) return;
     try {
-      await navigator.clipboard.writeText(submissionState.shareUrl);
+      await navigator.clipboard.writeText(urlToCopy);
+      setCopyFeedback('Link copied');
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = setTimeout(() => setCopyFeedback(''), 2000);
     } catch (error) {
       console.error('Failed to copy link', error);
+      setCopyFeedback('Unable to copy link');
     }
   };
 
   const downloadQr = () => {
-    if (!qrCanvasRef.current) return;
+    const urlForQr = submissionState.shareUrl || (submissionState.listing ? buildShareUrl(submissionState.listing) : '');
+    if (!urlForQr || !qrCanvasRef.current) return;
     const canvas = qrCanvasRef.current.querySelector('canvas');
     if (!canvas) return;
     const link = document.createElement('a');
@@ -313,7 +613,7 @@ function ListingCreationWizard({ onClose }) {
               <h2 className="text-3xl font-bold text-slate-900 mt-2">What are you listing?</h2>
               <p className="text-slate-600 mt-2">Pick the experience that fits your business. You can add more later.</p>
             </header>
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-2">
               {[
                 {
                   value: 'rental',
@@ -331,10 +631,10 @@ function ListingCreationWizard({ onClose }) {
                 <button
                   type="button"
                   key={option.value}
-                  className={`relative overflow-hidden rounded-2xl border text-left shadow-sm transition focus:outline-none focus:ring-4 focus:ring-orange-200 ${
+                  className={`relative overflow-hidden rounded-2xl border text-left transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#FF6A3D]/30 ${
                     formData.listingType === option.value
-                      ? 'border-orange-500 bg-white shadow-lg'
-                      : 'border-slate-200 bg-white hover:border-orange-300'
+                      ? 'border-[#FF6A3D] bg-white shadow-lg ring-2 ring-[#FF6A3D] ring-offset-2'
+                      : 'border-slate-200 bg-white hover:border-[#FF6A3D]/70 hover:shadow-lg'
                   }`}
                   onClick={() => {
                     setFormData(prev => ({
@@ -368,6 +668,7 @@ function ListingCreationWizard({ onClose }) {
             </div>
           </div>
         );
+      // TODO: Replace inline Step 2 form with a dedicated BasicsStep component powered by ListingWizardContext.
       case 'basics':
         return (
           <div className="space-y-6">
@@ -465,6 +766,7 @@ function ListingCreationWizard({ onClose }) {
             </div>
           </div>
         );
+      // TODO: Step 3 (Schedule) will be split into its own component soon.
       case 'schedule':
         return (
           <div className="space-y-6">
@@ -609,6 +911,7 @@ function ListingCreationWizard({ onClose }) {
             )}
           </div>
         );
+      // TODO: Step 4 (Pricing) will move into a PricingStep component.
       case 'pricing':
         return (
           <div className="space-y-6">
@@ -779,6 +1082,7 @@ function ListingCreationWizard({ onClose }) {
             )}
           </div>
         );
+      // TODO: Step 5 (Media) will pull from an upcoming MediaStep component.
       case 'media':
         return (
           <div className="space-y-6">
@@ -850,6 +1154,7 @@ function ListingCreationWizard({ onClose }) {
             </div>
           </div>
         );
+      // TODO: Step 6 (Documents) will live in its own DocumentsStep component.
       case 'documents':
         return (
           <div className="space-y-6">
@@ -899,6 +1204,7 @@ function ListingCreationWizard({ onClose }) {
             </div>
           </div>
         );
+      // TODO: Step 7 (Add-ons) will be extracted for reuse soon.
       case 'addOns':
         return (
           <div className="space-y-6">
@@ -976,6 +1282,7 @@ function ListingCreationWizard({ onClose }) {
             </div>
           </div>
         );
+      // TODO: Step 8 (Preview) will eventually be a standalone summary component.
       case 'preview':
         return (
           <div className="space-y-6">
@@ -984,19 +1291,35 @@ function ListingCreationWizard({ onClose }) {
               <h2 className="text-3xl font-bold text-slate-900 mt-2">Preview & publish</h2>
               <p className="text-slate-600 mt-2">Give everything one more look before going live.</p>
             </header>
+            {submissionState.status === 'error' && submissionState.errorMessage ? (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {submissionState.errorMessage}
+              </div>
+            ) : null}
+            {inlineNotice ? (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                {inlineNotice}
+              </div>
+            ) : null}
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
-              <h3 className="text-2xl font-semibold text-slate-900">{derivedPreview.title}</h3>
-              <p className="text-sm text-slate-600">{derivedPreview.location} • {derivedPreview.category}</p>
-              <p className="mt-3 text-sm font-semibold text-slate-700">{derivedPreview.serviceText}</p>
+              <h3 className="text-2xl font-semibold text-slate-900">{derivedPreview.title.text}</h3>
+              <p className={`text-sm ${derivedPreview.location.isPlaceholder ? 'text-slate-500' : 'text-slate-600'}`}>
+                {derivedPreview.location.text} • {derivedPreview.category.text}
+              </p>
+              <p className={`mt-3 text-sm font-semibold ${derivedPreview.service.isPlaceholder ? 'text-slate-500' : 'text-slate-700'}`}>
+                {derivedPreview.service.text}
+              </p>
               <div className="mt-4 grid md:grid-cols-2 gap-6">
                 <section>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Booking summary</p>
-                  <p className="mt-2 text-slate-800">{derivedPreview.bookingSummary}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Rental mode</p>
+                  <p className={`mt-2 ${derivedPreview.bookingMode.isPlaceholder ? 'text-slate-500' : 'text-slate-800'}`}>
+                    {derivedPreview.bookingMode.text}
+                  </p>
                 </section>
                 <section>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Featured price</p>
-                  <p className="mt-2 text-3xl font-bold text-slate-900">
-                    {derivedPreview.basePrice ? `$${Number(derivedPreview.basePrice).toLocaleString()}` : '—'}
+                  <p className={`mt-2 text-3xl font-bold ${derivedPreview.price.isPlaceholder ? 'text-slate-500' : 'text-slate-900'}`}>
+                    {derivedPreview.price.text}
                   </p>
                 </section>
               </div>
@@ -1008,10 +1331,10 @@ function ListingCreationWizard({ onClose }) {
                       <div key={pkg.id} className="rounded-2xl border border-slate-200 p-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-semibold text-slate-900">{pkg.name || 'Untitled package'}</p>
-                            <p className="text-sm text-slate-600">{pkg.description || 'Add a short description'}</p>
+                            <p className={`font-semibold ${pkg.name.isPlaceholder ? 'text-slate-500' : 'text-slate-900'}`}>{pkg.name.text}</p>
+                            <p className={`text-sm ${pkg.description.isPlaceholder ? 'text-slate-500' : 'text-slate-600'}`}>{pkg.description.text}</p>
                           </div>
-                          <p className="text-lg font-semibold text-slate-900">{pkg.price ? `$${pkg.price}` : 'TBD'}</p>
+                          <p className={`text-lg font-semibold ${pkg.price.isPlaceholder ? 'text-slate-500' : 'text-slate-900'}`}>{pkg.price.text}</p>
                         </div>
                       </div>
                     ))}
@@ -1024,8 +1347,8 @@ function ListingCreationWizard({ onClose }) {
                   <ul className="mt-2 space-y-2 text-sm text-slate-600">
                     {derivedPreview.addOns.map(addOn => (
                       <li key={addOn.id} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
-                        <span>{addOn.name || 'Untitled add-on'}</span>
-                        <span className="font-semibold text-slate-900">{addOn.price ? `$${addOn.price}` : 'TBD'}</span>
+                        <span className={addOn.name.isPlaceholder ? 'text-slate-500' : undefined}>{addOn.name.text}</span>
+                        <span className={`font-semibold ${addOn.price.isPlaceholder ? 'text-slate-500' : 'text-slate-900'}`}>{addOn.price.text}</span>
                       </li>
                     ))}
                   </ul>
@@ -1035,7 +1358,7 @@ function ListingCreationWizard({ onClose }) {
             <div className="grid md:grid-cols-2 gap-4">
               <button
                 type="button"
-                onClick={() => handleSubmit('draft')}
+                onClick={() => handlePublish('draft')}
                 className="rounded-2xl border border-slate-300 bg-white px-6 py-4 text-sm font-semibold text-slate-700 transition hover:border-orange-300"
                 disabled={isSubmitting}
               >
@@ -1043,11 +1366,18 @@ function ListingCreationWizard({ onClose }) {
               </button>
               <button
                 type="button"
-                onClick={() => handleSubmit('published')}
+                onClick={() => handlePublish('published')}
                 className="rounded-2xl bg-gradient-to-r from-orange-500 via-orange-500 to-orange-600 px-6 py-4 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl disabled:opacity-70"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Publishing</span> : 'Publish listing'}
+                {isSubmitting ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {isEditMode ? 'Saving' : 'Publishing'}
+                  </span>
+                ) : (
+                  isEditMode ? 'Save changes' : 'Publish listing'
+                )}
               </button>
             </div>
           </div>
@@ -1057,62 +1387,91 @@ function ListingCreationWizard({ onClose }) {
     }
   };
 
-  if (submissionState.status === 'success') {
-    return (
-      <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
-        <div className="flex flex-col items-center text-center">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-orange-600">
-            <Check className="h-8 w-8" />
+  const publishedListing = submissionState.listing;
+  const shareLink = submissionState.shareUrl || (publishedListing ? buildShareUrl(publishedListing) : '');
+  const successTitle = isEditMode ? 'Your changes are live on Vendibook.' : 'Your listing is live on Vendibook.';
+  const successSubtitle = isEditMode
+    ? 'We refreshed your public link and QR code with the latest details.'
+    : 'Share your link anywhere or download a QR code for events.';
+  const backButtonLabel = isEditMode ? 'Back to listings' : 'Back to dashboard';
+
+  const successView = (
+    <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+        <section className="space-y-6">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#FF6A3D]">Success</p>
+            <h2 className="mt-3 text-3xl font-bold text-slate-900">{successTitle}</h2>
+            <p className="mt-2 text-slate-600">{successSubtitle}</p>
           </div>
-          <h2 className="mt-4 text-3xl font-bold text-slate-900">Listing published!</h2>
-          <p className="mt-2 text-slate-600">Share your new listing anywhere. We generated a link and QR code for you.</p>
-          <div className="mt-6 w-full max-w-md rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Public link</p>
-            <p className="mt-2 flex items-center gap-2 truncate text-sm text-slate-700">
-              <LinkIcon className="h-4 w-4 text-orange-500" />
-              {submissionState.shareUrl}
-            </p>
-            <button
-              type="button"
-              onClick={copyLink}
-              className="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-700 hover:border-orange-300"
-            >
-              <Copy className="h-4 w-4" /> Copy link
-            </button>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Listing</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-900">{publishedListing?.title || formData.basics.title || 'Untitled listing'}</p>
+            <p className="text-sm text-slate-600">{[publishedListing?.city || formData.basics.city, publishedListing?.state || formData.basics.state].filter(Boolean).join(', ') || 'Location not set'}</p>
+            <span className="mt-3 inline-flex rounded-full bg-[#FF6A3D]/10 px-3 py-1 text-xs font-semibold text-[#FF6A3D]">
+              {formatListingTypeLabel(publishedListing?.listing_type || mapWizardListingType(formData.listingType))}
+            </span>
           </div>
-          <div ref={qrCanvasRef} className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <QRCodeCanvas value={submissionState.shareUrl} size={180} includeMargin fgColor="#ea580c" />
-            <p className="mt-3 text-sm font-semibold text-slate-800">Vendibook QR ready</p>
-            <div className="mt-3 flex gap-3">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+              <LinkIcon className="h-4 w-4 text-[#FF6A3D]" />
+              <span className="truncate">{shareLink || 'Share link not available yet'}</span>
+            </div>
+            <div className="flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={downloadQr}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-orange-300"
-              >
-                <Download className="h-4 w-4" /> Download PNG
-              </button>
-              <button
-                type="button"
-                onClick={() => window.open(submissionState.shareUrl, '_blank')}
-                className="inline-flex items-center gap-2 rounded-full bg-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-lg"
+                onClick={() => navigate(buildListingPath(publishedListing))}
+                className="inline-flex items-center gap-2 rounded-full bg-[#FF6A3D] px-5 py-2 text-sm font-semibold text-white shadow-lg"
               >
                 View listing
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={copyLink}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-[#FF6A3D]"
+              >
+                <Copy className="h-4 w-4" /> Copy share link
               </button>
             </div>
+            {copyFeedback ? <p className="text-xs text-emerald-600">{copyFeedback}</p> : null}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="mt-8 rounded-full border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 hover:border-orange-300"
+            className="inline-flex items-center justify-center rounded-full border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 hover:border-[#FF6A3D]"
           >
-            Back to dashboard
+            {backButtonLabel}
           </button>
-        </div>
+        </section>
+        <aside className="rounded-3xl border border-slate-100 bg-slate-50 p-6 text-center shadow-inner">
+          <div ref={qrCanvasRef} className="mx-auto inline-flex items-center justify-center rounded-2xl bg-white p-4 shadow-sm">
+            <QRCodeCanvas value={shareLink || 'https://vendibook.com'} size={200} includeMargin fgColor="#FF6A3D" />
+          </div>
+          <p className="mt-4 text-lg font-semibold text-slate-900">Vendibook QR ready</p>
+          <p className="mt-2 text-sm text-slate-600">Print or share this code so people can quickly open your listing.</p>
+          <div className="mt-4 space-y-3">
+            <button
+              type="button"
+              onClick={downloadQr}
+              className="w-full rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-[#FF6A3D]"
+            >
+              <span className="inline-flex items-center justify-center gap-2"><Download className="h-4 w-4" /> Download QR code</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(buildListingPath(publishedListing))}
+              className="w-full rounded-full bg-[#FF6A3D]/10 px-5 py-2 text-sm font-semibold text-[#FF6A3D]"
+            >
+              Open listing page
+            </button>
+          </div>
+        </aside>
       </div>
-    );
-  }
+    </div>
+  );
 
-  return (
+  const editingView = (
     <div className="space-y-6">
       <div className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm">
         <div className="flex items-center justify-between gap-4">
@@ -1130,7 +1489,7 @@ function ListingCreationWizard({ onClose }) {
               onClick={() => goToStep(index)}
               className={`flex-1 rounded-full border px-3 py-2 text-xs font-semibold transition ${
                 index === currentStep
-                  ? 'border-orange-500 bg-orange-50 text-orange-700'
+                  ? 'border-[#FF6A3D] bg-[#FF6A3D]/10 text-[#FF6A3D]'
                   : index < currentStep
                     ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
                     : 'border-slate-200 text-slate-500 hover:border-orange-200'
@@ -1148,17 +1507,17 @@ function ListingCreationWizard({ onClose }) {
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
-              onClick={() => goToStep(currentStep - 1)}
-              className="rounded-full border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-orange-300"
+              onClick={handleBackNav}
+              className="rounded-full border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-orange-300 disabled:opacity-60"
               disabled={currentStep === 0}
             >
               Back
             </button>
             <button
               type="button"
-              onClick={() => goToStep(currentStep + 1)}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 via-orange-500 to-orange-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl"
-              disabled={currentStep === totalSteps - 1}
+              onClick={handleContinueNav}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500 via-orange-500 to-orange-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl disabled:opacity-60"
+              disabled={isContinueDisabled}
             >
               Continue
               <ArrowRight className="h-4 w-4" />
@@ -1172,6 +1531,14 @@ function ListingCreationWizard({ onClose }) {
       </div>
     </div>
   );
+
+  const wizardContent = viewMode === 'published' ? successView : editingView;
+
+  return (
+    <ListingWizardContext.Provider value={contextValue}>
+      {wizardContent}
+    </ListingWizardContext.Provider>
+  );
 }
 
 function LivePreviewCard({ preview }) {
@@ -1179,19 +1546,29 @@ function LivePreviewCard({ preview }) {
     <div className="space-y-5">
       <div className="rounded-2xl bg-slate-900 text-white p-4">
         <p className="text-xs uppercase tracking-[0.3em] text-orange-200">Live preview</p>
-        <h3 className="mt-3 text-2xl font-bold">{preview.title}</h3>
-        <p className="text-sm text-slate-200">{preview.location} • {preview.category}</p>
-        <p className="mt-3 text-sm text-orange-100">{preview.serviceText}</p>
-        <p className="mt-4 text-3xl font-semibold">{preview.basePrice ? `$${Number(preview.basePrice).toLocaleString()}` : 'Set price'}</p>
+        <h3 className="mt-3 text-2xl font-bold">{preview.title.text}</h3>
+        <p className={`text-sm ${preview.location.isPlaceholder ? 'text-slate-500' : 'text-slate-200'}`}>
+          {preview.location.text} • {preview.category.text}
+        </p>
+        <p className={`mt-3 text-sm ${preview.service.isPlaceholder ? 'text-slate-500' : 'text-orange-100'}`}>
+          {preview.service.text}
+        </p>
+        <p className={`mt-4 text-3xl font-semibold ${preview.price.isPlaceholder ? 'text-slate-500' : ''}`}>
+          {preview.price.text}
+        </p>
       </div>
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <img src={preview.heroImage} alt="Preview" className="h-48 w-full object-cover" />
         <div className="p-4 space-y-3">
-          <p className="text-sm font-semibold text-slate-700">{preview.bookingSummary}</p>
+          <p className={`text-sm font-semibold ${preview.bookingMode.isPlaceholder ? 'text-slate-500' : 'text-slate-700'}`}>
+            {preview.bookingMode.text}
+          </p>
           {preview.packages?.length ? (
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Packages snapshot</p>
-              <p className="text-sm text-slate-700">{preview.packages[0].name || 'Add package name'} starting at {preview.packages[0].price ? `$${preview.packages[0].price}` : 'TBD'}</p>
+              <p className="text-sm text-slate-700">
+                {preview.packages[0].name.text} starting at <span className={preview.packages[0].price.isPlaceholder ? 'text-slate-500' : undefined}>{preview.packages[0].price.text}</span>
+              </p>
             </div>
           ) : null}
           {preview.addOns?.length ? (
@@ -1199,7 +1576,7 @@ function LivePreviewCard({ preview }) {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Add-ons</p>
               <ul className="text-sm text-slate-600">
                 {preview.addOns.slice(0, 2).map(addOn => (
-                  <li key={addOn.id}>• {addOn.name || 'Untitled add-on'}</li>
+                  <li key={addOn.id} className={addOn.name.isPlaceholder ? 'text-slate-500' : undefined}>• {addOn.name.text}</li>
                 ))}
                 {preview.addOns.length > 2 && <li className="text-xs text-slate-400">+{preview.addOns.length - 2} more</li>}
               </ul>
@@ -1212,7 +1589,10 @@ function LivePreviewCard({ preview }) {
 }
 
 ListingCreationWizard.propTypes = {
-  onClose: PropTypes.func
+  onClose: PropTypes.func,
+  mode: PropTypes.oneOf(['create', 'edit']),
+  initialData: PropTypes.object,
+  listingId: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
 };
 
 LivePreviewCard.propTypes = {
@@ -1220,7 +1600,10 @@ LivePreviewCard.propTypes = {
 };
 
 ListingCreationWizard.defaultProps = {
-  onClose: () => {}
+  onClose: () => {},
+  mode: 'create',
+  initialData: null,
+  listingId: null
 };
 
 export default ListingCreationWizard;

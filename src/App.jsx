@@ -4,6 +4,8 @@ import ListingsPage from './pages/ListingsPage';
 import ListingDetails from './pages/ListingDetails';
 import BecomeHostLanding from './pages/BecomeHostLanding';
 import HostOnboardingWizard from './pages/HostOnboardingWizard';
+import HostListings from './pages/HostListings';
+import HostEditListing from './pages/HostEditListing';
 import HostDashboard from './pages/HostDashboard';
 import { MessagesInboxPage } from './pages/MessagesInboxPage';
 import { MessageDetailPage } from './pages/MessageDetailPage';
@@ -29,6 +31,8 @@ function App() {
         {/* Host Pages */}
         <Route path="/become-host" element={<BecomeHostLanding />} />
         <Route path="/host/onboarding" element={<HostOnboardingWizard />} />
+        <Route path="/host/listings" element={<HostListings />} />
+        <Route path="/host/listings/:id/edit" element={<HostEditListing />} />
         <Route path="/host/dashboard" element={<HostDashboard />} />
         <Route path="/host/bookings" element={<HostBookingsPage />} />
         <Route path="/analytics" element={<AnalyticsDashboardPage />} />
