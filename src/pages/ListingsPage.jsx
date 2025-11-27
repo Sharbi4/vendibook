@@ -1,18 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CalendarDays, MapPin, SlidersHorizontal, X } from 'lucide-react';
+import { CalendarDays, SlidersHorizontal, X } from 'lucide-react';
 import ListingCard from '../components/ListingCard';
+import LocationAutocomplete from '../components/LocationAutocomplete.jsx';
+import VendibookMap from '../components/VendibookMap.jsx';
 import { useListingsQuery } from '../hooks/useListingsQuery';
 import AppLayout from '../layouts/AppLayout.jsx';
 import {
   SEARCH_MODE,
+  DISTANCE_FILTER_OPTIONS,
   buildSearchParamsFromFilters,
+  deriveCityState,
   formatDateRange,
   getCategoryLabel,
   getCategoryOptionsForMode,
   getModeLabel,
   parseFiltersFromSearchParams
 } from '../constants/filters';
+import { haversineDistance } from '../utils/geo';
 
 const MODE_PILLS = [
   { id: SEARCH_MODE.RENT, label: 'Rent equipment' },
@@ -29,6 +34,17 @@ const AMENITY_OPTIONS = [
   { id: 'outdoor', label: 'Outdoor ready' }
 ];
 
+function parseCoordinate(value) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (value === '' || value == null) {
+    return null;
+  }
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
 function ListingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialFilters = useMemo(() => parseFiltersFromSearchParams(searchParams), [searchParams]);
@@ -41,6 +57,9 @@ function ListingsPage() {
     maxPrice: '',
     amenities: AMENITY_OPTIONS.reduce((acc, amenity) => ({ ...acc, [amenity.id]: false }), {})
   });
+  const [showMobileMap, setShowMobileMap] = useState(false);
+  const [activeListingId, setActiveListingId] = useState(null);
+  const cardRefs = useRef({});
   // TODO connect advanced filters to /api/listings once backend and Neon schema support these fields.
 
   const {
@@ -56,9 +75,91 @@ function ListingsPage() {
   } = useListingsQuery(initialFilters);
 
   const safeListings = Array.isArray(listings) ? listings : [];
+  const listingsWithDistance = useMemo(() => {
+    return safeListings.map((listing) => {
+      const lat = parseCoordinate(listing.latitude ?? listing.lat);
+      const lng = parseCoordinate(listing.longitude ?? listing.lng);
+      const distanceFromSearch = searchCenter && lat != null && lng != null
+        ? haversineDistance(searchCenter, { lat, lng })
+        : null;
+      return {
+        ...listing,
+        latitude: lat ?? listing.latitude ?? null,
+        longitude: lng ?? listing.longitude ?? null,
+        distanceFromSearch
+      };
+    });
+  }, [safeListings, searchCenter]);
+
+  const filteredListings = useMemo(() => {
+    if (!appliedFilters.distanceMiles || !searchCenter) {
+      return listingsWithDistance;
+    }
+
+    return listingsWithDistance.filter((listing) => {
+      if (listing.distanceFromSearch == null) {
+        return true;
+      }
+      return listing.distanceFromSearch <= appliedFilters.distanceMiles;
+    });
+  }, [appliedFilters.distanceMiles, listingsWithDistance, searchCenter]);
+
+  const mapMarkers = useMemo(() => {
+    return filteredListings
+      .map((listing, index) => {
+        const lat = parseCoordinate(listing.latitude);
+        const lng = parseCoordinate(listing.longitude);
+        if (lat == null || lng == null) {
+          // TODO: ensure listings include latitude/longitude from address geocoding in backend.
+          return null;
+        }
+        const price = listing.price ?? listing.price_per_day ?? listing.pricePerDay ?? null;
+        return {
+          id: listing.id ?? `listing-${index}`,
+          lat,
+          lng,
+          title: listing.title,
+          price
+        };
+      })
+      .filter(Boolean);
+  }, [filteredListings]);
+
+  const mapCenter = useMemo(() => {
+    if (searchCenter) {
+      return searchCenter;
+    }
+    if (mapMarkers.length) {
+      return { lat: mapMarkers[0].lat, lng: mapMarkers[0].lng };
+    }
+    return { lat: 33.4484, lng: -112.074 };
+  }, [mapMarkers, searchCenter]);
+
+  useEffect(() => {
+    if (!filteredListings.length) {
+      setActiveListingId(null);
+      return;
+    }
+    if (!filteredListings.some((listing) => listing.id === activeListingId)) {
+      setActiveListingId(filteredListings[0].id);
+    }
+  }, [filteredListings, activeListingId]);
+
+  const scrollListingIntoView = (listingId) => {
+    const node = cardRefs.current[listingId];
+    if (node && typeof node.scrollIntoView === 'function') {
+      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  const handleMarkerClick = (listingId) => {
+    setActiveListingId(listingId);
+    scrollListingIntoView(listingId);
+  };
+
   const currentPage = pagination?.page || filters.page || appliedFilters.page || 1;
   const totalPages = pagination?.pages || 1;
-  const totalResults = pagination?.total ?? safeListings.length;
+  const totalResults = filteredListings.length;
 
   const categoryOptions = useMemo(
     () => [{ value: '', label: 'All categories' }, ...getCategoryOptionsForMode(formFilters.mode)],
@@ -79,6 +180,27 @@ function ListingsPage() {
     }
   }, [initialFilters, setFilters, setPage]);
 
+  const formLocationSelection = useMemo(() => {
+    if (!formFilters.locationLabel && !formFilters.locationText) {
+      return null;
+    }
+    return {
+      label: formFilters.locationLabel || formFilters.locationText,
+      placeName: formFilters.locationText || formFilters.locationLabel,
+      city: formFilters.city,
+      state: formFilters.state,
+      lat: parseCoordinate(formFilters.latitude) ?? undefined,
+      lng: parseCoordinate(formFilters.longitude) ?? undefined
+    };
+  }, [formFilters.locationLabel, formFilters.locationText, formFilters.latitude, formFilters.longitude, formFilters.city, formFilters.state]);
+
+  const searchCenter = useMemo(() => {
+    const lat = parseCoordinate(appliedFilters.latitude);
+    const lng = parseCoordinate(appliedFilters.longitude);
+    if (lat == null || lng == null) return null;
+    return { lat, lng };
+  }, [appliedFilters.latitude, appliedFilters.longitude]);
+
   const commitFilters = (updater) => {
     setAppliedFilters((prev) => {
       const draft = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
@@ -87,6 +209,13 @@ function ListingsPage() {
         page: 1
       };
       next.locationText = draft.locationText ?? [next.city, next.state].filter(Boolean).join(', ');
+      next.locationLabel = draft.locationLabel || next.locationText;
+      const sanitizedLat = parseCoordinate(draft.latitude);
+      const sanitizedLng = parseCoordinate(draft.longitude);
+      next.latitude = sanitizedLat == null ? '' : sanitizedLat;
+      next.longitude = sanitizedLng == null ? '' : sanitizedLng;
+      next.distanceMiles = draft.distanceMiles || '';
+
       setFormFilters((formPrev) => ({ ...formPrev, ...next }));
       setFilters({
         mode: next.mode,
@@ -94,7 +223,10 @@ function ListingsPage() {
         state: next.state,
         listingType: next.listingType,
         startDate: next.startDate,
-        endDate: next.endDate
+        endDate: next.endDate,
+        latitude: next.latitude,
+        longitude: next.longitude,
+        distanceMiles: next.distanceMiles
       });
       pushFiltersToUrl(next);
       return next;
@@ -116,15 +248,47 @@ function ListingsPage() {
     setFormFilters((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleLocationQueryChange = (value) => {
+    const derived = deriveCityState(value);
+    setFormFilters((prev) => ({
+      ...prev,
+      locationText: value,
+      locationLabel: value,
+      city: derived.city,
+      state: derived.state,
+      latitude: '',
+      longitude: ''
+    }));
+  };
+
+  const handleLocationSelect = (place) => {
+    if (!place) {
+      setFormFilters((prev) => ({
+        ...prev,
+        locationText: '',
+        locationLabel: '',
+        city: '',
+        state: '',
+        latitude: '',
+        longitude: ''
+      }));
+      return;
+    }
+
+    setFormFilters((prev) => ({
+      ...prev,
+      locationText: place.placeName || place.label || '',
+      locationLabel: place.label || place.placeName || '',
+      city: place.city || prev.city,
+      state: place.state || prev.state,
+      latitude: typeof place.lat === 'number' ? place.lat : prev.latitude,
+      longitude: typeof place.lng === 'number' ? place.lng : prev.longitude
+    }));
+  };
+
   const handleFilterSubmit = (event) => {
     event.preventDefault();
-    const trimmedCity = formFilters.city.trim();
-    const trimmedState = formFilters.state.trim().slice(0, 2).toUpperCase();
-    commitFilters({
-      ...formFilters,
-      city: trimmedCity,
-      state: trimmedState
-    });
+    commitFilters(formFilters);
   };
 
   const handlePagination = (nextPage) => {
@@ -147,7 +311,7 @@ function ListingsPage() {
       return;
     }
     if (key === 'location') {
-      commitFilters({ city: '', state: '', locationText: '' });
+      commitFilters({ city: '', state: '', locationText: '', locationLabel: '', latitude: '', longitude: '' });
       return;
     }
     if (key === 'category') {
@@ -156,6 +320,10 @@ function ListingsPage() {
     }
     if (key === 'dates') {
       commitFilters({ startDate: '', endDate: '' });
+      return;
+    }
+    if (key === 'distance') {
+      commitFilters({ distanceMiles: '' });
     }
   };
 
@@ -175,7 +343,7 @@ function ListingsPage() {
   };
 
   const activeChips = [];
-  const locationLabel = [appliedFilters.city, appliedFilters.state].filter(Boolean).join(', ');
+  const locationLabel = appliedFilters.locationLabel || [appliedFilters.city, appliedFilters.state].filter(Boolean).join(', ');
   const categoryLabel = getCategoryLabel(appliedFilters.mode, appliedFilters.listingType);
 
   if (appliedFilters.mode) {
@@ -189,6 +357,10 @@ function ListingsPage() {
   }
   if (appliedFilters.startDate || appliedFilters.endDate) {
     activeChips.push({ key: 'dates', label: formatDateRange(appliedFilters.startDate, appliedFilters.endDate) });
+  }
+  if (appliedFilters.distanceMiles) {
+    const option = DISTANCE_FILTER_OPTIONS.find((opt) => opt.value === appliedFilters.distanceMiles);
+    activeChips.push({ key: 'distance', label: option?.label || `Within ${appliedFilters.distanceMiles} miles` });
   }
 
   return (
@@ -224,35 +396,16 @@ function ListingsPage() {
               ))}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-[1.4fr_0.6fr_1fr_1fr_1fr]">
-              <label className="flex flex-col gap-2 text-sm font-medium text-gray-700">
-                City
-                <div className="relative">
-                  <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    name="city"
-                    value={formFilters.city}
-                    onChange={handleInputChange}
-                    placeholder="Phoenix"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 pl-9 text-base text-gray-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
-                  />
-                </div>
-              </label>
-
-              <label className="flex flex-col gap-2 text-sm font-medium text-gray-700">
-                State
-                <input
-                  type="text"
-                  name="state"
-                  value={formFilters.state}
-                  onChange={handleInputChange}
-                  placeholder="AZ"
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-base uppercase tracking-wide text-gray-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
-                  maxLength={2}
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1.5fr)_1fr]">
+              <div className="md:col-span-2">
+                <LocationAutocomplete
+                  label="Location"
+                  value={formLocationSelection}
+                  onChange={handleLocationSelect}
+                  onQueryChange={handleLocationQueryChange}
+                  placeholder="Search by city, ZIP, or landmark"
                 />
-              </label>
-
+              </div>
               <label className="flex flex-col gap-2 text-sm font-medium text-gray-700">
                 Category
                 <select
@@ -263,6 +416,24 @@ function ListingsPage() {
                 >
                   {categoryOptions.map((option) => (
                     <option key={option.value || 'all'} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <label className="flex flex-col gap-2 text-sm font-medium text-gray-700">
+                Within
+                <select
+                  name="distanceMiles"
+                  value={formFilters.distanceMiles || ''}
+                  onChange={(event) => setFormFilters((prev) => ({ ...prev, distanceMiles: event.target.value ? Number(event.target.value) : '' }))}
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-base text-gray-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                >
+                  {DISTANCE_FILTER_OPTIONS.map((option) => (
+                    <option key={option.value || 'any'} value={option.value}>
                       {option.label}
                     </option>
                   ))}
@@ -395,99 +566,157 @@ function ListingsPage() {
 
       <main className="mx-auto max-w-6xl px-4 py-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm font-medium text-gray-600">
-            Showing <span className="font-semibold text-gray-900">{totalResults}</span> listing{totalResults === 1 ? '' : 's'}
+          <p className="text-sm font-medium text-charcoal">
+            Showing <span className="font-semibold text-orange">{totalResults}</span> listing{totalResults === 1 ? '' : 's'}
           </p>
           {pagination && (
-            <p className="text-sm text-gray-500">Page {currentPage} of {totalPages}</p>
+            <p className="text-sm text-charcoal-subtle">Page {currentPage} of {totalPages}</p>
           )}
         </div>
 
-        <div className="mt-8">
-          {isLoading && (
-            <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-gray-200 bg-white/90 p-10 text-center text-gray-600">
-              Loading listings…
-            </div>
+        <div className="mt-4 flex flex-col gap-3 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setShowMobileMap((prev) => !prev)}
+            className="inline-flex items-center justify-center rounded-full border border-orange/40 bg-white px-4 py-2 text-sm font-semibold text-orange transition hover:border-orange"
+          >
+            {showMobileMap ? 'Hide map' : 'View map'}
+          </button>
+          {showMobileMap && (
+            <VendibookMap
+              center={mapCenter}
+              markers={mapMarkers}
+              activeMarkerId={activeListingId}
+              onMarkerClick={handleMarkerClick}
+              className="h-[320px]"
+            />
           )}
+        </div>
 
-          {!isLoading && isError && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-8 text-center">
-              <p className="text-lg font-semibold text-red-700">Unable to load listings</p>
-              <p className="mt-2 text-sm text-red-600">{error?.message || 'Something went wrong. Please try again.'}</p>
-              <button
-                type="button"
-                onClick={refetch}
-                className="mt-4 inline-flex items-center justify-center rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
-              >
-                Retry
-              </button>
-            </div>
-          )}
+        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
+          <div>
+            {isLoading && (
+              <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-neutralDark/30 bg-white p-10 text-center text-charcoal">
+                Loading listings…
+              </div>
+            )}
 
-          {!isLoading && !isError && safeListings.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center">
-              <p className="text-lg font-semibold text-gray-900">No listings match your filters</p>
-              <p className="mt-2 text-sm text-gray-600">Try adjusting your city, mode, or category to broaden your search.</p>
-              <button
-                type="button"
-                onClick={() => commitFilters({
-                  mode: SEARCH_MODE.RENT,
-                  city: '',
-                  state: '',
-                  listingType: '',
-                  startDate: '',
-                  endDate: ''
+            {!isLoading && isError && (
+              <div className="rounded-2xl border border-orange/30 bg-orange/5 p-8 text-center">
+                <p className="text-lg font-semibold text-orange">Unable to load listings</p>
+                <p className="mt-2 text-sm text-charcoal-subtle">{error?.message || 'Something went wrong. Please try again.'}</p>
+                <button
+                  type="button"
+                  onClick={refetch}
+                  className="mt-4 inline-flex items-center justify-center rounded-full border border-orange/40 bg-white px-4 py-2 text-sm font-semibold text-orange transition hover:border-orange"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {!isLoading && !isError && filteredListings.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-neutralDark/40 bg-white p-12 text-center">
+                <p className="text-lg font-semibold text-charcoal">No listings match your filters</p>
+                <p className="mt-2 text-sm text-charcoal-subtle">Try loosening your location or distance filters for more results.</p>
+                <button
+                  type="button"
+                  onClick={() => commitFilters({
+                    mode: SEARCH_MODE.RENT,
+                    city: '',
+                    state: '',
+                    locationText: '',
+                    locationLabel: '',
+                    latitude: '',
+                    longitude: '',
+                    listingType: '',
+                    startDate: '',
+                    endDate: '',
+                    distanceMiles: ''
+                  })}
+                  className="mt-4 inline-flex items-center justify-center rounded-full border border-neutralDark/30 px-4 py-2 text-sm font-semibold text-charcoal transition hover:border-orange"
+                >
+                  Reset filters
+                </button>
+              </div>
+            )}
+
+            {!isLoading && !isError && filteredListings.length > 0 && (
+              <div className="grid gap-6 pt-2 sm:grid-cols-2 xl:grid-cols-3">
+                {filteredListings.map((listing, index) => {
+                  const listingId = listing.id ?? `${listing.title ?? 'listing'}-${index}`;
+                  const isActive = activeListingId === listingId;
+                  return (
+                    <div
+                      key={listingId}
+                      ref={(node) => {
+                        if (node) {
+                          cardRefs.current[listingId] = node;
+                        } else {
+                          delete cardRefs.current[listingId];
+                        }
+                      }}
+                      onMouseEnter={() => setActiveListingId(listingId)}
+                      onFocus={() => setActiveListingId(listingId)}
+                      className={`rounded-3xl border p-1 transition ${
+                        isActive ? 'border-orange shadow-brand-soft' : 'border-transparent'
+                      }`}
+                    >
+                      <ListingCard listing={listing} />
+                      {listing.distanceFromSearch != null && (
+                        <p className="px-3 pb-3 text-xs text-charcoal-subtle">≈ {listing.distanceFromSearch.toFixed(1)} miles away</p>
+                      )}
+                    </div>
+                  );
                 })}
-                className="mt-4 inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-              >
-                Reset filters
-              </button>
-            </div>
-          )}
+              </div>
+            )}
 
-          {!isLoading && !isError && safeListings.length > 0 && (
-            <div className="grid gap-6 pt-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {safeListings.map((listing, index) => (
-                <ListingCard
-                  key={listing.id ?? `${listing.title ?? 'listing'}-${index}`}
-                  listing={listing}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+            {pagination && totalPages > 1 && (
+              <div className="mt-10 flex flex-col items-center gap-4 border-t border-neutralDark/20 pt-6 sm:flex-row sm:justify-between">
+                <button
+                  type="button"
+                  onClick={() => handlePagination(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                  className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                    currentPage <= 1
+                      ? 'cursor-not-allowed border-neutralDark/20 bg-neutralLight text-charcoal-subtle'
+                      : 'border-neutralDark/40 bg-white text-charcoal hover:border-orange'
+                  }`}
+                >
+                  Previous
+                </button>
 
-        {pagination && totalPages > 1 && (
-          <div className="mt-10 flex flex-col items-center gap-4 border-t border-gray-200 pt-6 sm:flex-row sm:justify-between">
-            <button
-              type="button"
-              onClick={() => handlePagination(currentPage - 1)}
-              disabled={currentPage <= 1}
-              className={`inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition ${
-                currentPage <= 1
-                  ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
-                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              Previous
-            </button>
+                <p className="text-sm text-charcoal-subtle">Page {currentPage} of {totalPages}</p>
 
-            <p className="text-sm text-gray-600">Page {currentPage} of {totalPages}</p>
-
-            <button
-              type="button"
-              onClick={() => handlePagination(currentPage + 1)}
-              disabled={currentPage >= totalPages}
-              className={`inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition ${
-                currentPage >= totalPages
-                  ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
-                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              Next
-            </button>
+                <button
+                  type="button"
+                  onClick={() => handlePagination(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                    currentPage >= totalPages
+                      ? 'cursor-not-allowed border-neutralDark/20 bg-neutralLight text-charcoal-subtle'
+                      : 'border-neutralDark/40 bg-white text-charcoal hover:border-orange'
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
-        )}
+
+          <div className="hidden lg:block">
+            <div className="sticky top-28">
+              <VendibookMap
+                center={mapCenter}
+                markers={mapMarkers}
+                activeMarkerId={activeListingId}
+                onMarkerClick={handleMarkerClick}
+                className="h-[520px]"
+              />
+            </div>
+          </div>
+        </div>
       </main>
     </AppLayout>
   );

@@ -14,7 +14,12 @@ const buildQueryString = (params = {}) => {
   if (params.mode) searchParams.set('mode', params.mode);
   if (params.startDate) searchParams.set('startDate', params.startDate);
   if (params.endDate) searchParams.set('endDate', params.endDate);
-  // TODO: Wire mode and date filters into Neon queries once backend support lands.
+  if (Number.isFinite(params.latitude)) searchParams.set('lat', String(params.latitude));
+  if (Number.isFinite(params.longitude)) searchParams.set('lng', String(params.longitude));
+  if (Number.isFinite(params.distanceMiles) && params.distanceMiles > 0) {
+    searchParams.set('distance', String(params.distanceMiles));
+  }
+  // TODO: Wire mode/date/distance filters into Neon queries once backend support lands.
 
   return searchParams.toString();
 };
@@ -29,6 +34,9 @@ export function useListingsQuery(initialState = {}) {
     endDate: initialState.endDate || '',
     page: Number(initialState.page) > 0 ? Number(initialState.page) : 1,
     limit: initialState.limit || DEFAULT_LIMIT,
+    latitude: Number.isFinite(initialState.latitude) ? initialState.latitude : '',
+    longitude: Number.isFinite(initialState.longitude) ? initialState.longitude : '',
+    distanceMiles: Number.isFinite(initialState.distanceMiles) ? initialState.distanceMiles : '',
   }));
 
   const [listings, setListings] = useState([]);
@@ -116,7 +124,14 @@ export function useListingsQuery(initialState = {}) {
     isError: Boolean(error),
     error,
     refetch,
-    setFilters,
-    setPage,
-  };
-}
+      setFilters({
+        mode: next.mode,
+        city: next.city,
+        state: next.state,
+        listingType: next.listingType,
+        startDate: next.startDate,
+        endDate: next.endDate,
+        latitude: next.latitude,
+        longitude: next.longitude,
+        distanceMiles: next.distanceMiles
+      });

@@ -100,10 +100,17 @@ function toPublicListing(listing, hostColumnName) {
   const safeCity = display_city || city || null;
   const safeState = display_state || state || null;
 
+  const normalizedLatitude =
+    typeof latitude === 'number' ? latitude : latitude != null ? Number(latitude) : null;
+  const normalizedLongitude =
+    typeof longitude === 'number' ? longitude : longitude != null ? Number(longitude) : null;
+
   return {
     ...rest,
     city: safeCity,
     state: safeState,
+    latitude: Number.isFinite(normalizedLatitude) ? normalizedLatitude : null,
+    longitude: Number.isFinite(normalizedLongitude) ? normalizedLongitude : null,
     service_zone: {
       type: service_zone_type || 'radius',
       radius_miles:

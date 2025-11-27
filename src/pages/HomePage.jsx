@@ -18,6 +18,7 @@ import {
   Grid2x2
 } from 'lucide-react';
 import AppLayout from '../layouts/AppLayout.jsx';
+import LocationAutocomplete from '../components/LocationAutocomplete.jsx';
 import {
   ADVANCED_FILTER_PLACEHOLDERS,
   SEARCH_MODE,
@@ -33,7 +34,7 @@ import {
 
 // TODO: Replace with curated Vendibook brand photography once the production asset is finalized.
 const HERO_IMAGE_URL = '/images/hero-food-truck.jpg';
-const CATEGORY_COLOR_PALETTE = ['#FF5124', '#FFB42C', '#FFB42C', '#FFB42C', '#FFB42C', '#FF5124'];
+const CATEGORY_COLOR_PALETTE = ['#FF5124', '#FFB42C', '#343434', '#F8F8F8'];
 const CATEGORY_ICON_COMPONENTS = {
   truck: Truck,
   trailer: Truck,
@@ -64,6 +65,33 @@ function HomePage() {
     setFilters(initialFilters);
     setAppliedFilters(initialFilters);
   }, [initialFilters]);
+
+  const parseCoordinate = (value) => {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null;
+    }
+    if (value === '' || value == null) {
+      return null;
+    }
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  };
+
+  const locationSelection = useMemo(() => {
+    if (!filters.locationLabel && !filters.locationText) {
+      return null;
+    }
+    const lat = parseCoordinate(filters.latitude);
+    const lng = parseCoordinate(filters.longitude);
+    return {
+      label: filters.locationLabel || filters.locationText,
+      placeName: filters.locationText || filters.locationLabel,
+      city: filters.city,
+      state: filters.state,
+      lat: lat ?? undefined,
+      lng: lng ?? undefined
+    };
+  }, [filters.locationLabel, filters.locationText, filters.latitude, filters.longitude, filters.city, filters.state]);
 
   const modeOptions = [
     { id: SEARCH_MODE.RENT, label: 'Rent equipment' },
@@ -96,7 +124,7 @@ function HomePage() {
   );
   const modalCtaLabel = getModeCtaCopy(filters.mode);
   const appliedCategoryLabel = getCategoryLabel(appliedFilters.mode, appliedFilters.listingType);
-  const appliedLocationLabel = appliedFilters.locationText || [appliedFilters.city, appliedFilters.state].filter(Boolean).join(', ');
+  const appliedLocationLabel = appliedFilters.locationLabel || appliedFilters.locationText || [appliedFilters.city, appliedFilters.state].filter(Boolean).join(', ');
   const heroSummaryParts = [
     appliedLocationLabel || 'Any location',
     appliedCategoryLabel,
@@ -120,6 +148,9 @@ function HomePage() {
     setAppliedFilters((prev) => {
       const nextState = typeof updater === 'function' ? updater(prev) : updater;
       const next = { ...nextState, page: 1 };
+      if (!next.locationLabel && (next.city || next.state)) {
+        next.locationLabel = [next.city, next.state].filter(Boolean).join(', ');
+      }
       setFilters(next);
       return next;
     });
@@ -140,13 +171,41 @@ function HomePage() {
     }));
   };
 
-  const handleLocationChange = (value) => {
+  const handleLocationQueryChange = (value) => {
     const derived = deriveCityState(value);
     setFilters((prev) => ({
       ...prev,
       locationText: value,
       city: derived.city,
-      state: derived.state
+      state: derived.state,
+      locationLabel: value,
+      latitude: '',
+      longitude: ''
+    }));
+  };
+
+  const handleLocationSelect = (place) => {
+    if (!place) {
+      setFilters((prev) => ({
+        ...prev,
+        locationText: '',
+        locationLabel: '',
+        city: '',
+        state: '',
+        latitude: '',
+        longitude: ''
+      }));
+      return;
+    }
+
+    setFilters((prev) => ({
+      ...prev,
+      locationText: place.placeName || place.label || '',
+      locationLabel: place.label || place.placeName || '',
+      city: place.city || prev.city,
+      state: place.state || prev.state,
+      latitude: typeof place.lat === 'number' ? place.lat : prev.latitude,
+      longitude: typeof place.lng === 'number' ? place.lng : prev.longitude
     }));
   };
 
@@ -154,8 +213,11 @@ function HomePage() {
     applyAndSyncFilters((prev) => ({
       ...prev,
       locationText: '',
+      locationLabel: '',
       city: '',
-      state: ''
+      state: '',
+      latitude: '',
+      longitude: ''
     }));
   };
 
@@ -179,8 +241,11 @@ function HomePage() {
       ...prev,
       listingType: '',
       locationText: '',
+      locationLabel: '',
       city: '',
       state: '',
+      latitude: '',
+      longitude: '',
       startDate: '',
       endDate: ''
     }));
@@ -384,11 +449,12 @@ function HomePage() {
   });
 
   const handleSearch = () => {
-    const derived = deriveCityState(filters.locationText);
+    const derived = deriveCityState(filters.locationLabel || filters.locationText);
     const nextFilters = {
       ...filters,
-      city: derived.city,
-      state: derived.state,
+      city: filters.city || derived.city,
+      state: filters.state || derived.state,
+      locationLabel: filters.locationLabel || filters.locationText || [derived.city, derived.state].filter(Boolean).join(', '),
       page: 1
     };
     setFilters(nextFilters);
@@ -676,19 +742,13 @@ function HomePage() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="block text-sm font-semibold text-slate-700">
-                    Location
-                    <div className="relative mt-2">
-                      <MapPin className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="text"
-                        value={filters.locationText}
-                        onChange={(e) => handleLocationChange(e.target.value)}
-                        placeholder="Enter city and state"
-                        className="w-full rounded-2xl border border-slate-200 px-4 py-3 pl-10 text-base text-slate-900 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
-                      />
-                    </div>
-                  </label>
+                  <LocationAutocomplete
+                    label="Location"
+                    value={locationSelection}
+                    onChange={handleLocationSelect}
+                    onQueryChange={handleLocationQueryChange}
+                    placeholder="Search by city, ZIP, or landmark"
+                  />
                   <div>
                     <p className="text-sm font-semibold text-slate-700">Category</p>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">

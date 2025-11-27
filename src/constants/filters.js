@@ -66,12 +66,24 @@ export const DEFAULT_FILTERS = {
   mode: SEARCH_MODE.RENT,
   listingType: '',
   locationText: '',
+  locationLabel: '',
   city: '',
   state: '',
+  latitude: '',
+  longitude: '',
+  distanceMiles: '',
   startDate: '',
   endDate: '',
   page: 1
 };
+
+export const DISTANCE_FILTER_OPTIONS = [
+  { label: 'Any distance', value: '' },
+  { label: 'Within 5 miles', value: 5 },
+  { label: 'Within 10 miles', value: 10 },
+  { label: 'Within 25 miles', value: 25 },
+  { label: 'Within 50 miles', value: 50 }
+];
 
 export const ADVANCED_FILTER_PLACEHOLDERS = [
   { key: 'priceRange', label: 'Price range', description: 'Set min / max budget' },
@@ -121,22 +133,35 @@ export function parseFiltersFromSearchParams(searchParams) {
   const params = typeof searchParams.get === 'function' ? searchParams : new URLSearchParams(searchParams);
   const mode = params.get('mode') || DEFAULT_FILTERS.mode;
   const locationText = params.get('location') || '';
+  const locationLabel = params.get('locationLabel') || '';
   const cityParam = params.get('city') || '';
   const stateParam = params.get('state') || '';
+  const latitudeParam = params.get('lat');
+  const longitudeParam = params.get('lng');
+  const distanceParam = params.get('distance');
   const startDate = params.get('startDate') || '';
   const endDate = params.get('endDate') || '';
   const listingType = params.get('listingType') || '';
   const page = Number(params.get('page')) > 0 ? Number(params.get('page')) : DEFAULT_FILTERS.page;
 
   const derived = locationText ? deriveCityState(locationText) : { city: cityParam, state: stateParam };
+  const parsedLat = latitudeParam != null && latitudeParam !== '' ? Number(latitudeParam) : '';
+  const parsedLng = longitudeParam != null && longitudeParam !== '' ? Number(longitudeParam) : '';
+  const latitude = Number.isFinite(parsedLat) ? parsedLat : '';
+  const longitude = Number.isFinite(parsedLng) ? parsedLng : '';
+  const safeDistance = distanceParam != null && distanceParam !== '' ? Number(distanceParam) : '';
 
   return {
     ...DEFAULT_FILTERS,
     mode: Object.values(SEARCH_MODE).includes(mode) ? mode : DEFAULT_FILTERS.mode,
     listingType,
     locationText: locationText || [cityParam, stateParam].filter(Boolean).join(', '),
+    locationLabel: locationLabel || locationText || [cityParam, stateParam].filter(Boolean).join(', '),
     city: derived.city || cityParam,
     state: derived.state || stateParam.toUpperCase(),
+    latitude,
+    longitude,
+    distanceMiles: Number.isFinite(safeDistance) && safeDistance > 0 ? safeDistance : '',
     startDate,
     endDate,
     page
@@ -150,6 +175,10 @@ export function buildSearchParamsFromFilters(filters = DEFAULT_FILTERS) {
   if (merged.city) params.set('city', merged.city);
   if (merged.state) params.set('state', merged.state);
   if (merged.locationText) params.set('location', merged.locationText);
+  if (merged.locationLabel) params.set('locationLabel', merged.locationLabel);
+  if (Number.isFinite(merged.latitude)) params.set('lat', String(merged.latitude));
+  if (Number.isFinite(merged.longitude)) params.set('lng', String(merged.longitude));
+  if (merged.distanceMiles) params.set('distance', String(merged.distanceMiles));
   if (merged.listingType) params.set('listingType', merged.listingType);
   if (merged.startDate) params.set('startDate', merged.startDate);
   if (merged.endDate) params.set('endDate', merged.endDate);
