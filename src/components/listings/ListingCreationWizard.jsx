@@ -142,7 +142,39 @@ const hydrateFormDataFromListing = (listing) => {
       packages: (INITIAL_FORM_DATA.pricing.packages || []).map(pkg => ({ ...pkg }))
     },
     addOns: (INITIAL_FORM_DATA.addOns || []).map(addOn => ({ ...addOn })),
-    notes: listing.description || ''
+    notes: listing.description || '',
+    eventProProfile: {
+      ...INITIAL_EVENT_PRO_PROFILE,
+      businessName: listing.business_name || listing.display_name || '',
+      displayName: listing.display_name || '',
+      city: listing.city || '',
+      state: listing.state || '',
+      serviceAreaDescription: listing.service_area_description || INITIAL_EVENT_PRO_PROFILE.serviceAreaDescription
+    },
+    eventProPackages: Array.isArray(listing.event_pro_packages)
+      ? listing.event_pro_packages.map((pkg) => ({
+          id: pkg.id || createId(),
+          name: pkg.name || '',
+          description: pkg.description || '',
+          servesCount: pkg.servesCount || pkg.serves_count || '',
+          basePrice: pkg.basePrice || pkg.base_price || '',
+          priceUnit: pkg.priceUnit || pkg.price_unit || 'per_event',
+          imageUrl: pkg.imageUrl || pkg.image_url || '',
+          addOns: Array.isArray(pkg.addOns)
+            ? pkg.addOns.map((addOn) => ({
+                id: addOn.id || createId(),
+                name: addOn.name || '',
+                description: addOn.description || '',
+                price: addOn.price || '',
+                priceUnit: addOn.priceUnit || addOn.price_unit || 'per_event'
+              }))
+            : []
+        }))
+      : [createEventProPackage()],
+    eventProLogistics: {
+      ...INITIAL_EVENT_PRO_LOGISTICS,
+      serviceRadiusMiles: listing.service_radius_miles || INITIAL_EVENT_PRO_LOGISTICS.serviceRadiusMiles
+    }
   };
 };
 
@@ -152,11 +184,45 @@ const createId = () => (
     : Math.random().toString(36).slice(2, 10)
 );
 
-const STEP_CONFIG = [
+const EVENT_PRO_SERVICE_TYPES = [
+  'Catering',
+  'Bartender',
+  'Candy bar',
+  'DJ',
+  'Photo booth',
+  'Coffee cart',
+  'Other'
+];
+
+const EVENT_PRO_PRICE_UNITS = [
+  { value: 'per_event', label: 'Per event' },
+  { value: 'per_hour', label: 'Per hour' },
+  { value: 'per_person', label: 'Per person' }
+];
+
+const EVENT_PRO_TRAVEL_POLICIES = [
+  { value: 'included_within_radius', label: 'Included within radius' },
+  { value: 'travel_fee_beyond_radius', label: 'Travel fee beyond radius' },
+  { value: 'custom_quote', label: 'Custom quote' }
+];
+
+const RENTAL_STEP_CONFIG = [
   { key: 'type', label: 'Listing type', description: 'Tell us what you offer' },
   { key: 'basics', label: 'Basics', description: 'Location & positioning' },
   { key: 'schedule', label: 'Schedule', description: 'Booking availability' },
   { key: 'pricing', label: 'Pricing & packages', description: 'Rates and offerings' },
+  { key: 'media', label: 'Media', description: 'Photos & video' },
+  { key: 'documents', label: 'Documents', description: 'Compliance & proof' },
+  { key: 'addOns', label: 'Add-ons', description: 'Upsells & extras' },
+  { key: 'preview', label: 'Preview', description: 'Review & publish' }
+];
+
+const EVENT_PRO_STEP_CONFIG = [
+  { key: 'type', label: 'Listing type', description: 'Tell us what you offer' },
+  { key: 'eventProIntro', label: 'Event Pro intro', description: 'What to expect' },
+  { key: 'eventProProfile', label: 'Event Pro profile', description: 'Identity & positioning' },
+  { key: 'eventProPackages', label: 'Packages', description: 'Curate offerings' },
+  { key: 'eventProLogistics', label: 'Logistics', description: 'Service coverage' },
   { key: 'media', label: 'Media', description: 'Photos & video' },
   { key: 'documents', label: 'Documents', description: 'Compliance & proof' },
   { key: 'addOns', label: 'Add-ons', description: 'Upsells & extras' },
@@ -197,6 +263,81 @@ const DEFAULT_ADD_ON = () => ({
   price: '',
   priceType: 'per-booking'
 });
+
+const createEventProPackage = () => ({
+  id: createId(),
+  name: '',
+  description: '',
+  servesCount: '',
+  basePrice: '',
+  priceUnit: 'per_event',
+  imageUrl: '',
+  addOns: []
+});
+
+const createEventProPackageAddOn = () => ({
+  id: createId(),
+  name: '',
+  description: '',
+  price: '',
+  priceUnit: 'per_event'
+});
+
+const INITIAL_EVENT_PRO_PROFILE = {
+  serviceType: '',
+  businessName: '',
+  displayName: '',
+  tagline: '',
+  city: '',
+  state: '',
+  serviceAreaDescription: '',
+  offersOnsiteService: true,
+  offersPickup: false
+};
+
+const INITIAL_EVENT_PRO_LOGISTICS = {
+  serviceRadiusMiles: 25,
+  travelPolicy: 'included_within_radius',
+  providesStaffOnsite: true,
+  includesSetupAndBreakdown: true,
+  acceptsLastMinuteBookings: false
+};
+
+const buildEventProLogisticsSummary = (logistics, schedule = INITIAL_FORM_DATA.schedule) => {
+  if (!logistics) return '';
+  const parts = [];
+  if (logistics.serviceRadiusMiles) {
+    parts.push(`Serves within ${logistics.serviceRadiusMiles} miles`);
+  }
+  if (logistics.travelPolicy === 'travel_fee_beyond_radius') {
+    parts.push('Travel fee beyond radius');
+  } else if (logistics.travelPolicy === 'custom_quote') {
+    parts.push('Custom travel quotes');
+  } else if (logistics.travelPolicy === 'included_within_radius') {
+    parts.push('Travel included nearby');
+  }
+  if (logistics.providesStaffOnsite) {
+    parts.push('Team provided onsite');
+  }
+  if (logistics.includesSetupAndBreakdown) {
+    parts.push('Setup & breakdown handled');
+  }
+  if (logistics.acceptsLastMinuteBookings) {
+    parts.push('Last-minute friendly');
+  }
+  if (schedule?.eventDurationHours) {
+    parts.push(`${schedule.eventDurationHours}-hour activations`);
+  }
+  if (schedule?.earliestStartTime && schedule?.latestEndTime) {
+    parts.push(`${schedule.earliestStartTime}–${schedule.latestEndTime}`);
+  }
+  if (schedule?.availableDays?.length) {
+    const totalDays = schedule.availableDays.length;
+    const previewDays = schedule.availableDays.slice(0, 3).map((day) => day.substring(0, 3)).join(', ');
+    parts.push(totalDays === 7 ? 'Available daily' : `Available ${previewDays}${totalDays > 3 ? '…' : ''}`);
+  }
+  return parts.join(' • ');
+};
 
 const INITIAL_FORM_DATA = {
   listingType: '',
@@ -247,7 +388,10 @@ const INITIAL_FORM_DATA = {
     licenseName: ''
   },
   addOns: [DEFAULT_ADD_ON()],
-  notes: ''
+  notes: '',
+  eventProProfile: { ...INITIAL_EVENT_PRO_PROFILE },
+  eventProPackages: [createEventProPackage()],
+  eventProLogistics: { ...INITIAL_EVENT_PRO_LOGISTICS }
 };
 
 function ListingCreationWizard({ onClose, mode = 'create', initialData = null, listingId: listingIdProp = null }) {
@@ -263,6 +407,13 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
   const copyTimeoutRef = useRef(null);
   const derivedMode = initialData || listingIdProp ? 'edit' : mode;
   const isEditMode = derivedMode === 'edit';
+  const isEventProListing = formData.listingType === 'eventPro' || formData.listingType === 'event_pro';
+  const stepConfig = isEventProListing ? EVENT_PRO_STEP_CONFIG : RENTAL_STEP_CONFIG;
+  const totalSteps = stepConfig.length;
+  const activeStep = stepConfig[currentStep] || stepConfig[0];
+  const activeStepKey = activeStep?.key || stepConfig[0].key;
+  const isTypeStepActive = activeStepKey === 'type';
+  const isContinueDisabled = currentStep === totalSteps - 1 || (isTypeStepActive && !formData.listingType);
 
   useEffect(() => {
     return () => {
@@ -282,27 +433,45 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
     setCopyFeedback('');
   }, [initialData]);
 
-  const totalSteps = STEP_CONFIG.length;
-  const activeStepKey = STEP_CONFIG[currentStep]?.key || STEP_CONFIG[0].key;
-  const isTypeStepActive = activeStepKey === 'type';
-  const isContinueDisabled = currentStep === totalSteps - 1 || (isTypeStepActive && !formData.listingType);
   const contextValue = useMemo(() => ({ formData, setFormData }), [formData]);
 
+  useEffect(() => {
+    setCurrentStep((prev) => Math.min(prev, totalSteps - 1));
+  }, [totalSteps]);
+
   const derivedPreview = useMemo(() => {
-    const { basics, schedule, pricing, media, addOns, listingType } = formData;
-    const cityState = [basics.city, basics.state].filter(Boolean).join(', ');
-    const trimmedServiceLabel = basics.serviceLabel?.trim() || '';
-    const hasRadius = Boolean(basics.serviceRadius);
-    const serviceAreaText = hasRadius
+    const {
+      basics,
+      schedule,
+      pricing,
+      media,
+      addOns,
+      listingType,
+      eventProProfile,
+      eventProPackages,
+      eventProLogistics
+    } = formData;
+    const isEventPro = listingType === 'eventPro' || listingType === 'event_pro';
+    const profile = eventProProfile || INITIAL_EVENT_PRO_PROFILE;
+    const logistics = eventProLogistics || INITIAL_EVENT_PRO_LOGISTICS;
+    const baseCityState = [basics.city, basics.state].filter(Boolean).join(', ');
+    const profileCityState = [profile.city || basics.city, profile.state || basics.state].filter(Boolean).join(', ');
+    const previewLocationText = isEventPro ? profileCityState || baseCityState : baseCityState;
+    const serviceRadius = isEventPro
+      ? Number(logistics.serviceRadiusMiles || basics.serviceRadius)
+      : basics.serviceRadius;
+    const trimmedServiceLabel = isEventPro
+      ? profile.serviceAreaDescription?.trim() || basics.serviceLabel?.trim() || ''
+      : basics.serviceLabel?.trim() || '';
+    const hasRadius = Boolean(serviceRadius);
+    const serviceAreaText = trimmedServiceLabel
       ? trimmedServiceLabel
-        ? `Serves ${trimmedServiceLabel} within ${basics.serviceRadius} miles`
-        : cityState
-          ? `Serves locations within ${basics.serviceRadius} miles of ${cityState}`
-          : ''
-      : trimmedServiceLabel;
+      : hasRadius && previewLocationText
+        ? `Serves locations within ${serviceRadius} miles of ${previewLocationText}`
+        : '';
 
     const primaryMedia = media.coverPreview || media.gallery?.[0]?.preview || '';
-    const fallbackImage = listingType === 'eventPro'
+    const fallbackImage = isEventPro
       ? 'https://images.unsplash.com/photo-1481833761820-0509d3217039?w=900&auto=format&fit=crop&q=80'
       : 'https://images.unsplash.com/photo-1505471768190-0af6755fab1c?w=900&auto=format&fit=crop&q=80';
 
@@ -315,39 +484,70 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
       'daily-with-time': 'Daily rental with pickup & return times',
       hourly: 'Hourly rental',
       'event-pro': 'Event Pro booking',
-      'per-event': 'Event Pro booking'
+      'per-event': 'Event Pro booking',
+      'package': 'Package-based event'
     };
 
-    const bookingModeKey = schedule.bookingMode || (listingType === 'eventPro' ? 'event-pro' : 'daily');
-    const bookingModeLabel = bookingModeLookup[bookingModeKey];
+    const bookingModeKey = schedule.bookingMode || (isEventPro ? 'event-pro' : 'daily');
+    const bookingModeLabel = bookingModeLookup[bookingModeKey] || 'Rental mode not set';
 
-    const previewPackages = (pricing.packages || []).map(pkg => ({
-      id: pkg.id,
-      name: buildDisplayValue(pkg.name, 'Package name not set'),
-      description: buildDisplayValue(pkg.description, 'Describe this package'),
-      price: buildDisplayValue(formatUSD(pkg.price), 'Pricing not yet added')
-    }));
+    const packageSource = isEventPro ? (eventProPackages || []) : (pricing.packages || []);
+    const previewPackages = packageSource.map((pkg) => {
+      const name = pkg.name || pkg.title || '';
+      const description = pkg.description || pkg.summary || '';
+      const priceValue = isEventPro ? pkg.basePrice : pkg.price;
+      const guests = pkg.servesCount || pkg.guestCount || '';
+      return {
+        id: pkg.id,
+        name: buildDisplayValue(name, 'Package name not set'),
+        description: buildDisplayValue(description, 'Describe this package'),
+        price: buildDisplayValue(formatUSD(priceValue), 'Pricing not yet added'),
+        serves: buildDisplayValue(guests ? `Up to ${guests} guests` : '', 'Add guest count')
+      };
+    });
 
-    const previewAddOns = (addOns || []).map(addOn => ({
+    const previewAddOns = (addOns || []).map((addOn) => ({
       id: addOn.id,
       name: buildDisplayValue(addOn.name, 'Add-on name not set'),
       price: buildDisplayValue(formatUSD(addOn.price), 'Pricing not yet added')
     }));
 
+    const packageChips = isEventPro
+      ? packageSource.slice(0, 3).map((pkg) => ({
+          id: pkg.id,
+          name: pkg.name || 'Package',
+          price: pkg.basePrice ? formatUSD(pkg.basePrice) : 'Add price',
+          serves: pkg.servesCount ? `Up to ${pkg.servesCount}` : ''
+        }))
+      : [];
+
+    const logisticsSummary = isEventPro ? buildEventProLogisticsSummary(logistics, schedule) : '';
+    const eventProDetails = isEventPro
+      ? {
+          badge: buildDisplayValue(profile.serviceType || 'Event Pro', 'Select a service type'),
+          tagline: buildDisplayValue(profile.tagline, 'Share what makes activations unforgettable'),
+          logistics: buildDisplayValue(logisticsSummary, 'Logistics details will appear here'),
+          packageChips,
+          offersOnsiteService: profile.offersOnsiteService,
+          offersPickup: profile.offersPickup
+        }
+      : null;
+
     return {
       title: buildDisplayValue(basics.title, 'Untitled listing'),
       category: buildDisplayValue(
-        basics.category || (listingType === 'eventPro' ? 'Event professional' : 'Rental equipment'),
-        listingType === 'eventPro' ? 'Event professional' : 'Rental equipment'
+        basics.category || (isEventPro ? profile.serviceType || 'Event professional' : 'Rental equipment'),
+        isEventPro ? 'Event professional' : 'Rental equipment'
       ),
-      location: buildDisplayValue(cityState, 'Location not set'),
+      location: buildDisplayValue(previewLocationText, 'Location not set'),
       service: buildDisplayValue(serviceAreaText, 'Service area not set'),
       bookingMode: buildDisplayValue(bookingModeLabel, 'Rental mode not set'),
       price: buildDisplayValue(formattedPrice, 'Pricing not yet added'),
       heroImage,
       packages: previewPackages,
       addOns: previewAddOns,
-      listingType
+      listingType,
+      eventProDetails
     };
   }, [formData]);
 
@@ -383,6 +583,80 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
       packages: typeof updater === 'function' ? updater(prev.pricing.packages) : updater
     }
   }));
+
+  const setEventProProfileField = (field, value) => setFormData((prev) => {
+    const nextBasics = { ...prev.basics };
+    if (field === 'city') {
+      nextBasics.city = value;
+    } else if (field === 'state') {
+      nextBasics.state = value;
+    } else if (field === 'serviceAreaDescription') {
+      nextBasics.serviceLabel = value;
+    }
+
+    return {
+      ...prev,
+      basics: nextBasics,
+      eventProProfile: { ...prev.eventProProfile, [field]: value }
+    };
+  });
+
+  const setEventProLogisticsField = (field, value) => setFormData((prev) => {
+    const nextBasics = field === 'serviceRadiusMiles'
+      ? { ...prev.basics, serviceRadius: value }
+      : prev.basics;
+
+    return {
+      ...prev,
+      basics: nextBasics,
+      eventProLogistics: { ...prev.eventProLogistics, [field]: value }
+    };
+  });
+
+  const setEventProPackages = (updater) => setFormData((prev) => {
+    const current = prev.eventProPackages || [];
+    const next = typeof updater === 'function' ? updater(current) : updater;
+    return {
+      ...prev,
+      eventProPackages: next && next.length ? next : [createEventProPackage()]
+    };
+  });
+
+  const handleAddEventProPackage = () => {
+    setEventProPackages((prev) => [...prev, createEventProPackage()]);
+  };
+
+  const handleRemoveEventProPackage = (packageId) => {
+    setEventProPackages((prev) => prev.filter((pkg) => pkg.id !== packageId));
+  };
+
+  const handleEventProPackageChange = (packageId, field, value) => {
+    setEventProPackages((prev) => prev.map((pkg) => (pkg.id === packageId ? { ...pkg, [field]: value } : pkg)));
+  };
+
+  const handleEventProPackageAddOnChange = (packageId, addOnId, field, value) => {
+    setEventProPackages((prev) => prev.map((pkg) => {
+      if (pkg.id !== packageId) return pkg;
+      const nextAddOns = (pkg.addOns || []).map((addOn) => addOn.id === addOnId ? { ...addOn, [field]: value } : addOn);
+      return { ...pkg, addOns: nextAddOns };
+    }));
+  };
+
+  const handleAddEventProPackageAddOn = (packageId) => {
+    setEventProPackages((prev) => prev.map((pkg) => (
+      pkg.id === packageId
+        ? { ...pkg, addOns: [...(pkg.addOns || []), createEventProPackageAddOn()] }
+        : pkg
+    )));
+  };
+
+  const handleRemoveEventProPackageAddOn = (packageId, addOnId) => {
+    setEventProPackages((prev) => prev.map((pkg) => (
+      pkg.id === packageId
+        ? { ...pkg, addOns: (pkg.addOns || []).filter((addOn) => addOn.id !== addOnId) }
+        : pkg
+    )));
+  };
 
   const handleGalleryUpload = (event) => {
     const files = Array.from(event.target.files || []);
@@ -485,15 +759,22 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
       throw new Error('Add at least one price before publishing.');
     }
 
-    const bookingMode = formData.schedule.bookingMode || (formData.listingType === 'eventPro' ? 'per-event' : 'daily-with-time');
-    const defaultStartTime = formData.listingType === 'eventPro'
+    const isEventPro = formData.listingType === 'eventPro' || formData.listingType === 'event_pro';
+    const bookingMode = formData.schedule.bookingMode || (isEventPro ? 'per-event' : 'daily-with-time');
+    const defaultStartTime = isEventPro
       ? formData.schedule.earliestStartTime
       : formData.schedule.defaultPickupTime;
-    const defaultEndTime = formData.listingType === 'eventPro'
+    const defaultEndTime = isEventPro
       ? formData.schedule.latestEndTime
       : formData.schedule.defaultReturnTime;
+    const serviceRadiusValue = isEventPro
+      ? Number(formData.eventProLogistics.serviceRadiusMiles || formData.basics.serviceRadius)
+      : Number(formData.basics.serviceRadius);
+    const displayZoneLabel = isEventPro
+      ? (formData.eventProProfile.serviceAreaDescription || formData.basics.serviceLabel || '').trim() || null
+      : formData.basics.serviceLabel?.trim() || null;
 
-    return {
+    const payload = {
       title,
       description: formData.notes?.trim() || '',
       city,
@@ -505,11 +786,56 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
       default_end_time: defaultEndTime || null,
       display_city: city,
       display_state: state,
-      display_zone_label: formData.basics.serviceLabel?.trim() || null,
+      display_zone_label: displayZoneLabel,
       service_zone_type: 'radius',
-      service_radius_miles: Number(formData.basics.serviceRadius) || 15,
+      service_radius_miles: serviceRadiusValue || 15,
       // TODO: connect packages, add-ons, and media uploads once schema supports them.
     };
+
+    if (isEventPro) {
+      payload.event_pro_profile = {
+        service_type: formData.eventProProfile.serviceType || null,
+        business_name: formData.eventProProfile.businessName || null,
+        display_name: formData.eventProProfile.displayName || null,
+        tagline: formData.eventProProfile.tagline || null,
+        service_area_description: formData.eventProProfile.serviceAreaDescription || null,
+        offers_onsite_service: Boolean(formData.eventProProfile.offersOnsiteService),
+        offers_pickup: Boolean(formData.eventProProfile.offersPickup)
+      };
+
+      payload.event_pro_packages = (formData.eventProPackages || []).map((pkg) => ({
+        id: pkg.id,
+        name: pkg.name || '',
+        description: pkg.description || '',
+        serves_count: pkg.servesCount || '',
+        base_price: pkg.basePrice ? Number(pkg.basePrice) : null,
+        price_unit: pkg.priceUnit || 'per_event',
+        image_url: pkg.imageUrl || null,
+        add_ons: (pkg.addOns || []).map((addOn) => ({
+          id: addOn.id,
+          name: addOn.name || '',
+          description: addOn.description || '',
+          price: addOn.price ? Number(addOn.price) : null,
+          price_unit: addOn.priceUnit || 'per_event'
+        }))
+      }));
+
+      payload.event_pro_logistics = {
+        service_radius_miles: serviceRadiusValue || 15,
+        travel_policy: formData.eventProLogistics.travelPolicy || 'included_within_radius',
+        provides_staff_onsite: Boolean(formData.eventProLogistics.providesStaffOnsite),
+        includes_setup_and_breakdown: Boolean(formData.eventProLogistics.includesSetupAndBreakdown),
+        accepts_last_minute_bookings: Boolean(formData.eventProLogistics.acceptsLastMinuteBookings),
+        typical_event_duration_hours: formData.schedule.eventDurationHours || null,
+        earliest_start_time: formData.schedule.earliestStartTime || null,
+        latest_end_time: formData.schedule.latestEndTime || null,
+        available_days: Array.isArray(formData.schedule.availableDays) ? formData.schedule.availableDays : []
+      };
+
+      // TODO: Persist event_pro_profile, event_pro_packages, and event_pro_logistics once the listings schema supports JSONB metadata.
+    }
+
+    return payload;
   };
 
   const handlePublish = async (intent = 'published') => {
@@ -604,7 +930,7 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
   };
 
   const renderStepForm = () => {
-    switch (STEP_CONFIG[currentStep].key) {
+    switch (activeStepKey) {
       case 'type':
         return (
           <div className="space-y-6">
@@ -667,6 +993,38 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
               ))}
             </div>
           </div>
+        );
+      case 'eventProIntro':
+        return (
+          <EventProIntroStep onContinue={handleContinueNav} />
+        );
+      case 'eventProProfile':
+        return (
+          <EventProProfileStep
+            profile={formData.eventProProfile}
+            onChange={setEventProProfileField}
+          />
+        );
+      case 'eventProPackages':
+        return (
+          <EventProPackagesStep
+            packages={formData.eventProPackages}
+            onAddPackage={handleAddEventProPackage}
+            onRemovePackage={handleRemoveEventProPackage}
+            onChangePackage={handleEventProPackageChange}
+            onAddAddOn={handleAddEventProPackageAddOn}
+            onRemoveAddOn={handleRemoveEventProPackageAddOn}
+            onChangeAddOn={handleEventProPackageAddOnChange}
+          />
+        );
+      case 'eventProLogistics':
+        return (
+          <EventProLogisticsStep
+            logistics={formData.eventProLogistics}
+            schedule={formData.schedule}
+            onChange={setEventProLogisticsField}
+            onScheduleChange={setSchedule}
+          />
         );
       // TODO: Replace inline Step 2 form with a dedicated BasicsStep component powered by ListingWizardContext.
       case 'basics':
@@ -920,105 +1278,9 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
               <h2 className="text-3xl font-bold text-slate-900 mt-2">Pricing & packages</h2>
               <p className="text-slate-600 mt-2">Share transparent pricing. Hosts can always adjust later.</p>
             </header>
-            {formData.listingType === 'eventPro' ? (
-              <div className="space-y-5">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-slate-900">Event packages</h3>
-                  <button
-                    type="button"
-                    onClick={handleAddPackage}
-                    className="inline-flex items-center gap-2 rounded-full border border-orange-200 px-4 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-50"
-                  >
-                    <Plus className="h-4 w-4" /> Add package
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  {formData.pricing.packages.map(pkg => (
-                    <div key={pkg.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-3 flex-1">
-                          <div className="grid md:grid-cols-2 gap-4">
-                            <label className="block text-sm font-semibold text-slate-700">
-                              Package name
-                              <input
-                                type="text"
-                                className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2"
-                                value={pkg.name}
-                                onChange={(e) => handlePackageChange(pkg.id, 'name', e.target.value)}
-                              />
-                            </label>
-                            <label className="block text-sm font-semibold text-slate-700">
-                              Included guests
-                              <input
-                                type="number"
-                                className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2"
-                                value={pkg.guestCount}
-                                onChange={(e) => handlePackageChange(pkg.id, 'guestCount', e.target.value)}
-                              />
-                            </label>
-                          </div>
-                          <label className="block text-sm font-semibold text-slate-700">
-                            Short description
-                            <textarea
-                              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2"
-                              rows={2}
-                              value={pkg.description}
-                              onChange={(e) => handlePackageChange(pkg.id, 'description', e.target.value)}
-                            />
-                          </label>
-                          <label className="block text-sm font-semibold text-slate-700">
-                            What’s included (line break to create bullets)
-                            <textarea
-                              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2"
-                              rows={3}
-                              value={pkg.inclusions}
-                              onChange={(e) => handlePackageChange(pkg.id, 'inclusions', e.target.value)}
-                            />
-                          </label>
-                          <label className="block text-sm font-semibold text-slate-700">
-                            Price
-                            <input
-                              type="number"
-                              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2"
-                              value={pkg.price}
-                              onChange={(e) => handlePackageChange(pkg.id, 'price', e.target.value)}
-                            />
-                          </label>
-                        </div>
-                        {formData.pricing.packages.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemovePackage(pkg.id)}
-                            className="text-slate-400 hover:text-rose-500"
-                            aria-label="Remove package"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="grid md:grid-cols-2 gap-5 pt-4 border-t border-slate-200">
-                  <label className="block text-sm font-semibold text-slate-700">
-                    Hourly rate (optional)
-                    <input
-                      type="number"
-                      className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
-                      value={formData.pricing.hourlyRate}
-                      onChange={(e) => setPricing('hourlyRate', e.target.value)}
-                    />
-                  </label>
-                  <label className="block text-sm font-semibold text-slate-700">
-                    Minimum hours
-                    <input
-                      type="number"
-                      className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
-                      value={formData.pricing.hourlyMinimumHours}
-                      onChange={(e) => setPricing('hourlyMinimumHours', e.target.value)}
-                    />
-                  </label>
-                </div>
+            {isEventProListing ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/40 p-4 text-sm text-amber-800">
+                Event Pro pricing now lives in the dedicated packages step. Add-ons below still apply to all listing types.
               </div>
             ) : (
               <div className="space-y-5">
@@ -1477,12 +1739,12 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Progress</p>
-            <h2 className="text-lg font-semibold text-slate-900">{STEP_CONFIG[currentStep].label}</h2>
+            <h2 className="text-lg font-semibold text-slate-900">{activeStep?.label}</h2>
           </div>
           <p className="text-sm font-semibold text-slate-500">Step {currentStep + 1} of {totalSteps}</p>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          {STEP_CONFIG.map((step, index) => (
+          {stepConfig.map((step, index) => (
             <button
               key={step.key}
               type="button"
@@ -1541,6 +1803,470 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
   );
 }
 
+function EventProIntroStep({ onContinue }) {
+  return (
+    <div className="space-y-6">
+      <header>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Step 2</p>
+        <h2 className="text-3xl font-bold text-slate-900 mt-2">How Event Pro listings work</h2>
+        <p className="text-slate-600 mt-2">You will capture your profile, curated packages, and logistics so hosts understand exactly what you bring to every activation.</p>
+      </header>
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 text-sm text-slate-600">
+        Use this flow if you sell turnkey experiences (catering, dessert bars, bartending, coffee carts, immersive installations, and similar service-based offerings).
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        {[{
+          title: 'Profile & positioning',
+          body: 'Share your service type, headline, and primary service area so planners can quickly assess fit.'
+        }, {
+          title: 'Packages & add-ons',
+          body: 'Highlight signature offerings, ideal guest counts, pricing units, and optional upgrades.'
+        }, {
+          title: 'Logistics & coverage',
+          body: 'Clarify travel radius, staffing, setup support, and how flexible you are with timing.'
+        }].map((card) => (
+          <div key={card.title} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-sm font-semibold text-slate-900">{card.title}</p>
+            <p className="mt-2 text-sm text-slate-600">{card.body}</p>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => onContinue?.()}
+        className="inline-flex items-center gap-2 rounded-full bg-orange-600 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-xl"
+      >
+        Jump into profile
+        <ArrowRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+function EventProProfileStep({ profile, onChange }) {
+  const safeProfile = profile || INITIAL_EVENT_PRO_PROFILE;
+
+  return (
+    <div className="space-y-6">
+      <header>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Step 3</p>
+        <h2 className="text-3xl font-bold text-slate-900 mt-2">Your Event Pro profile</h2>
+        <p className="text-slate-600 mt-2">Introduce your business the way you want hosts to remember it.</p>
+      </header>
+      <div className="grid md:grid-cols-2 gap-5">
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">Service type</span>
+          <select
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            value={safeProfile.serviceType}
+            onChange={(e) => onChange('serviceType', e.target.value)}
+          >
+            <option value="">Select a service</option>
+            {EVENT_PRO_SERVICE_TYPES.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">Business name (internal)</span>
+          <input
+            type="text"
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            placeholder="Fiesta & Co Catering"
+            value={safeProfile.businessName}
+            onChange={(e) => onChange('businessName', e.target.value)}
+          />
+        </label>
+      </div>
+      <div className="grid md:grid-cols-2 gap-5">
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">Public display name</span>
+          <input
+            type="text"
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            placeholder="Fiesta & Co Taco Cart"
+            value={safeProfile.displayName}
+            onChange={(e) => onChange('displayName', e.target.value)}
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">Tagline</span>
+          <input
+            type="text"
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            placeholder="Fresh, chef-led tacos for 50-250 guests"
+            value={safeProfile.tagline}
+            onChange={(e) => onChange('tagline', e.target.value)}
+          />
+        </label>
+      </div>
+      <div className="grid md:grid-cols-2 gap-5">
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">City</span>
+          <input
+            type="text"
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            placeholder="Phoenix"
+            value={safeProfile.city}
+            onChange={(e) => onChange('city', e.target.value)}
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">State / region</span>
+          <select
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            value={safeProfile.state}
+            onChange={(e) => onChange('state', e.target.value)}
+          >
+            <option value="">State</option>
+            {STATE_OPTIONS.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="space-y-3">
+        <span className="text-sm font-semibold text-slate-700">How do you service events?</span>
+        <div className="flex flex-wrap gap-3">
+          {[{
+            field: 'offersOnsiteService',
+            label: 'We bring the full onsite experience'
+          }, {
+            field: 'offersPickup',
+            label: 'Clients can pick up from us'
+          }].map((toggle) => (
+            <label
+              key={toggle.field}
+              className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+            >
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                checked={Boolean(safeProfile[toggle.field])}
+                onChange={(e) => onChange(toggle.field, e.target.checked)}
+              />
+              {toggle.label}
+            </label>
+          ))}
+        </div>
+      </div>
+      <label className="block">
+        <span className="text-sm font-semibold text-slate-700">Service area story</span>
+        <textarea
+          className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+          rows={4}
+          placeholder="Greater Phoenix events, Scottsdale resorts, and custom builds within 30 miles."
+          value={safeProfile.serviceAreaDescription}
+          onChange={(e) => onChange('serviceAreaDescription', e.target.value)}
+        />
+        <p className="mt-2 text-xs text-slate-500">This appears on your card and should describe where you shine geographically.</p>
+      </label>
+    </div>
+  );
+}
+
+function EventProPackagesStep({
+  packages,
+  onAddPackage,
+  onRemovePackage,
+  onChangePackage,
+  onAddAddOn,
+  onRemoveAddOn,
+  onChangeAddOn
+}) {
+  const safePackages = Array.isArray(packages) && packages.length ? packages : [createEventProPackage()];
+
+  return (
+    <div className="space-y-6">
+      <header>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Step 4</p>
+        <h2 className="text-3xl font-bold text-slate-900 mt-2">Signature packages</h2>
+        <p className="text-slate-600 mt-2">Name your marquee experiences, share guest counts, and anchor pricing. Add-ons help upsell customizations.</p>
+      </header>
+      {safePackages.map((pkg, index) => (
+        <section key={pkg.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-500">Package {index + 1}</p>
+              <p className="text-lg font-semibold text-slate-900">{pkg.name || 'Untitled package'}</p>
+            </div>
+            {safePackages.length > 1 && (
+              <button
+                type="button"
+                onClick={() => onRemovePackage(pkg.id)}
+                className="text-slate-400 hover:text-rose-500"
+              >
+                <Trash2 className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <label className="block text-sm font-semibold text-slate-700">
+              Package name
+              <input
+                type="text"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+                placeholder="Sunset Fiesta Service"
+                value={pkg.name}
+                onChange={(e) => onChangePackage(pkg.id, 'name', e.target.value)}
+              />
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              Ideal guest count
+              <input
+                type="number"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+                placeholder="100"
+                value={pkg.servesCount}
+                onChange={(e) => onChangePackage(pkg.id, 'servesCount', e.target.value)}
+              />
+            </label>
+          </div>
+          <label className="mt-4 block text-sm font-semibold text-slate-700">
+            Package description
+            <textarea
+              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+              rows={3}
+              placeholder="Includes two staffed stations, compostable service ware, and seasonal menu."
+              value={pkg.description}
+              onChange={(e) => onChangePackage(pkg.id, 'description', e.target.value)}
+            />
+          </label>
+          <div className="mt-4 grid md:grid-cols-3 gap-4">
+            <label className="block text-sm font-semibold text-slate-700">
+              Base price
+              <input
+                type="number"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+                placeholder="2500"
+                value={pkg.basePrice}
+                onChange={(e) => onChangePackage(pkg.id, 'basePrice', e.target.value)}
+              />
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              Price unit
+              <select
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+                value={pkg.priceUnit}
+                onChange={(e) => onChangePackage(pkg.id, 'priceUnit', e.target.value)}
+              >
+                {EVENT_PRO_PRICE_UNITS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              Cover image URL
+              {/* TODO: Persist Event Pro package media uploads once storage is wired. */}
+              <input
+                type="url"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+                placeholder="https://"
+                value={pkg.imageUrl}
+                onChange={(e) => onChangePackage(pkg.id, 'imageUrl', e.target.value)}
+              />
+            </label>
+          </div>
+          <div className="mt-5 space-y-3">
+            <p className="text-sm font-semibold text-slate-700">Package add-ons</p>
+            {(pkg.addOns || []).map((addOn) => (
+              <div key={addOn.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-3">
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <label className="block text-xs font-semibold text-slate-600">
+                        Name
+                        <input
+                          type="text"
+                          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2"
+                          value={addOn.name}
+                          onChange={(e) => onChangeAddOn(pkg.id, addOn.id, 'name', e.target.value)}
+                        />
+                      </label>
+                      <label className="block text-xs font-semibold text-slate-600">
+                        Price
+                        <input
+                          type="number"
+                          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2"
+                          value={addOn.price}
+                          onChange={(e) => onChangeAddOn(pkg.id, addOn.id, 'price', e.target.value)}
+                        />
+                      </label>
+                    </div>
+                    <label className="block text-xs font-semibold text-slate-600">
+                      Description
+                      <textarea
+                        className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2"
+                        rows={2}
+                        value={addOn.description}
+                        onChange={(e) => onChangeAddOn(pkg.id, addOn.id, 'description', e.target.value)}
+                      />
+                    </label>
+                    <label className="block text-xs font-semibold text-slate-600">
+                      Price unit
+                      <select
+                        className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2"
+                        value={addOn.priceUnit}
+                        onChange={(e) => onChangeAddOn(pkg.id, addOn.id, 'priceUnit', e.target.value)}
+                      >
+                        {EVENT_PRO_PRICE_UNITS.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveAddOn(pkg.id, addOn.id)}
+                    className="text-slate-400 hover:text-rose-500"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => onAddAddOn(pkg.id)}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:border-orange-300"
+            >
+              <Plus className="h-4 w-4" /> Add add-on
+            </button>
+          </div>
+        </section>
+      ))}
+      <button
+        type="button"
+        onClick={onAddPackage}
+        className="inline-flex items-center gap-2 rounded-full border border-dashed border-orange-300 px-5 py-2 text-sm font-semibold text-orange-600"
+      >
+        <Plus className="h-4 w-4" /> Add another package
+      </button>
+    </div>
+  );
+}
+
+function EventProLogisticsStep({ logistics, schedule, onChange, onScheduleChange }) {
+  const safeSchedule = schedule || INITIAL_FORM_DATA.schedule;
+  const selectedDays = safeSchedule.availableDays || [];
+
+  const toggleDay = (day) => {
+    const next = selectedDays.includes(day)
+      ? selectedDays.filter((value) => value !== day)
+      : [...selectedDays, day];
+    onScheduleChange('availableDays', next);
+  };
+
+  return (
+    <div className="space-y-6">
+      <header>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Step 5</p>
+        <h2 className="text-3xl font-bold text-slate-900 mt-2">Logistics & coverage</h2>
+        <p className="text-slate-600 mt-2">Set clear expectations around where you travel, when you operate, and how flexible you are.</p>
+      </header>
+      <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 text-sm text-slate-600">
+        Travel radius and staffing info appears on your listing preview so planners can route the right opportunities your way.
+      </section>
+      <div className="grid md:grid-cols-2 gap-5">
+        <label className="block text-sm font-semibold text-slate-700">
+          Service radius (miles)
+          <input
+            type="number"
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            value={logistics.serviceRadiusMiles}
+            onChange={(e) => onChange('serviceRadiusMiles', e.target.value === '' ? '' : Number(e.target.value))}
+          />
+        </label>
+        <label className="block text-sm font-semibold text-slate-700">
+          Travel policy
+          <select
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            value={logistics.travelPolicy}
+            onChange={(e) => onChange('travelPolicy', e.target.value)}
+          >
+            {EVENT_PRO_TRAVEL_POLICIES.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="grid md:grid-cols-3 gap-5">
+        <label className="block text-sm font-semibold text-slate-700">
+          Typical event duration (hrs)
+          <input
+            type="number"
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            value={safeSchedule.eventDurationHours}
+            onChange={(e) => onScheduleChange('eventDurationHours', Number(e.target.value))}
+          />
+        </label>
+        <label className="block text-sm font-semibold text-slate-700">
+          Earliest arrival
+          <input
+            type="time"
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            value={safeSchedule.earliestStartTime}
+            onChange={(e) => onScheduleChange('earliestStartTime', e.target.value)}
+          />
+        </label>
+        <label className="block text-sm font-semibold text-slate-700">
+          Latest breakdown
+          <input
+            type="time"
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            value={safeSchedule.latestEndTime}
+            onChange={(e) => onScheduleChange('latestEndTime', e.target.value)}
+          />
+        </label>
+      </div>
+      <div>
+        <span className="text-sm font-semibold text-slate-700">Available days</span>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {DAYS_OF_WEEK.map((day) => (
+            <button
+              type="button"
+              key={day}
+              onClick={() => toggleDay(day)}
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
+                selectedDays.includes(day)
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:border-orange-300'
+              }`}
+            >
+              {day.substring(0, 3)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {[{
+          field: 'providesStaffOnsite',
+          label: 'We staff onsite and manage service'
+        }, {
+          field: 'includesSetupAndBreakdown',
+          label: 'Setup + breakdown included'
+        }, {
+          field: 'acceptsLastMinuteBookings',
+          label: 'Open to inquiries inside 7 days'
+        }].map((option) => (
+          <label
+            key={option.field}
+            className="inline-flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700"
+          >
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+              checked={Boolean(logistics[option.field])}
+              onChange={(e) => onChange(option.field, e.target.checked)}
+            />
+            {option.label}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function LivePreviewCard({ preview }) {
   return (
     <div className="space-y-5">
@@ -1553,6 +2279,22 @@ function LivePreviewCard({ preview }) {
         <p className={`mt-3 text-sm ${preview.service.isPlaceholder ? 'text-slate-500' : 'text-orange-100'}`}>
           {preview.service.text}
         </p>
+        {preview.eventProDetails ? (
+          <div className="mt-3 space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full bg-orange-500/20 px-3 py-1 text-xs font-semibold text-orange-100">Event Pro</span>
+              <span className={`rounded-full bg-white/10 px-3 py-1 text-xs font-semibold ${preview.eventProDetails.badge?.isPlaceholder ? 'text-slate-400' : 'text-orange-100'}`}>
+                {preview.eventProDetails.badge?.text}
+              </span>
+            </div>
+            <p className={`text-sm ${preview.eventProDetails.tagline?.isPlaceholder ? 'text-slate-400' : 'text-orange-50'}`}>
+              {preview.eventProDetails.tagline?.text}
+            </p>
+            <p className={`text-xs ${preview.eventProDetails.logistics?.isPlaceholder ? 'text-slate-500' : 'text-orange-100/80'}`}>
+              {preview.eventProDetails.logistics?.text}
+            </p>
+          </div>
+        ) : null}
         <p className={`mt-4 text-3xl font-semibold ${preview.price.isPlaceholder ? 'text-slate-500' : ''}`}>
           {preview.price.text}
         </p>
@@ -1569,6 +2311,15 @@ function LivePreviewCard({ preview }) {
               <p className="text-sm text-slate-700">
                 {preview.packages[0].name.text} starting at <span className={preview.packages[0].price.isPlaceholder ? 'text-slate-500' : undefined}>{preview.packages[0].price.text}</span>
               </p>
+              {preview.eventProDetails?.packageChips?.length ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {preview.eventProDetails.packageChips.map((chip) => (
+                    <span key={chip.id} className="rounded-full border border-orange-100 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
+                      {chip.name} {chip.price ? `• ${chip.price}` : ''} {chip.serves ? `• ${chip.serves}` : ''}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : null}
           {preview.addOns?.length ? (
@@ -1593,6 +2344,32 @@ ListingCreationWizard.propTypes = {
   mode: PropTypes.oneOf(['create', 'edit']),
   initialData: PropTypes.object,
   listingId: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+};
+
+EventProIntroStep.propTypes = {
+  onContinue: PropTypes.func
+};
+
+EventProProfileStep.propTypes = {
+  profile: PropTypes.object,
+  onChange: PropTypes.func.isRequired
+};
+
+EventProPackagesStep.propTypes = {
+  packages: PropTypes.arrayOf(PropTypes.object).isRequired,
+  onAddPackage: PropTypes.func.isRequired,
+  onRemovePackage: PropTypes.func.isRequired,
+  onChangePackage: PropTypes.func.isRequired,
+  onAddAddOn: PropTypes.func.isRequired,
+  onRemoveAddOn: PropTypes.func.isRequired,
+  onChangeAddOn: PropTypes.func.isRequired
+};
+
+EventProLogisticsStep.propTypes = {
+  logistics: PropTypes.object.isRequired,
+  schedule: PropTypes.object.isRequired,
+  onChange: PropTypes.func.isRequired,
+  onScheduleChange: PropTypes.func.isRequired
 };
 
 LivePreviewCard.propTypes = {

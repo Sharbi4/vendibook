@@ -1,0 +1,15 @@
+export const USER_ROLES = {
+  HOST: 'HOST',
+  EVENT_PRO: 'EVENT_PRO',
+  SELLER: 'SELLER',
+  VENDOR_ORGANIZER: 'VENDOR_ORGANIZER'
+};
+
+export const USER_ROLE_LABELS = {
+  [USER_ROLES.HOST]: 'Host',
+  [USER_ROLES.EVENT_PRO]: 'Event Pro',
+  [USER_ROLES.SELLER]: 'Seller',
+  [USER_ROLES.VENDOR_ORGANIZER]: 'Vendor Organizer'
+};
+
+export const DEFAULT_USER_ROLE = USER_ROLES.HOST;
