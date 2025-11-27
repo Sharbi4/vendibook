@@ -1,108 +1,183 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useListings } from '../hooks/useListings.js';
-import { useNavigate } from 'react-router-dom';
-import { Search, MapPin, Calendar, ChevronRight, Truck, Users, UtensilsCrossed, Store, ShoppingCart, X, ChevronDown, ChevronUp, Star, Check, DollarSign, Zap, Coffee } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Search, MapPin, Calendar, X, ChevronDown, ChevronUp, Star, Zap, Store } from 'lucide-react';
 import AppHeader from '../components/AppHeader';
+import {
+  ADVANCED_FILTER_PLACEHOLDERS,
+  SEARCH_MODE,
+  buildSearchParamsFromFilters,
+  deriveCityState,
+  formatDateRange,
+  getCategoryIconComponent,
+  getCategoryLabel,
+  getCategoryOptionsForMode,
+  getModeCtaCopy,
+  parseFiltersFromSearchParams
+} from '../constants/filters';
 
 // TODO: Replace with curated Vendibook brand photography once the production asset is finalized.
 const HERO_IMAGE_URL = '/images/hero-food-truck.jpg';
+const CATEGORY_COLOR_PALETTE = ['#FF5124', '#FF8C42', '#FFA500', '#FFB84D', '#FFC966', '#FF6B6B'];
 
 function HomePage() {
   const navigate = useNavigate();
-  // Search modal state
+  const locationObj = useLocation();
+
+  const initialFilters = useMemo(
+    () => parseFiltersFromSearchParams(new URLSearchParams(locationObj.search)),
+    [locationObj.search]
+  );
+
+  const [filters, setFilters] = useState(initialFilters);
+  const [appliedFilters, setAppliedFilters] = useState(initialFilters);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
-  const [listingType, setListingType] = useState('rent'); // 'rent', 'sale', 'event-pro'
-  const [location, setLocation] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
-
-  // Filters state
   const [showFilters, setShowFilters] = useState(false);
-  const [priceMin, setPriceMin] = useState('');
-  const [priceMax, setPriceMax] = useState('');
-  const [selectedAmenities, setSelectedAmenities] = useState([]);
-  const [deliveryOnly, setDeliveryOnly] = useState(false);
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
 
-  // Applied search params (after clicking Search button)
-  const [appliedSearch, setAppliedSearch] = useState({
-    listingType: 'all',
-    location: '',
-    category: 'all',
-    startDate: '',
-    endDate: '',
-    priceMin: '',
-    priceMax: '',
-    amenities: [],
-    deliveryOnly: false,
-    verifiedOnly: false
-  });
+  useEffect(() => {
+    setFilters(initialFilters);
+    setAppliedFilters(initialFilters);
+  }, [initialFilters]);
 
-  // All categories for top navigation
-  const allCategories = [
-    { id: 'all', name: 'All', icon: Store, color: '#FF5124', emoji: '🏪' },
-    { id: 'food-trucks', name: 'Food Trucks', icon: Truck, color: '#FF5124', emoji: '🚚' },
-    { id: 'trailers', name: 'Trailers', icon: Truck, color: '#FF8C42', emoji: '🚐' },
-    { id: 'ghost-kitchens', name: 'Ghost Kitchens', icon: UtensilsCrossed, color: '#FFA500', emoji: '🍴' },
-    { id: 'vending-lots', name: 'Vending Lots', icon: MapPin, color: '#FFB84D', emoji: '📍' },
-    { id: 'event-pros', name: 'Event Pros', icon: Users, color: '#FFC966', emoji: '👥' },
-    { id: 'for-sale', name: 'For Sale', icon: ShoppingCart, color: '#FF5124', emoji: '🛒' }
+  const modeOptions = [
+    { id: SEARCH_MODE.RENT, label: 'Rent equipment' },
+    { id: SEARCH_MODE.BUY, label: 'Buy equipment' },
+    { id: SEARCH_MODE.EVENT_PRO, label: 'Book event pros' },
+    { id: SEARCH_MODE.VENDOR_MARKET, label: 'Vendor markets' }
   ];
 
-  // Categories by listing type (for search modal)
-  const categoriesByType = {
-    rent: [
-      { id: 'all', name: 'All', icon: Store, color: '#FF5124', emoji: '🏪' },
-      { id: 'food-trucks', name: 'Food Trucks', icon: Truck, color: '#FF5124', emoji: '🚚' },
-      { id: 'trailers', name: 'Trailers', icon: Truck, color: '#FF8C42', emoji: '🚐' },
-      { id: 'ghost-kitchens', name: 'Ghost Kitchens', icon: UtensilsCrossed, color: '#FFA500', emoji: '🍴' },
-      { id: 'vending-lots', name: 'Vending Lots', icon: MapPin, color: '#FFB84D', emoji: '📍' }
-    ],
-    sale: [
-      { id: 'all', name: 'All', icon: Store, color: '#FF5124', emoji: '🏪' },
-      { id: 'for-sale', name: 'Food Trucks', icon: ShoppingCart, color: '#FF5124', emoji: '🚚' },
-      { id: 'trailers-sale', name: 'Trailers', icon: ShoppingCart, color: '#FFA500', emoji: '🚐' },
-      { id: 'equipment', name: 'Equipment', icon: ShoppingCart, color: '#FF8C42', emoji: '⚙️' }
-    ],
-    'event-pro': [
-      { id: 'all', name: 'All', icon: Users, color: '#FF5124', emoji: '👥' },
-      { id: 'chefs', name: 'Chefs', icon: Users, color: '#FFC966', emoji: '👨‍🍳' },
-      { id: 'caterers', name: 'Caterers', icon: Users, color: '#FFB84D', emoji: '🍽️' },
-      { id: 'baristas', name: 'Baristas', icon: Coffee, color: '#FFA500', emoji: '☕' },
-      { id: 'event-staff', name: 'Event Staff', icon: Users, color: '#FF8C42', emoji: '🎉' }
-    ]
-  };
+  const modalCategoryOptions = useMemo(
+    () => [{ value: '', label: 'All categories' }, ...getCategoryOptionsForMode(filters.mode)],
+    [filters.mode]
+  );
 
-  const currentCategories = categoriesByType[listingType] || categoriesByType.rent;
-  const selectedCategoryData = currentCategories.find(c => c.id === selectedCategory) || currentCategories[0];
-  const SelectedCategoryIcon = selectedCategoryData?.icon || Store;
+  const appliedCategoryOptions = useMemo(
+    () => (
+      [{ value: '', label: 'All categories' }, ...getCategoryOptionsForMode(appliedFilters.mode)].map((option, index) => ({
+        ...option,
+        color: CATEGORY_COLOR_PALETTE[index % CATEGORY_COLOR_PALETTE.length],
+        Icon: getCategoryIconComponent(option.value)
+      }))
+    ),
+    [appliedFilters.mode]
+  );
 
-  const amenitiesList = ['Power', 'Water', 'Propane', 'Full Kitchen', 'Storage', 'WiFi'];
-
-  const searchCtaCopy = {
-    rent: 'Find rentals',
-    sale: 'Find trucks for sale',
-    'event-pro': 'Find event pros'
-  };
-
-  const appliedCategoryLabel = appliedSearch.category !== 'all'
-    ? allCategories.find(c => c.id === appliedSearch.category)?.name || 'All categories'
-    : 'All categories';
+  const SelectedCategoryIcon = getCategoryIconComponent(filters.listingType);
+  const modalCtaLabel = getModeCtaCopy(filters.mode);
+  const appliedCategoryLabel = getCategoryLabel(appliedFilters.mode, appliedFilters.listingType);
+  const appliedLocationLabel = appliedFilters.locationText || [appliedFilters.city, appliedFilters.state].filter(Boolean).join(', ');
   const heroSummaryParts = [
-    appliedSearch.location || 'Any location',
+    appliedLocationLabel || 'Any location',
     appliedCategoryLabel,
-    appliedSearch.startDate
-      ? `${appliedSearch.startDate}${appliedSearch.endDate ? ` → ${appliedSearch.endDate}` : ''}`
-      : 'Flexible dates'
+    formatDateRange(appliedFilters.startDate, appliedFilters.endDate)
   ];
   const heroSummary = heroSummaryParts.join(' • ');
-  const modalCtaLabel = searchCtaCopy[listingType] || 'Find rentals';
+  const listingResultsLabel = (() => {
+    switch (appliedFilters.mode) {
+      case SEARCH_MODE.EVENT_PRO:
+        return 'event pros';
+      case SEARCH_MODE.BUY:
+        return 'listings for sale';
+      case SEARCH_MODE.VENDOR_MARKET:
+        return 'vendor markets';
+      default:
+        return 'rentals';
+    }
+  })();
+  const listingsAreaLabel = appliedLocationLabel ? `in ${appliedLocationLabel}` : 'across Arizona';
+  const applyAndSyncFilters = (updater) => {
+    setAppliedFilters((prev) => {
+      const nextState = typeof updater === 'function' ? updater(prev) : updater;
+      const next = { ...nextState, page: 1 };
+      setFilters(next);
+      return next;
+    });
+  };
+
+  const handleModeChange = (mode) => {
+    setFilters((prev) => ({
+      ...prev,
+      mode,
+      listingType: ''
+    }));
+  };
+
+  const handleCategoryChange = (value) => {
+    setFilters((prev) => ({
+      ...prev,
+      listingType: value
+    }));
+  };
+
+  const handleLocationChange = (value) => {
+    const derived = deriveCityState(value);
+    setFilters((prev) => ({
+      ...prev,
+      locationText: value,
+      city: derived.city,
+      state: derived.state
+    }));
+  };
+
+  const clearLocationFilter = () => {
+    applyAndSyncFilters((prev) => ({
+      ...prev,
+      locationText: '',
+      city: '',
+      state: ''
+    }));
+  };
+
+  const clearCategoryFilter = () => {
+    applyAndSyncFilters((prev) => ({
+      ...prev,
+      listingType: ''
+    }));
+  };
+
+  const clearDatesFilter = () => {
+    applyAndSyncFilters((prev) => ({
+      ...prev,
+      startDate: '',
+      endDate: ''
+    }));
+  };
+
+  const clearAllFilters = () => {
+    applyAndSyncFilters((prev) => ({
+      ...prev,
+      listingType: '',
+      locationText: '',
+      city: '',
+      state: '',
+      startDate: '',
+      endDate: ''
+    }));
+  };
+
+  const handleCategoryPillClick = (categoryValue) => {
+    applyAndSyncFilters((prev) => ({
+      ...prev,
+      listingType: categoryValue
+    }));
+  };
+
+  const activeFilterChips = [];
+  const locationChipLabel = appliedLocationLabel;
+  if (locationChipLabel) {
+    activeFilterChips.push({ key: 'location', label: locationChipLabel, onRemove: clearLocationFilter });
+  }
+  if (appliedFilters.listingType) {
+    activeFilterChips.push({ key: 'category', label: appliedCategoryLabel, onRemove: clearCategoryFilter });
+  }
+  if (appliedFilters.startDate || appliedFilters.endDate) {
+    activeFilterChips.push({ key: 'dates', label: formatDateRange(appliedFilters.startDate, appliedFilters.endDate), onRemove: clearDatesFilter });
+  }
 
 
   // Fetch dynamic listings from API (Neon) and merge with legacy mock data until fully migrated
-  const { listings: dynamicListings, loading: listingsLoading } = useListings(appliedSearch);
+  const { listings: dynamicListings, loading: listingsLoading } = useListings(appliedFilters);
 
   const mockListings = [
     {
@@ -229,46 +304,43 @@ function HomePage() {
 
   // Filter listings based on applied search
   const combinedListings = [...dynamicListings, ...mockListings];
-  const filteredListings = combinedListings.filter(listing => {
-    // Listing type filter
-    if (appliedSearch.listingType !== 'all' && listing.listingType !== appliedSearch.listingType) {
+  const locationQuery = (appliedLocationLabel || '').toLowerCase();
+  const cityQuery = (appliedFilters.city || '').toLowerCase();
+  const stateQuery = (appliedFilters.state || '').toLowerCase();
+  const filteredListings = combinedListings.filter((listing) => {
+    const listingMode = listing.listingType;
+    if (appliedFilters.mode === SEARCH_MODE.RENT && listingMode !== 'rent') {
+      return false;
+    }
+    if (appliedFilters.mode === SEARCH_MODE.BUY && listingMode !== 'sale') {
+      return false;
+    }
+    if (appliedFilters.mode === SEARCH_MODE.EVENT_PRO && listingMode !== 'event-pro') {
+      return false;
+    }
+    if (appliedFilters.mode === SEARCH_MODE.VENDOR_MARKET && listingMode !== 'vendor-market') {
       return false;
     }
 
-    // Category filter
-    if (appliedSearch.category !== 'all' && listing.category !== appliedSearch.category) {
+    if (appliedFilters.listingType && listing.category !== appliedFilters.listingType) {
       return false;
     }
 
-    // Location filter (simple contains check)
-    if (appliedSearch.location && !listing.location.toLowerCase().includes(appliedSearch.location.toLowerCase())) {
-      return false;
+    if (locationQuery) {
+      const listingLocation = listing.location.toLowerCase();
+      if (!listingLocation.includes(locationQuery)) {
+        return false;
+      }
     }
 
-    // Price filter
-    if (appliedSearch.priceMin && listing.price < parseInt(appliedSearch.priceMin)) {
-      return false;
-    }
-    if (appliedSearch.priceMax && listing.price > parseInt(appliedSearch.priceMax)) {
-      return false;
+    if (cityQuery) {
+      if (!listing.location.toLowerCase().includes(cityQuery)) {
+        return false;
+      }
     }
 
-    // Delivery filter
-    if (appliedSearch.deliveryOnly && !listing.deliveryAvailable) {
-      return false;
-    }
-
-    // Verified host filter
-    if (appliedSearch.verifiedOnly && !listing.host.includes('Verified') && !listing.host.includes('Superhost')) {
-      return false;
-    }
-
-    // Amenities filter
-    if (appliedSearch.amenities.length > 0) {
-      const hasAllAmenities = appliedSearch.amenities.every(amenity =>
-        listing.features.some(feature => feature.toLowerCase().includes(amenity.toLowerCase()))
-      );
-      if (!hasAllAmenities) {
+    if (stateQuery) {
+      if (!listing.location.toLowerCase().includes(stateQuery)) {
         return false;
       }
     }
@@ -277,35 +349,18 @@ function HomePage() {
   });
 
   const handleSearch = () => {
-    // Build query string for navigation
-    const params = new URLSearchParams();
-    if (listingType && listingType !== 'rent') params.set('type', listingType.toUpperCase());
-    if (location) params.set('location', location);
-    if (selectedCategory && selectedCategory !== 'all') params.set('category', selectedCategory);
-    if (startDate) params.set('startDate', startDate);
-    if (endDate) params.set('endDate', endDate);
-    if (priceMin) params.set('priceMin', priceMin);
-    if (priceMax) params.set('priceMax', priceMax);
-    if (selectedAmenities.length > 0) params.set('amenities', selectedAmenities.join(','));
-    if (deliveryOnly) params.set('deliveryOnly', 'true');
-    if (verifiedOnly) params.set('verifiedOnly', 'true');
-
-    setAppliedSearch({
-      listingType,
-      location,
-      category: selectedCategory,
-      startDate,
-      endDate,
-      priceMin,
-      priceMax,
-      amenities: selectedAmenities,
-      deliveryOnly,
-      verifiedOnly
-    });
-
-    // Navigate to listings page with search params
-    navigate(`/listings?${params.toString()}`);
+    const derived = deriveCityState(filters.locationText);
+    const nextFilters = {
+      ...filters,
+      city: derived.city,
+      state: derived.state,
+      page: 1
+    };
+    setFilters(nextFilters);
+    setAppliedFilters(nextFilters);
+    const params = buildSearchParamsFromFilters(nextFilters);
     setSearchModalOpen(false);
+    navigate(`/listings?${params.toString()}`);
   };
 
   const handleBookNow = (listing) => {
@@ -313,14 +368,6 @@ function HomePage() {
       alert(`Interested in purchasing: ${listing.title}\nPrice: $${listing.price.toLocaleString()}\n\nNext steps:\n- Schedule inspection\n- Get financing options\n- Contact seller`);
     } else {
       alert(`Book: ${listing.title}\nPrice: $${listing.price}/${listing.priceType}\nLocation: ${listing.location}\n\nNext: Select dates and confirm booking`);
-    }
-  };
-
-  const toggleAmenity = (amenity) => {
-    if (selectedAmenities.includes(amenity)) {
-      setSelectedAmenities(selectedAmenities.filter(a => a !== amenity));
-    } else {
-      setSelectedAmenities([...selectedAmenities, amenity]);
     }
   };
 
@@ -339,21 +386,19 @@ function HomePage() {
     const handleDateClick = (day) => {
       const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-      if (!startDate || (startDate && endDate)) {
-        // Set start date
-        setStartDate(dateStr);
-        setEndDate('');
-      } else if (startDate && !endDate) {
-        // Set end date
-        if (new Date(dateStr) >= new Date(startDate)) {
-          setEndDate(dateStr);
-          setShowCalendar(false);
-        } else {
-          // If selected date is before start, reset
-          setStartDate(dateStr);
-          setEndDate('');
+      setFilters((prev) => {
+        if (!prev.startDate || prev.endDate) {
+          return { ...prev, startDate: dateStr, endDate: '' };
         }
-      }
+        if (prev.startDate && !prev.endDate) {
+          if (new Date(dateStr) >= new Date(prev.startDate)) {
+            setShowCalendar(false);
+            return { ...prev, endDate: dateStr };
+          }
+          return { ...prev, startDate: dateStr, endDate: '' };
+        }
+        return prev;
+      });
     };
 
     const prevMonth = () => {
@@ -376,14 +421,14 @@ function HomePage() {
 
     const isSelected = (day) => {
       const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      return dateStr === startDate || dateStr === endDate;
+      return dateStr === filters.startDate || dateStr === filters.endDate;
     };
 
     const isInRange = (day) => {
-      if (!startDate || !endDate) return false;
+      if (!filters.startDate || !filters.endDate) return false;
       const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const date = new Date(dateStr);
-      return date > new Date(startDate) && date < new Date(endDate);
+      return date > new Date(filters.startDate) && date < new Date(filters.endDate);
     };
 
     return (
@@ -508,7 +553,7 @@ function HomePage() {
               <div className="mt-6 grid gap-4 text-sm text-slate-600 sm:grid-cols-3">
                 <div>
                   <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Location</p>
-                  <p className="mt-1 font-semibold text-slate-900">{appliedSearch.location || 'Any city'}</p>
+                  <p className="mt-1 font-semibold text-slate-900">{locationChipLabel || 'Any city'}</p>
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Category</p>
@@ -516,8 +561,32 @@ function HomePage() {
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Dates</p>
-                  <p className="mt-1 font-semibold text-slate-900">{appliedSearch.startDate ? `${appliedSearch.startDate}${appliedSearch.endDate ? ` → ${appliedSearch.endDate}` : ''}` : 'Flexible schedule'}</p>
+                  <p className="mt-1 font-semibold text-slate-900">{formatDateRange(appliedFilters.startDate, appliedFilters.endDate)}</p>
                 </div>
+              </div>
+              <div className="mt-6 flex flex-wrap gap-2">
+                {appliedCategoryOptions.map((category) => {
+                  const Icon = category.Icon;
+                  const isActive = appliedFilters.listingType
+                    ? appliedFilters.listingType === category.value
+                    : category.value === '';
+                  return (
+                    <div
+                      key={category.value || 'all-categories'}
+                      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                        isActive
+                          ? 'bg-white/10 text-white'
+                          : 'border-white/30 text-white/80'
+                      }`}
+                      style={{
+                        borderColor: isActive ? category.color : 'rgba(255,255,255,0.3)'
+                      }}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {category.label}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -553,20 +622,13 @@ function HomePage() {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">I'm looking to</p>
                   <div className="mt-3 flex flex-wrap gap-2 rounded-full bg-slate-100 p-1">
-                    {[
-                      { id: 'rent', label: 'Rent equipment' },
-                      { id: 'sale', label: 'Buy equipment' },
-                      { id: 'event-pro', label: 'Book event pro' }
-                    ].map((option) => (
+                    {modeOptions.map((option) => (
                       <button
                         key={option.id}
                         type="button"
-                        onClick={() => {
-                          setListingType(option.id);
-                          setSelectedCategory('all');
-                        }}
+                        onClick={() => handleModeChange(option.id)}
                         className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                          listingType === option.id
+                          filters.mode === option.id
                             ? 'bg-white text-orange-600 shadow'
                             : 'text-slate-500 hover:text-slate-700'
                         }`}
@@ -584,8 +646,8 @@ function HomePage() {
                       <MapPin className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                       <input
                         type="text"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
+                        value={filters.locationText}
+                        onChange={(e) => handleLocationChange(e.target.value)}
                         placeholder="Phoenix, AZ"
                         className="w-full rounded-2xl border border-slate-200 px-4 py-3 pl-10 text-base text-slate-900 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
                       />
@@ -596,12 +658,12 @@ function HomePage() {
                     <div className="relative mt-2">
                       <SelectedCategoryIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                       <select
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        value={filters.listingType}
+                        onChange={(e) => handleCategoryChange(e.target.value)}
                         className="w-full appearance-none rounded-2xl border border-slate-200 px-4 py-3 pl-10 pr-10 text-base text-slate-900 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
                       >
-                        {currentCategories.map((cat) => (
-                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        {modalCategoryOptions.map((cat) => (
+                          <option key={cat.value || 'all'} value={cat.value}>{cat.label}</option>
                         ))}
                       </select>
                       <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -619,7 +681,11 @@ function HomePage() {
                     >
                       <Calendar className="h-5 w-5 text-slate-400" />
                       <span className="text-sm font-medium text-slate-600">
-                        {startDate && endDate ? `${startDate} → ${endDate}` : startDate ? `${startDate} (select end date)` : 'Select dates'}
+                        {filters.startDate && filters.endDate
+                          ? `${filters.startDate} → ${filters.endDate}`
+                          : filters.startDate
+                            ? `${filters.startDate} (select end date)`
+                            : 'Select dates'}
                       </span>
                     </button>
                     {showCalendar && <SimpleDatePicker />}
@@ -636,68 +702,20 @@ function HomePage() {
                 </button>
 
                 {showFilters && (
-                  <div className="space-y-6 rounded-2xl border border-slate-100 bg-slate-50/70 p-5">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Price range</p>
-                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                        <input
-                          type="number"
-                          value={priceMin}
-                          onChange={(e) => setPriceMin(e.target.value)}
-                          placeholder="Min"
-                          className="rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
-                        />
-                        <input
-                          type="number"
-                          value={priceMax}
-                          onChange={(e) => setPriceMax(e.target.value)}
-                          placeholder="Max"
-                          className="rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
-                        />
+                  <div className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50/70 p-5">
+                    {ADVANCED_FILTER_PLACEHOLDERS.map((placeholder) => (
+                      <div
+                        key={placeholder.key}
+                        className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-4"
+                      >
+                        <p className="text-sm font-semibold text-slate-900">{placeholder.label}</p>
+                        <p className="text-xs text-slate-500">{placeholder.description}</p>
+                        <span className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-orange-600">
+                          <Zap className="h-4 w-4" />
+                          In design sprint
+                        </span>
                       </div>
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Amenities</p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {amenitiesList.map((amenity) => (
-                          <button
-                            key={amenity}
-                            type="button"
-                            onClick={() => toggleAmenity(amenity)}
-                            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                              selectedAmenities.includes(amenity)
-                                ? 'border-orange-500 bg-orange-50 text-orange-600'
-                                : 'border-slate-200 text-slate-600 hover:border-orange-200'
-                            }`}
-                          >
-                            {selectedAmenities.includes(amenity) && <Check className="mr-2 h-4 w-4" />}
-                            {amenity}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
-                        <input
-                          type="checkbox"
-                          checked={deliveryOnly}
-                          onChange={(e) => setDeliveryOnly(e.target.checked)}
-                          className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
-                        />
-                        Delivery available only
-                      </label>
-                      <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
-                        <input
-                          type="checkbox"
-                          checked={verifiedOnly}
-                          onChange={(e) => setVerifiedOnly(e.target.checked)}
-                          className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
-                        />
-                        Verified hosts only
-                      </label>
-                    </div>
+                    ))}
                   </div>
                 )}
 
@@ -726,15 +744,16 @@ function HomePage() {
       }}>
         <div style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px' }}>
           <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', padding: '24px 0' }}>
-            {allCategories.map((cat) => {
-              const Icon = cat.icon;
-              const isActive = appliedSearch.category === cat.id;
+            {appliedCategoryOptions.map((cat) => {
+              const Icon = cat.Icon;
+              const isActive = appliedFilters.listingType
+                ? appliedFilters.listingType === cat.value
+                : cat.value === '';
               return (
                 <button
-                  key={cat.id}
-                  onClick={() => {
-                    setAppliedSearch({ ...appliedSearch, category: cat.id });
-                  }}
+                  type="button"
+                  key={cat.value || 'all-categories-nav'}
+                  onClick={() => handleCategoryPillClick(cat.value)}
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -746,7 +765,7 @@ function HomePage() {
                     background: isActive ? `${cat.color}10` : 'transparent',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
-                    minWidth: '100px',
+                    minWidth: '120px',
                     opacity: isActive ? 1 : 0.7
                   }}
                 >
@@ -761,7 +780,7 @@ function HomePage() {
                     color: isActive ? cat.color : '#222',
                     whiteSpace: 'nowrap'
                   }}>
-                    {cat.name}
+                    {cat.label}
                   </span>
                 </button>
               );
@@ -772,12 +791,55 @@ function HomePage() {
 
       {/* Listings Grid */}
       <section style={{ maxWidth: '1760px', margin: '0 auto', padding: '48px 40px 80px' }}>
+        {activeFilterChips.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', marginBottom: '24px' }}>
+            {activeFilterChips.map((chip) => (
+              <button
+                type="button"
+                key={chip.key}
+                onClick={chip.onRemove}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 14px',
+                  borderRadius: '999px',
+                  border: '1px solid #FF5124',
+                  background: '#FFF6F3',
+                  color: '#D9480F',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                {chip.label}
+                <X style={{ width: '14px', height: '14px' }} />
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              style={{
+                padding: '6px 12px',
+                border: 'none',
+                background: 'transparent',
+                color: '#717171',
+                fontSize: '13px',
+                fontWeight: 600,
+                textDecoration: 'underline',
+                cursor: 'pointer'
+              }}
+            >
+              Clear all
+            </button>
+          </div>
+        )}
         <div style={{ marginBottom: '32px' }}>
           <h2 style={{ fontSize: '26px', fontWeight: '600', color: '#222', marginBottom: '8px' }}>
-            {filteredListings.length} {appliedSearch.listingType === 'event-pro' ? 'event pros' : appliedSearch.listingType === 'sale' ? 'listings for sale' : 'rentals'} in Arizona
+            {filteredListings.length} {listingResultsLabel} {listingsAreaLabel}
           </h2>
           <p style={{ fontSize: '15px', color: '#717171' }}>
-            {appliedSearch.category !== 'all' ? allCategories.find(c => c.id === appliedSearch.category)?.name : 'All categories'}
+            {appliedCategoryLabel}
           </p>
         </div>
 
