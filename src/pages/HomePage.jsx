@@ -81,6 +81,7 @@ function HomePage() {
     { label: 'Buy Equipment', path: '/listings' },
     { label: 'Become a Host', path: '/become-host' },
     { label: 'Community', path: '/community' },
+    { label: 'Dashboard', path: '/host/dashboard' },
     { label: 'Profile', path: '/profile' }
   ];
 

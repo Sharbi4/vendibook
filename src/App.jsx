@@ -6,7 +6,7 @@ import BecomeHostLanding from './pages/BecomeHostLanding';
 import HostOnboardingWizard from './pages/HostOnboardingWizard';
 import HostListings from './pages/HostListings';
 import HostEditListing from './pages/HostEditListing';
-import HostDashboard from './pages/HostDashboard';
+import HostDashboardPage from './pages/HostDashboardPage';
 import { MessagesInboxPage } from './pages/MessagesInboxPage';
 import { MessageDetailPage } from './pages/MessageDetailPage';
 import { MyBookingsPage } from './pages/MyBookingsPage';
@@ -33,7 +33,7 @@ function App() {
         <Route path="/host/onboarding" element={<HostOnboardingWizard />} />
         <Route path="/host/listings" element={<HostListings />} />
         <Route path="/host/listings/:id/edit" element={<HostEditListing />} />
-        <Route path="/host/dashboard" element={<HostDashboard />} />
+        <Route path="/host/dashboard" element={<HostDashboardPage />} />
         <Route path="/host/bookings" element={<HostBookingsPage />} />
         <Route path="/analytics" element={<AnalyticsDashboardPage />} />
         

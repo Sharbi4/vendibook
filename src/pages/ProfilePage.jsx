@@ -1,170 +1,162 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  UserCircle,
-  MapPin,
-  Star,
-  ShieldCheck,
-  CalendarDays,
-  Briefcase,
-  Heart,
-  MessageSquare
-} from 'lucide-react';
-import PageShell from '../components/PageShell';
+import { useEffect, useState } from 'react';
+import PageShell from '../components/layout/PageShell';
+import HostIdentityCard from '../components/profile/HostIdentityCard';
+import HostProfileForm from '../components/profile/HostProfileForm';
+import AccountServiceSettingsCard from '../components/profile/AccountServiceSettingsCard';
+import SocialLinksCard from '../components/profile/SocialLinksCard';
 
-const motto = 'Built for the go-getters of mobile commerce — your Vendibook profile keeps every opportunity connected.';
-
-const bookings = [
-  {
-    title: 'Weekend Coffee Cart',
-    date: 'Aug 12-14',
-    location: 'Downtown Phoenix, AZ',
-    status: 'Confirmed'
-  },
-  {
-    title: 'Food Truck Lot Residency',
-    date: 'Sep 1-30',
-    location: 'Tempe Arts District, AZ',
-    status: 'Pending'
-  }
+const PROFILE_TABS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'host-profile', label: 'Host Profile' },
+  { id: 'settings', label: 'Settings' }
 ];
 
+const SUBTITLE = 'Manage your Vendibook presence, update your host identity, and keep settings in sync.';
+
 function ProfilePage() {
-  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [userState, setUserState] = useState({ status: 'loading', data: null, error: '' });
+  const [settingsState, setSettingsState] = useState({ status: 'idle', data: null });
+  const [socialState, setSocialState] = useState({ status: 'idle', data: null });
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      setUserState({ status: 'loading', data: null, error: '' });
+      try {
+        const response = await fetch('/api/users/me?demo=true');
+        const result = await response.json();
+        if (!response.ok || !result?.data) {
+          throw new Error(result?.error || 'Unable to load profile');
+        }
+        setUserState({ status: 'success', data: result.data, error: '' });
+      } catch (error) {
+        console.error('Failed to fetch profile user', error);
+        setUserState({ status: 'error', data: null, error: error.message || 'Unable to load profile' });
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    if (!userState.data?.id) return;
+
+    const userId = userState.data.id;
+
+    const fetchSettings = async () => {
+      setSettingsState((prev) => ({ ...prev, status: 'loading' }));
+      try {
+        const response = await fetch(`/api/user-settings/me?userId=${userId}`);
+        const result = await response.json();
+        if (!response.ok || !result?.data) {
+          throw new Error(result?.error || 'Settings unavailable');
+        }
+        setSettingsState({ status: 'success', data: result.data });
+      } catch (error) {
+        console.warn('Settings fetch failed', error);
+        setSettingsState({ status: 'error', data: null });
+      }
+    };
+
+    const fetchSocial = async () => {
+      setSocialState((prev) => ({ ...prev, status: 'loading' }));
+      try {
+        const response = await fetch(`/api/user-social-links/me?userId=${userId}`);
+        const result = await response.json();
+        if (!response.ok || !result?.data) {
+          throw new Error(result?.error || 'Links unavailable');
+        }
+        setSocialState({ status: 'success', data: result.data });
+      } catch (error) {
+        console.warn('Social links fetch failed', error);
+        setSocialState({ status: 'error', data: null });
+      }
+    };
+
+    fetchSettings();
+    fetchSocial();
+  }, [userState.data?.id]);
+
+  const renderTabs = () => (
+    <div className="flex flex-wrap gap-3">
+      {PROFILE_TABS.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => setActiveTab(tab.id)}
+          className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+            activeTab === tab.id
+              ? 'bg-orange-500 text-white shadow-lg'
+              : 'border border-slate-200 bg-white text-slate-700 hover:border-orange-200'
+          }`}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const overviewPanel = (
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+      <HostIdentityCard host={userState.data} isLoading={userState.status === 'loading'} />
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Profile checklist</p>
+        <ul className="mt-4 space-y-3 text-sm text-slate-700">
+          <li className="flex items-start gap-2">
+            <span className="mt-1 h-2 w-2 rounded-full bg-orange-500" />
+            Add a standout tagline so renters remember you.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1 h-2 w-2 rounded-full bg-orange-500" />
+            Keep your service radius updated before big seasons.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1 h-2 w-2 rounded-full bg-orange-500" />
+            Link socials for instant proof-of-work.
+          </li>
+        </ul>
+        <p className="mt-4 text-xs text-slate-500">Host score snapshots and public badges are coming soon.</p>
+      </div>
+    </div>
+  );
+
+  const hostProfilePanel = (
+    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <HostProfileForm
+        host={userState.data}
+        onSave={(updated) => setUserState({ status: 'success', data: updated, error: '' })}
+      />
+    </div>
+  );
+
+  const settingsPanel = (
+    <div className="space-y-6">
+      <AccountServiceSettingsCard
+        userId={userState.data?.id || null}
+        settings={settingsState.data}
+        onInitialized={(record) => setSettingsState({ status: 'success', data: record })}
+        onSave={(record) => setSettingsState({ status: 'success', data: record })}
+      />
+      <SocialLinksCard
+        userId={userState.data?.id || null}
+        links={socialState.data}
+        onInitialized={(record) => setSocialState({ status: 'success', data: record })}
+        onSave={(record) => setSocialState({ status: 'success', data: record })}
+      />
+    </div>
+  );
 
   return (
-    <PageShell
-      title="My Profile"
-      subtitle={`${motto} Showcase your credibility, commitments, and community impact.`}
-      action={{
-        label: 'Edit profile',
-        icon: MessageSquare,
-        onClick: () => navigate('/messages'),
-        variant: 'secondary'
-      }}
-    >
-      <section className="space-y-6">
-        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-50 text-orange-600">
-                <UserCircle className="h-8 w-8" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">Alex Rivera</h2>
-                <p className="text-sm text-gray-600 flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-gray-400" /> Phoenix, AZ · Food truck operator & event collaborator
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-3 text-sm font-semibold text-gray-800">
-              <span className="rounded-full bg-green-50 px-3 py-1 text-green-700">Verified host</span>
-              <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">Community contributor</span>
-              <span className="rounded-full bg-purple-50 px-3 py-1 text-purple-700">Early access</span>
-            </div>
-          </div>
-          <p className="mt-4 text-sm text-gray-600">
-            Vendibook is home base for mobile entrepreneurs. Keep your bookings, partnerships, and community footprint in one place
-            so every opportunity keeps moving.
-          </p>
+    <PageShell title="Profile" subtitle={SUBTITLE} maxWidth="max-w-6xl">
+      {renderTabs()}
+      {userState.error ? (
+        <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {userState.error}
         </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
-            <p className="text-sm text-gray-600">Reliability score</p>
-            <div className="mt-2 flex items-baseline gap-2">
-              <Star className="h-5 w-5 text-amber-500" />
-              <span className="text-2xl font-bold text-gray-900">4.9</span>
-            </div>
-          </div>
-          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
-            <p className="text-sm text-gray-600">Bookings completed</p>
-            <p className="mt-2 text-2xl font-bold text-gray-900">86</p>
-          </div>
-          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
-            <p className="text-sm text-gray-600">Response time</p>
-            <p className="mt-2 text-2xl font-bold text-gray-900">under 15m</p>
-          </div>
-          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
-            <p className="text-sm text-gray-600">Community kudos</p>
-            <p className="mt-2 text-2xl font-bold text-gray-900">42</p>
-          </div>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="space-y-4 lg:col-span-2">
-            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-              <div className="mb-4 flex items-center gap-2">
-                <CalendarDays className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Active commitments</h3>
-              </div>
-              <div className="space-y-3">
-                {bookings.map((booking) => (
-                  <div key={booking.title} className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
-                    <div>
-                      <p className="font-semibold text-gray-900">{booking.title}</p>
-                      <p className="text-sm text-gray-600">{booking.date} · {booking.location}</p>
-                    </div>
-                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm">
-                      {booking.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate('/bookings')}
-                className="mt-4 text-sm font-semibold text-blue-700 hover:text-blue-800"
-              >
-                View all bookings
-              </button>
-            </div>
-
-            <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-              <div className="mb-3 flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-green-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Trust & safety</h3>
-              </div>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li className="flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-gray-500" />
-                  Business documentation on file
-                </li>
-                <li className="flex items-center gap-2">
-                  <Heart className="h-4 w-4 text-gray-500" />
-                  Preferred partner invites enabled
-                </li>
-                <li className="flex items-center gap-2">
-                  <Star className="h-4 w-4 text-gray-500" />
-                  Featured in host recommendations
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-            <div className="mb-4 flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-purple-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Community impact</h3>
-            </div>
-            <p className="text-sm text-gray-600">
-              Track how you elevate the Vendibook network through mentorship, fast responses, and meetup participation.
-            </p>
-            <div className="mt-4 space-y-3 text-sm font-semibold text-gray-900">
-              <p>Mentor sessions hosted: <span className="text-blue-700">8</span></p>
-              <p>Threads answered: <span className="text-blue-700">34</span></p>
-              <p>Meetups attended: <span className="text-blue-700">5</span></p>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/community')}
-              className="mt-4 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-            >
-              Engage with the community
-            </button>
-          </div>
-        </div>
-      </section>
+      ) : null}
+      {activeTab === 'host-profile' && hostProfilePanel}
+      {activeTab === 'settings' && settingsPanel}
+      {activeTab === 'overview' && overviewPanel}
     </PageShell>
   );
 }

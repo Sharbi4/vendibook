@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, MapPin, Star, Check, Shield, Truck, Calendar } from 'lucide-react';
+import { ArrowLeft, MapPin, Star, Check, Shield, Truck, Calendar, UserCircle } from 'lucide-react';
 import { getListingById as getMockListingById } from '../data/listings';
 import { AvailabilityCalendar } from '../components/AvailabilityCalendar';
 import { ListingMapPlaceholder } from '../components/ListingMapPlaceholder';
@@ -98,6 +98,17 @@ const extractHostUserId = (listing) =>
   listing?.userId ||
   null;
 
+const buildInitials = (value) => {
+  if (!value) return 'VH';
+  const initials = value
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((segment) => segment[0]?.toUpperCase())
+    .join('');
+  return initials || 'VH';
+};
+
 function ListingDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -117,6 +128,7 @@ function ListingDetails() {
   const [bookingFeedback, setBookingFeedback] = useState(null);
   const [calendarNotice, setCalendarNotice] = useState(null);
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [hostProfile, setHostProfile] = useState({ status: 'idle', data: null, error: '' });
 
   useEffect(() => {
     if (!id) return;
@@ -475,6 +487,39 @@ function ListingDetails() {
   }, [listing?.addOns, listing?.add_ons]);
   // TODO: Once renters provide event addresses, validate them against the service zone before confirming availability.
   const hostUserId = extractHostUserId(listing);
+
+  useEffect(() => {
+    if (!hostUserId) {
+      setHostProfile({ status: 'idle', data: null, error: '' });
+      return;
+    }
+
+    let isActive = true;
+    const fetchHost = async () => {
+      setHostProfile({ status: 'loading', data: null, error: '' });
+      try {
+        const response = await fetch(`/api/users/me?userId=${hostUserId}`);
+        const result = await response.json();
+        if (!response.ok || !result?.data) {
+          throw new Error(result?.error || 'Unable to load host profile');
+        }
+        if (isActive) {
+          setHostProfile({ status: 'success', data: result.data, error: '' });
+        }
+      } catch (error) {
+        if (isActive) {
+          console.warn('Failed to fetch host profile', error);
+          setHostProfile({ status: 'error', data: null, error: error.message || 'Unable to load host profile' });
+        }
+      }
+    };
+
+    fetchHost();
+
+    return () => {
+      isActive = false;
+    };
+  }, [hostUserId]);
   const createdAt = listing?.created_at || listing?.createdAt;
   const priceUnit = listing?.price_unit || listing?.priceUnit || 'per day';
   const rawType = listing?.listing_type || listing?.listingType || listing?.category;
@@ -588,6 +633,26 @@ function ListingDetails() {
     ? Boolean(startDate && eventStartTime && eventEndTime)
     : Boolean(startDate && selectedEndDate);
   const canSubmit = Boolean(hostUserId && isAuthenticated && hasRequiredSelection) && !isSubmitting;
+  const hostRecord = hostProfile.data || null;
+  const hostDisplayName =
+    hostRecord?.display_name ||
+    hostRecord?.business_name ||
+    [hostRecord?.first_name, hostRecord?.last_name].filter(Boolean).join(' ').trim() ||
+    listing?.host_name ||
+    listing?.hostName ||
+    'Vendibook Host';
+  const hostTagline = hostRecord?.tagline || listing?.host_tagline || 'Trusted Vendibook operator';
+  const hostLocation = hostRecord?.city && hostRecord?.state
+    ? `${hostRecord.city}, ${hostRecord.state}`
+    : hostRecord?.city || hostRecord?.state || locationSummary;
+  const hostServiceArea = hostRecord?.service_area_description || serviceAreaDescription;
+  const hostSpecialties = (hostRecord?.cuisines || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  const hostInitials = buildInitials(hostDisplayName);
+  const hostProfileLoading = hostProfile.status === 'loading';
 
   if (isLoading) {
     return (
@@ -1078,6 +1143,62 @@ function ListingDetails() {
                 )}
               </div>
             </div>
+
+            {hostUserId ? (
+              <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Hosted by</p>
+                {hostProfileLoading ? (
+                  <div className="mt-4 animate-pulse space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-14 w-14 rounded-full bg-slate-100" />
+                      <div className="space-y-2">
+                        <div className="h-3 w-32 rounded-full bg-slate-100" />
+                        <div className="h-3 w-24 rounded-full bg-slate-100" />
+                      </div>
+                    </div>
+                    <div className="h-3 w-full rounded-full bg-slate-100" />
+                    <div className="h-3 w-3/4 rounded-full bg-slate-100" />
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-lg font-semibold text-white">
+                        {hostProfile.status === 'error' ? <UserCircle className="h-7 w-7 text-white/70" /> : hostInitials}
+                      </div>
+                      <div>
+                        <p className="text-base font-semibold text-slate-900">{hostDisplayName}</p>
+                        {hostLocation ? <p className="text-sm text-slate-600">{hostLocation}</p> : null}
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-700">{hostTagline}</p>
+                    {hostServiceArea ? (
+                      <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                        <span className="font-semibold text-slate-900">Service area:</span> {hostServiceArea}
+                      </div>
+                    ) : null}
+                    {hostSpecialties.length > 0 ? (
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Specialties</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {hostSpecialties.map((specialty) => (
+                            <span key={specialty} className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-600">
+                              {specialty}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                    {hostProfile.status === 'error' ? (
+                      <p className="text-xs text-rose-600">{hostProfile.error || 'Host details unavailable, please message the host for more info.'}</p>
+                    ) : (
+                      <p className="text-xs text-slate-500">
+                        Host identity badges sync from the Vendibook profile — updates here refresh automatically.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : null}
           </aside>
         </section>
       </main>

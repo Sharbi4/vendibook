@@ -141,6 +141,26 @@ export function bootstrapUsersTable() {
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
       `;
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS tagline TEXT;
+      `;
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS bio TEXT;
+      `;
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS service_area_description TEXT;
+      `;
+
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS cuisines TEXT;
+      `;
     })().catch(error => {
       usersBootstrapPromise = undefined;
       console.error('Failed to bootstrap users table:', error);
@@ -204,6 +224,26 @@ export function bootstrapUserSettingsTable() {
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           UNIQUE (user_id)
         );
+      `;
+
+      await sql`
+        ALTER TABLE user_settings
+        ADD COLUMN IF NOT EXISTS public_phone TEXT;
+      `;
+
+      await sql`
+        ALTER TABLE user_settings
+        ADD COLUMN IF NOT EXISTS service_radius_miles INTEGER DEFAULT 25;
+      `;
+
+      await sql`
+        ALTER TABLE user_settings
+        ADD COLUMN IF NOT EXISTS willing_to_travel BOOLEAN DEFAULT FALSE;
+      `;
+
+      await sql`
+        ALTER TABLE user_settings
+        ADD COLUMN IF NOT EXISTS travel_notes TEXT;
       `;
     })().catch(error => {
       userSettingsBootstrapPromise = undefined;
