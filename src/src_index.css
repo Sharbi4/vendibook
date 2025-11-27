@@ -13,15 +13,15 @@
   --vendibook-yellow: #FFB42C;
   --vendibook-dark-gray: #343434;
   --vendibook-white: #FFFFFF;
-  --vendibook-gradient: linear-gradient(90deg, #FF5124 0%, #FF7A2F 100%);
+  --vendibook-gradient: linear-gradient(90deg, #FF5124 0%, #FF5124 100%);
 
   /* Semantic colors */
   --color-primary: #FF5124;
   --color-secondary: #FFB42C;
   --color-text-primary: #343434;
-  --color-text-secondary: #717171;
-  --color-border: #EBEBEB;
-  --color-background: #F7F7F7;
+  --color-text-secondary: rgba(52, 52, 52, 0.65);
+  --color-border: #EDEDED;
+  --color-background: #F8F8F8;
   --color-background-light: #FFFFFF;
 }
 

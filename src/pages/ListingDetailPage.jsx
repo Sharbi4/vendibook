@@ -250,9 +250,9 @@ function ListingDetailPage() {
                     key={idx}
                     style={{
                       fontSize: '11px',
-                      color: '#717171',
+                      color: 'rgba(52, 52, 52, 0.65)',
                       padding: '3px 8px',
-                      background: '#F7F7F7',
+                      background: '#F8F8F8',
                       borderRadius: '4px',
                       fontWeight: '500',
                     }}

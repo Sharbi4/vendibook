@@ -9,21 +9,12 @@
  */
 function SectionHeader({ title, description }) {
   return (
-    <div style={{ marginBottom: '32px' }}>
-      <h2 style={{
-        fontSize: '32px',
-        fontWeight: '700',
-        marginBottom: '12px',
-        color: '#343434'
-      }}>
+    <div className="mb-8">
+      <h2 className="text-3xl font-bold text-charcoal">
         {title}
       </h2>
       {description && (
-        <p style={{
-          fontSize: '16px',
-          color: '#717171',
-          marginBottom: '0'
-        }}>
+        <p className="mt-3 text-base text-charcoal/70">
           {description}
         </p>
       )}

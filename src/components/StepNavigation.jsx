@@ -27,42 +27,19 @@ function StepNavigation({
   const isLastStep = currentStep === totalSteps;
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingTop: '32px',
-      borderTop: '1px solid #EBEBEB',
-      marginTop: '32px'
-    }}>
-      {/* Progress Indicator */}
-      <div style={{ fontSize: '14px', color: '#717171' }}>
+    <div className="mt-8 flex items-center justify-between border-t border-charcoal/10 pt-8">
+      <div className="text-sm font-semibold text-charcoal/70">
         Step {currentStep} of {totalSteps}
       </div>
 
-      {/* Navigation Buttons */}
-      <div style={{ display: 'flex', gap: '12px' }}>
+      <div className="flex gap-3">
         {!isFirstStep && (
           <button
             onClick={onPrev}
             disabled={isSubmitting}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 24px',
-              border: '1px solid #EBEBEB',
-              borderRadius: '8px',
-              background: 'white',
-              color: '#343434',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: isSubmitting ? 'not-allowed' : 'pointer',
-              opacity: isSubmitting ? 0.5 : 1,
-              transition: 'all 0.2s'
-            }}
+            className="inline-flex items-center gap-2 rounded-full border border-charcoal/15 bg-white px-5 py-3 text-sm font-semibold text-charcoal transition hover:border-charcoal/30 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <ChevronLeft style={{ width: '16px', height: '16px' }} />
+            <ChevronLeft className="h-4 w-4" />
             Previous
           </button>
         )}
@@ -71,21 +48,7 @@ function StepNavigation({
           <button
             onClick={onComplete}
             disabled={!isStepValid || isSubmitting}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 24px',
-              background: '#FF5124',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: (!isStepValid || isSubmitting) ? 'not-allowed' : 'pointer',
-              opacity: (!isStepValid || isSubmitting) ? 0.5 : 1,
-              transition: 'all 0.2s'
-            }}
+            className="inline-flex items-center gap-2 rounded-full bg-orange px-5 py-3 text-sm font-semibold text-white transition hover:bg-gold disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? 'Creating...' : 'Create Listing'}
           </button>
@@ -93,24 +56,10 @@ function StepNavigation({
           <button
             onClick={onNext}
             disabled={!isStepValid}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '12px 24px',
-              background: '#FF5124',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: !isStepValid ? 'not-allowed' : 'pointer',
-              opacity: !isStepValid ? 0.5 : 1,
-              transition: 'all 0.2s'
-            }}
+            className="inline-flex items-center gap-2 rounded-full bg-orange px-5 py-3 text-sm font-semibold text-white transition hover:bg-gold disabled:cursor-not-allowed disabled:opacity-60"
           >
             Next
-            <ChevronRight style={{ width: '16px', height: '16px' }} />
+            <ChevronRight className="h-4 w-4" />
           </button>
         )}
       </div>

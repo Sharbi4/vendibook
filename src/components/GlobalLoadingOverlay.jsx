@@ -5,12 +5,11 @@ import PropTypes from 'prop-types';
 function GlobalLoadingOverlay({ active, message = 'Loading…' }) {
   if (!active) return null;
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(2px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'white', border: '1px solid #EBEBEB', borderRadius: '16px', padding: '28px 36px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', minWidth: '320px' }}>
-        <div style={{ width: '48px', height: '48px', borderRadius: '50%', border: '4px solid #FFE1D6', borderTopColor: '#FF5124', animation: 'spin 0.9s linear infinite' }} />
-        <p style={{ fontSize: '14px', fontWeight: 500, color: '#343434' }}>{message}</p>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/80 backdrop-blur-sm">
+      <div className="brand-card flex min-w-[320px] flex-col items-center gap-4 px-9 py-7 text-charcoal">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-gold/20 border-t-orange" />
+        <p className="text-sm font-semibold text-charcoal/80">{message}</p>
       </div>
-      <style>{`@keyframes spin {from {transform: rotate(0deg);} to {transform: rotate(360deg);}}`}</style>
     </div>
   );
 }

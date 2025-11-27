@@ -7,7 +7,7 @@ function BecomeHostLanding() {
   const HostingType = ({ icon: Icon, title, description, examples }) => (
     <div style={{
       padding: '32px',
-      border: '1px solid #EBEBEB',
+      border: '1px solid #EDEDED',
       borderRadius: '16px',
       background: 'white',
       transition: 'transform 0.2s, box-shadow 0.2s'
@@ -36,10 +36,10 @@ function BecomeHostLanding() {
       <h3 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '12px', color: '#343434' }}>
         {title}
       </h3>
-      <p style={{ fontSize: '16px', color: '#717171', marginBottom: '16px', lineHeight: '1.5' }}>
+      <p style={{ fontSize: '16px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '16px', lineHeight: '1.5' }}>
         {description}
       </p>
-      <p style={{ fontSize: '14px', color: '#717171', fontStyle: 'italic' }}>
+      <p style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', fontStyle: 'italic' }}>
         Examples: {examples}
       </p>
     </div>
@@ -50,7 +50,7 @@ function BecomeHostLanding() {
       <div style={{
         width: '48px',
         height: '48px',
-        background: '#FFF3F0',
+        background: 'rgba(255, 81, 36, 0.08)',
         borderRadius: '50%',
         display: 'flex',
         alignItems: 'center',
@@ -63,7 +63,7 @@ function BecomeHostLanding() {
         <h4 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: '#343434' }}>
           {title}
         </h4>
-        <p style={{ fontSize: '15px', color: '#717171', lineHeight: '1.5' }}>
+        <p style={{ fontSize: '15px', color: 'rgba(52, 52, 52, 0.65)', lineHeight: '1.5' }}>
           {description}
         </p>
       </div>
@@ -75,7 +75,7 @@ function BecomeHostLanding() {
       {/* Header */}
       <header style={{
         background: 'white',
-        borderBottom: '1px solid #EBEBEB'
+        borderBottom: '1px solid #EDEDED'
       }}>
         <div style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '80px' }}>
@@ -166,7 +166,7 @@ function BecomeHostLanding() {
       </section>
 
       {/* Benefits */}
-      <section style={{ background: '#FAFAFA', padding: '80px 40px' }}>
+      <section style={{ background: '#F8F8F8', padding: '80px 40px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <h2 style={{ fontSize: '40px', fontWeight: '700', textAlign: 'center', marginBottom: '56px', color: '#343434' }}>
             Why Host on Vendibook?
@@ -197,7 +197,7 @@ function BecomeHostLanding() {
           <h2 style={{ fontSize: '40px', fontWeight: '700', marginBottom: '24px', color: '#343434' }}>
             Ready to Get Started?
           </h2>
-          <p style={{ fontSize: '18px', color: '#717171', marginBottom: '40px' }}>
+          <p style={{ fontSize: '18px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '40px' }}>
             Create your first listing in under 10 minutes
           </p>
           <button

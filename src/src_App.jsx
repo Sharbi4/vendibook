@@ -9,13 +9,13 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const categories = [
-    { id: 'all', name: 'All', icon: Store, color: '#FF6B35' },
-    { id: 'food-trucks', name: 'Food Trucks', icon: Truck, color: '#FF6B35' },
-    { id: 'trailers', name: 'Trailers', icon: Truck, color: '#FF8C42' },
-    { id: 'ghost-kitchens', name: 'Ghost Kitchens', icon: UtensilsCrossed, color: '#FFA500' },
-    { id: 'vending-lots', name: 'Vending Lots', icon: MapPin, color: '#FFB84D' },
-    { id: 'event-pros', name: 'Event Pros', icon: Users, color: '#FFC966' },
-    { id: 'for-sale', name: 'For Sale', icon: ShoppingCart, color: '#FFD700' }
+    { id: 'all', name: 'All', icon: Store, color: '#FF5124' },
+    { id: 'food-trucks', name: 'Food Trucks', icon: Truck, color: '#FF5124' },
+    { id: 'trailers', name: 'Trailers', icon: Truck, color: '#FFB42C' },
+    { id: 'ghost-kitchens', name: 'Ghost Kitchens', icon: UtensilsCrossed, color: '#FFB42C' },
+    { id: 'vending-lots', name: 'Vending Lots', icon: MapPin, color: '#FFB42C' },
+    { id: 'event-pros', name: 'Event Pros', icon: Users, color: '#FFB42C' },
+    { id: 'for-sale', name: 'For Sale', icon: ShoppingCart, color: '#FFB42C' }
   ];
 
   const listings = [
@@ -157,7 +157,7 @@ function App() {
         top: 0,
         zIndex: 100,
         background: 'white',
-        borderBottom: '1px solid #EBEBEB',
+        borderBottom: '1px solid #EDEDED',
         boxShadow: '0 1px 0 rgba(0,0,0,0.05)'
       }}>
         <div style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px' }}>
@@ -167,7 +167,7 @@ function App() {
               <div style={{
                 width: '32px',
                 height: '32px',
-                background: 'linear-gradient(135deg, #FF6B35, #FF8C42)',
+                background: 'linear-gradient(135deg, #FF5124, #FFB42C)',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
@@ -178,7 +178,7 @@ function App() {
               <span style={{
                 fontSize: '20px',
                 fontWeight: '700',
-                color: '#FF6B35',
+                color: '#FF5124',
                 letterSpacing: '-0.5px'
               }}>
                 vendibook
@@ -187,13 +187,13 @@ function App() {
 
             {/* Desktop Navigation */}
             <nav style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-              <a href="#" style={{ color: '#222', fontSize: '14px', fontWeight: '500', textDecoration: 'none' }}>
+              <a href="#" style={{ color: '#343434', fontSize: '14px', fontWeight: '500', textDecoration: 'none' }}>
                 Rent Equipment
               </a>
-              <a href="#" style={{ color: '#222', fontSize: '14px', fontWeight: '500', textDecoration: 'none' }}>
+              <a href="#" style={{ color: '#343434', fontSize: '14px', fontWeight: '500', textDecoration: 'none' }}>
                 Buy Equipment
               </a>
-              <a href="#" style={{ color: '#222', fontSize: '14px', fontWeight: '500', textDecoration: 'none' }}>
+              <a href="#" style={{ color: '#343434', fontSize: '14px', fontWeight: '500', textDecoration: 'none' }}>
                 Become a Host
               </a>
             </nav>
@@ -201,7 +201,7 @@ function App() {
             {/* Right Side */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <button style={{
-                color: '#222',
+                color: '#343434',
                 fontSize: '14px',
                 fontWeight: '600',
                 background: 'transparent',
@@ -214,7 +214,7 @@ function App() {
                 Sign In
               </button>
               <button style={{
-                background: 'linear-gradient(135deg, #FF6B35, #FF5722)',
+                background: 'linear-gradient(135deg, #FF5124, #FF5124)',
                 color: 'white',
                 border: 'none',
                 padding: '12px 24px',
@@ -234,7 +234,7 @@ function App() {
 
       {/* Hero Section with Search */}
       <section style={{
-        background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #FF6B35 100%)',
+        background: 'linear-gradient(135deg, #343434 0%, #343434 50%, #FF5124 100%)',
         padding: '80px 40px 120px',
         position: 'relative',
         overflow: 'hidden'
@@ -256,7 +256,7 @@ function App() {
             lineHeight: '1.1',
             letterSpacing: '-2px'
           }}>
-            Not sure? You can now <span style={{ color: '#FFD700' }}>try it</span>.
+            Not sure? You can now <span style={{ color: '#FFB42C' }}>try it</span>.
           </h1>
           <p style={{
             fontSize: '20px',
@@ -278,11 +278,11 @@ function App() {
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '16px', alignItems: 'end' }}>
               {/* Location */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#343434', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Location
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <MapPin style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: '#717171' }} />
+                  <MapPin style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: 'rgba(52, 52, 52, 0.65)' }} />
                   <input
                     type="text"
                     value={location}
@@ -291,7 +291,7 @@ function App() {
                     style={{
                       width: '100%',
                       padding: '14px 14px 14px 44px',
-                      border: '1px solid #DDD',
+                      border: '1px solid #D8D8D8',
                       borderRadius: '8px',
                       fontSize: '15px',
                       outline: 'none',
@@ -303,11 +303,11 @@ function App() {
 
               {/* Check In */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#343434', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Start Date
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <Calendar style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: '#717171' }} />
+                  <Calendar style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: 'rgba(52, 52, 52, 0.65)' }} />
                   <input
                     type="date"
                     value={checkIn}
@@ -315,7 +315,7 @@ function App() {
                     style={{
                       width: '100%',
                       padding: '14px 14px 14px 44px',
-                      border: '1px solid #DDD',
+                      border: '1px solid #D8D8D8',
                       borderRadius: '8px',
                       fontSize: '15px',
                       outline: 'none'
@@ -326,11 +326,11 @@ function App() {
 
               {/* Check Out */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#343434', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   End Date
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <Calendar style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: '#717171' }} />
+                  <Calendar style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: 'rgba(52, 52, 52, 0.65)' }} />
                   <input
                     type="date"
                     value={checkOut}
@@ -338,7 +338,7 @@ function App() {
                     style={{
                       width: '100%',
                       padding: '14px 14px 14px 44px',
-                      border: '1px solid #DDD',
+                      border: '1px solid #D8D8D8',
                       borderRadius: '8px',
                       fontSize: '15px',
                       outline: 'none'
@@ -351,7 +351,7 @@ function App() {
               <button
                 onClick={handleSearch}
                 style={{
-                  background: 'linear-gradient(135deg, #FF6B35, #FF5722)',
+                  background: 'linear-gradient(135deg, #FF5124, #FF5124)',
                   color: 'white',
                   border: 'none',
                   padding: '14px 32px',
@@ -376,7 +376,7 @@ function App() {
 
       {/* Categories */}
       <section style={{
-        borderBottom: '1px solid #EBEBEB',
+        borderBottom: '1px solid #EDEDED',
         background: 'white',
         position: 'sticky',
         top: '80px',
@@ -410,12 +410,12 @@ function App() {
                   <Icon style={{
                     width: '24px',
                     height: '24px',
-                    color: isActive ? cat.color : '#717171'
+                    color: isActive ? cat.color : 'rgba(52, 52, 52, 0.65)'
                   }} />
                   <span style={{
                     fontSize: '12px',
                     fontWeight: isActive ? '600' : '500',
-                    color: isActive ? cat.color : '#222',
+                    color: isActive ? cat.color : '#343434',
                     whiteSpace: 'nowrap'
                   }}>
                     {cat.name}
@@ -430,10 +430,10 @@ function App() {
       {/* Listings Grid */}
       <section style={{ maxWidth: '1760px', margin: '0 auto', padding: '48px 40px 80px' }}>
         <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ fontSize: '26px', fontWeight: '600', color: '#222', marginBottom: '8px' }}>
+          <h2 style={{ fontSize: '26px', fontWeight: '600', color: '#343434', marginBottom: '8px' }}>
             {filteredListings.length} stays in Arizona
           </h2>
-          <p style={{ fontSize: '15px', color: '#717171' }}>
+          <p style={{ fontSize: '15px', color: 'rgba(52, 52, 52, 0.65)' }}>
             {selectedCategory === 'all' ? 'All categories' : categories.find(c => c.id === selectedCategory)?.name}
           </p>
         </div>
@@ -492,7 +492,7 @@ function App() {
                   <h3 style={{
                     fontSize: '15px',
                     fontWeight: '600',
-                    color: '#222',
+                    color: '#343434',
                     lineHeight: '1.3',
                     flex: 1
                   }}>
@@ -501,14 +501,14 @@ function App() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px' }}>
                     <span style={{ fontSize: '14px' }}>★</span>
                     <span style={{ fontSize: '14px', fontWeight: '600' }}>{listing.rating}</span>
-                    <span style={{ fontSize: '14px', color: '#717171' }}>({listing.reviews})</span>
+                    <span style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)' }}>({listing.reviews})</span>
                   </div>
                 </div>
 
-                <p style={{ fontSize: '14px', color: '#717171', marginBottom: '4px' }}>
+                <p style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '4px' }}>
                   {listing.location}
                 </p>
-                <p style={{ fontSize: '14px', color: '#717171', marginBottom: '8px' }}>
+                <p style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '8px' }}>
                   {listing.host}
                 </p>
 
@@ -518,9 +518,9 @@ function App() {
                       key={idx}
                       style={{
                         fontSize: '11px',
-                        color: '#717171',
+                        color: 'rgba(52, 52, 52, 0.65)',
                         padding: '3px 8px',
-                        background: '#F7F7F7',
+                        background: '#F8F8F8',
                         borderRadius: '4px',
                         fontWeight: '500'
                       }}
@@ -530,11 +530,11 @@ function App() {
                   ))}
                 </div>
 
-                <p style={{ fontSize: '15px', color: '#222', marginTop: '8px' }}>
+                <p style={{ fontSize: '15px', color: '#343434', marginTop: '8px' }}>
                   <span style={{ fontWeight: '600' }}>
                     ${listing.priceType === 'sale' ? listing.price.toLocaleString() : listing.price}
                   </span>
-                  <span style={{ fontWeight: '400', color: '#717171' }}>
+                  <span style={{ fontWeight: '400', color: 'rgba(52, 52, 52, 0.65)' }}>
                     {listing.priceType === 'sale' ? '' : ` / ${listing.priceType}`}
                   </span>
                 </p>
@@ -546,7 +546,7 @@ function App() {
 
       {/* CTA Section */}
       <section style={{
-        background: 'linear-gradient(135deg, #FF6B35 0%, #FF5722 100%)',
+        background: 'linear-gradient(135deg, #FF5124 0%, #FF5124 100%)',
         padding: '80px 40px',
         marginTop: '40px'
       }}>
@@ -560,7 +560,7 @@ function App() {
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button style={{
               background: 'white',
-              color: '#FF6B35',
+              color: '#FF5124',
               border: 'none',
               padding: '16px 32px',
               borderRadius: '8px',
@@ -588,41 +588,41 @@ function App() {
       </section>
 
       {/* Footer */}
-      <footer style={{ background: '#F7F7F7', padding: '48px 40px', marginTop: '0' }}>
+      <footer style={{ background: '#F8F8F8', padding: '48px 40px', marginTop: '0' }}>
         <div style={{ maxWidth: '1760px', margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '32px', marginBottom: '32px' }}>
             <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#222' }}>Support</h4>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Help Center</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Safety information</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Cancellation options</a>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#343434' }}>Support</h4>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Help Center</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Safety information</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Cancellation options</a>
             </div>
             <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#222' }}>Community</h4>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Blog</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Success stories</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Host resources</a>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#343434' }}>Community</h4>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Blog</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Success stories</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Host resources</a>
             </div>
             <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#222' }}>Hosting</h4>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>List your truck</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Pricing calculator</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Host protection</a>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#343434' }}>Hosting</h4>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>List your truck</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Pricing calculator</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Host protection</a>
             </div>
             <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#222' }}>Vendibook</h4>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>About us</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Press</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Careers</a>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#343434' }}>Vendibook</h4>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>About us</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Press</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Careers</a>
             </div>
           </div>
-          <div style={{ borderTop: '1px solid #DDD', paddingTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <p style={{ fontSize: '14px', color: '#717171' }}>
+          <div style={{ borderTop: '1px solid #D8D8D8', paddingTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <p style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)' }}>
               © 2025 Vendibook LLC · All rights reserved
             </p>
             <div style={{ display: 'flex', gap: '16px' }}>
-              <a href="#" style={{ fontSize: '14px', color: '#717171', textDecoration: 'none' }}>Privacy</a>
-              <a href="#" style={{ fontSize: '14px', color: '#717171', textDecoration: 'none' }}>Terms</a>
+              <a href="#" style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', textDecoration: 'none' }}>Privacy</a>
+              <a href="#" style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', textDecoration: 'none' }}>Terms</a>
             </div>
           </div>
         </div>

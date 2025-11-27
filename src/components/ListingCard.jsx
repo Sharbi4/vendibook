@@ -26,114 +26,52 @@ export default function ListingCard({ listing }) {
   return (
     <Link
       to={listingId ? `/listing/${listingId}` : '#'}
-      style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
+      className="group block text-charcoal no-underline"
     >
-      <div>
-        <div
-          style={{
-            position: 'relative',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            marginBottom: '12px',
-            aspectRatio: '20/19',
-            background: '#F7F7F7',
-          }}
-        >
+      <div className="flex flex-col">
+        <div className="relative mb-3 aspect-[20/19] overflow-hidden rounded-3xl bg-neutralLight">
           {imageUrl && !imageError ? (
             <img
               src={imageUrl}
               alt={title}
               onError={handleImageError}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                transition: 'transform 0.3s',
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-              onMouseOut={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+              className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
             />
           ) : (
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'linear-gradient(135deg, #FFEDD5 0%, #FFF 50%, #FED7AA 100%)',
-                fontSize: '48px',
-              }}
-            >
+            <div className="flex h-full w-full items-center justify-center bg-orange/10 text-4xl">
               🚚
             </div>
           )}
           {deliveryAvailable && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '12px',
-                right: '12px',
-                background: 'rgba(0,0,0,0.7)',
-                color: 'white',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: '600',
-              }}
-            >
-              Delivery Available
+            <div className="absolute right-3 top-3 rounded-full bg-charcoal/85 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
+              Delivery
             </div>
           )}
         </div>
 
         <div>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'start',
-              marginBottom: '4px',
-            }}
-          >
-            <h3
-              style={{
-                fontSize: '15px',
-                fontWeight: '600',
-                color: '#222',
-                lineHeight: '1.3',
-                flex: 1,
-              }}
-            >
+          <div className="mb-1 flex items-start justify-between gap-3">
+            <h3 className="flex-1 text-sm font-semibold text-charcoal">
               {title}
             </h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px' }}>
-              <span style={{ fontSize: '14px' }}>★</span>
-              <span style={{ fontSize: '14px', fontWeight: '600' }}>{rating}</span>
-              {reviews > 0 && (
-                <span style={{ fontSize: '14px', color: '#717171' }}>({reviews})</span>
-              )}
+            <div className="flex items-center gap-1 text-xs font-semibold text-orange">
+              <span>★</span>
+              <span>{rating}</span>
+              {reviews > 0 && <span className="text-charcoal/55">({reviews})</span>}
             </div>
           </div>
 
-          <p style={{ fontSize: '14px', color: '#717171', marginBottom: '4px' }}>{location}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-charcoal/55">{location}</p>
           {host && (
-            <p style={{ fontSize: '14px', color: '#717171', marginBottom: '8px' }}>{host}</p>
+            <p className="text-xs text-charcoal/55">{host}</p>
           )}
 
           {tags.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+            <div className="mt-3 flex flex-wrap gap-2">
               {tags.map((feature, idx) => (
                 <span
                   key={idx}
-                  style={{
-                    fontSize: '11px',
-                    color: '#717171',
-                    padding: '3px 8px',
-                    background: '#F7F7F7',
-                    borderRadius: '4px',
-                    fontWeight: '500',
-                  }}
+                  className="rounded-full bg-neutralLight px-3 py-1 text-[11px] font-semibold text-charcoal/70"
                 >
                   {feature}
                 </span>
@@ -141,12 +79,12 @@ export default function ListingCard({ listing }) {
             </div>
           )}
 
-          <p style={{ fontSize: '15px', color: '#222', marginTop: '8px' }}>
-            <span style={{ fontWeight: '600' }}>
+          <p className="mt-4 text-base text-charcoal">
+            <span className="font-semibold">
               {price ? `$${typeof price === 'number' ? price.toLocaleString() : price}` : 'Price available upon request'}
             </span>
             {price && (
-              <span style={{ fontWeight: '400', color: '#717171' }}> / {priceUnit}</span>
+              <span className="text-charcoal/60"> / {priceUnit}</span>
             )}
           </p>
         </div>

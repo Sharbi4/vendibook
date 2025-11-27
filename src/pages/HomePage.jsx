@@ -33,7 +33,7 @@ import {
 
 // TODO: Replace with curated Vendibook brand photography once the production asset is finalized.
 const HERO_IMAGE_URL = '/images/hero-food-truck.jpg';
-const CATEGORY_COLOR_PALETTE = ['#FF5124', '#FF8C42', '#FFA500', '#FFB84D', '#FFC966', '#FF6B6B'];
+const CATEGORY_COLOR_PALETTE = ['#FF5124', '#FFB42C', '#FFB42C', '#FFB42C', '#FFB42C', '#FF5124'];
 const CATEGORY_ICON_COMPONENTS = {
   truck: Truck,
   trailer: Truck,
@@ -782,7 +782,7 @@ function HomePage() {
 
       {/* Quick Category Filter (existing sticky nav) */}
       <section style={{
-        borderBottom: '1px solid #EBEBEB',
+        borderBottom: '1px solid #EDEDED',
         background: 'white',
         position: 'sticky',
         top: '80px',
@@ -819,12 +819,12 @@ function HomePage() {
                   <Icon style={{
                     width: '24px',
                     height: '24px',
-                    color: isActive ? cat.color : '#717171'
+                    color: isActive ? cat.color : 'rgba(52, 52, 52, 0.65)'
                   }} />
                   <span style={{
                     fontSize: '12px',
                     fontWeight: isActive ? '600' : '500',
-                    color: isActive ? cat.color : '#222',
+                    color: isActive ? cat.color : '#343434',
                     whiteSpace: 'nowrap'
                   }}>
                     {cat.label}
@@ -852,8 +852,8 @@ function HomePage() {
                   padding: '8px 14px',
                   borderRadius: '999px',
                   border: '1px solid #FF5124',
-                  background: '#FFF6F3',
-                  color: '#D9480F',
+                  background: 'rgba(255, 81, 36, 0.05)',
+                  color: '#FF5124',
                   fontSize: '13px',
                   fontWeight: 600,
                   cursor: 'pointer'
@@ -870,7 +870,7 @@ function HomePage() {
                 padding: '6px 12px',
                 border: 'none',
                 background: 'transparent',
-                color: '#717171',
+                color: 'rgba(52, 52, 52, 0.65)',
                 fontSize: '13px',
                 fontWeight: 600,
                 textDecoration: 'underline',
@@ -882,10 +882,10 @@ function HomePage() {
           </div>
         )}
         <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ fontSize: '26px', fontWeight: '600', color: '#222', marginBottom: '8px' }}>
+          <h2 style={{ fontSize: '26px', fontWeight: '600', color: '#343434', marginBottom: '8px' }}>
             {filteredListings.length} {listingResultsLabel} {listingsAreaLabel}
           </h2>
-          <p style={{ fontSize: '15px', color: '#717171' }}>
+          <p style={{ fontSize: '15px', color: 'rgba(52, 52, 52, 0.65)' }}>
             {appliedCategoryLabel}
           </p>
         </div>
@@ -942,7 +942,7 @@ function HomePage() {
                   <h3 style={{
                     fontSize: '15px',
                     fontWeight: '600',
-                    color: '#222',
+                    color: '#343434',
                     lineHeight: '1.3',
                     flex: 1
                   }}>
@@ -951,14 +951,14 @@ function HomePage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px' }}>
                     <span style={{ fontSize: '14px' }}>★</span>
                     <span style={{ fontSize: '14px', fontWeight: '600' }}>{listing.rating}</span>
-                    <span style={{ fontSize: '14px', color: '#717171' }}>({listing.reviews})</span>
+                    <span style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)' }}>({listing.reviews})</span>
                   </div>
                 </div>
 
-                <p style={{ fontSize: '14px', color: '#717171', marginBottom: '4px' }}>
+                <p style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '4px' }}>
                   {listing.location}
                 </p>
-                <p style={{ fontSize: '14px', color: '#717171', marginBottom: '8px' }}>
+                <p style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '8px' }}>
                   {listing.host}
                 </p>
 
@@ -968,9 +968,9 @@ function HomePage() {
                       key={idx}
                       style={{
                         fontSize: '11px',
-                        color: '#717171',
+                        color: 'rgba(52, 52, 52, 0.65)',
                         padding: '3px 8px',
-                        background: '#F7F7F7',
+                        background: '#F8F8F8',
                         borderRadius: '4px',
                         fontWeight: '500'
                       }}
@@ -980,11 +980,11 @@ function HomePage() {
                   ))}
                 </div>
 
-                <p style={{ fontSize: '15px', color: '#222', marginTop: '8px' }}>
+                <p style={{ fontSize: '15px', color: '#343434', marginTop: '8px' }}>
                   <span style={{ fontWeight: '600' }}>
                     ${listing.priceType === 'sale' ? listing.price.toLocaleString() : listing.price}
                   </span>
-                  <span style={{ fontWeight: '400', color: '#717171' }}>
+                  <span style={{ fontWeight: '400', color: 'rgba(52, 52, 52, 0.65)' }}>
                     {listing.priceType === 'sale' ? '' : ` / ${listing.priceType}`}
                   </span>
                 </p>
@@ -994,7 +994,7 @@ function HomePage() {
         </div>
 
         {filteredListings.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#717171' }}>
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'rgba(52, 52, 52, 0.65)' }}>
             <Store style={{ width: '48px', height: '48px', margin: '0 auto 16px', opacity: 0.5 }} />
             <p style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>No results found</p>
             <p style={{ fontSize: '15px' }}>Try adjusting your filters or search criteria</p>
@@ -1003,12 +1003,12 @@ function HomePage() {
       </section>
 
       {/* How Vendibook Works Section */}
-      <section style={{ background: '#F7F7F7', padding: '80px 40px' }}>
+      <section style={{ background: '#F8F8F8', padding: '80px 40px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontWeight: '700', textAlign: 'center', marginBottom: '16px', color: '#222' }}>
+          <h2 style={{ fontSize: '36px', fontWeight: '700', textAlign: 'center', marginBottom: '16px', color: '#343434' }}>
             How Vendibook Works
           </h2>
-          <p style={{ fontSize: '18px', textAlign: 'center', color: '#717171', marginBottom: '60px' }}>
+          <p style={{ fontSize: '18px', textAlign: 'center', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '60px' }}>
             Start your mobile business in three simple steps
           </p>
 
@@ -1056,10 +1056,10 @@ function HomePage() {
                 }}>
                   STEP {item.step}
                 </div>
-                <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px', color: '#222' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px', color: '#343434' }}>
                   {item.title}
                 </h3>
-                <p style={{ fontSize: '15px', color: '#717171', lineHeight: '1.6' }}>
+                <p style={{ fontSize: '15px', color: 'rgba(52, 52, 52, 0.65)', lineHeight: '1.6' }}>
                   {item.description}
                 </p>
               </div>
@@ -1071,10 +1071,10 @@ function HomePage() {
       {/* Social Proof Section */}
       <section style={{ padding: '80px 40px', background: 'white' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontWeight: '700', textAlign: 'center', marginBottom: '16px', color: '#222' }}>
+          <h2 style={{ fontSize: '36px', fontWeight: '700', textAlign: 'center', marginBottom: '16px', color: '#343434' }}>
             Trusted by Mobile Business Owners
           </h2>
-          <p style={{ fontSize: '18px', textAlign: 'center', color: '#717171', marginBottom: '60px' }}>
+          <p style={{ fontSize: '18px', textAlign: 'center', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '60px' }}>
             Join hundreds of entrepreneurs who've launched with Vendibook
           </p>
 
@@ -1101,21 +1101,21 @@ function HomePage() {
             ].map((review, idx) => (
               <div key={idx} style={{
                 padding: '32px',
-                background: '#F7F7F7',
+                background: '#F8F8F8',
                 borderRadius: '16px',
-                border: '1px solid #EBEBEB'
+                border: '1px solid #EDEDED'
               }}>
                 <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
                   {Array.from({ length: review.rating }).map((_, i) => (
                     <Star key={i} style={{ width: '16px', height: '16px', fill: '#FF5124', color: '#FF5124' }} />
                   ))}
                 </div>
-                <p style={{ fontSize: '15px', color: '#222', lineHeight: '1.6', marginBottom: '20px', fontStyle: 'italic' }}>
+                <p style={{ fontSize: '15px', color: '#343434', lineHeight: '1.6', marginBottom: '20px', fontStyle: 'italic' }}>
                   "{review.quote}"
                 </p>
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#222' }}>{review.author}</div>
-                  <div style={{ fontSize: '13px', color: '#717171' }}>{review.business}</div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#343434' }}>{review.author}</div>
+                  <div style={{ fontSize: '13px', color: 'rgba(52, 52, 52, 0.65)' }}>{review.business}</div>
                 </div>
               </div>
             ))}
@@ -1170,47 +1170,47 @@ function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer style={{ background: '#F7F7F7', padding: '48px 40px', marginTop: '0' }}>
+      <footer style={{ background: '#F8F8F8', padding: '48px 40px', marginTop: '0' }}>
         <div style={{ maxWidth: '1760px', margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '32px', marginBottom: '32px' }}>
             <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#222' }}>Rent</h4>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Food Trucks</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Trailers</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Ghost Kitchens</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Vending Lots</a>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#343434' }}>Rent</h4>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Food Trucks</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Trailers</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Ghost Kitchens</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Vending Lots</a>
             </div>
             <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#222' }}>Buy</h4>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Buy Equipment</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Financing Options</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Inspection Services</a>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#343434' }}>Buy</h4>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Buy Equipment</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Financing Options</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Inspection Services</a>
             </div>
             <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#222' }}>Host</h4>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Become a Host</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Host Protection</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Pricing Calculator</a>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#343434' }}>Host</h4>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Become a Host</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Host Protection</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Pricing Calculator</a>
             </div>
             <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#222' }}>Support</h4>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Help Center</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>FAQ</a>
-              <a href="#" style={{ display: 'block', fontSize: '14px', color: '#717171', marginBottom: '12px', textDecoration: 'none' }}>Contact Us</a>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '16px', color: '#343434' }}>Support</h4>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Help Center</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>FAQ</a>
+              <a href="#" style={{ display: 'block', fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '12px', textDecoration: 'none' }}>Contact Us</a>
             </div>
           </div>
-          <div style={{ borderTop: '1px solid #DDD', paddingTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-            <p style={{ fontSize: '14px', color: '#717171' }}>
+          <div style={{ borderTop: '1px solid #D8D8D8', paddingTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+            <p style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)' }}>
               © 2025 Vendibook LLC · All rights reserved
             </p>
             <div style={{ display: 'flex', gap: '16px' }}>
-              <a href="#" style={{ fontSize: '14px', color: '#717171', textDecoration: 'none' }}>Privacy</a>
-              <a href="#" style={{ fontSize: '14px', color: '#717171', textDecoration: 'none' }}>Terms</a>
-              <a href="#" style={{ fontSize: '14px', color: '#717171', textDecoration: 'none' }}>Sitemap</a>
+              <a href="#" style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', textDecoration: 'none' }}>Privacy</a>
+              <a href="#" style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', textDecoration: 'none' }}>Terms</a>
+              <a href="#" style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', textDecoration: 'none' }}>Sitemap</a>
               <button
                 type="button"
                 onClick={() => navigate('/about')}
-                style={{ fontSize: '14px', color: '#717171', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
               >
                 About
               </button>

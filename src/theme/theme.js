@@ -6,15 +6,15 @@
 export const colors = {
   white: '#FFFFFF',
   textMain: '#343434',
-  textMuted: '#717171',
+  textMuted: 'rgba(52, 52, 52, 0.65)',
   orange: '#FF5124',
-  orangeLight: '#FF6B35',
+  orangeLight: '#FF5124',
   yellow: '#FFB42C',
-  borderSubtle: '#EBEBEB',
-  bgSoft: '#FAFAFA',
-  success: '#10B981',
-  error: '#EF4444',
-  warning: '#F59E0B'
+  borderSubtle: '#EDEDED',
+  bgSoft: '#F8F8F8',
+  success: '#FFB42C',
+  error: '#FF5124',
+  warning: '#FFB42C'
 };
 
 export const radii = {
@@ -40,18 +40,18 @@ export const shadows = {
 
 export const listingTypeChips = {
   RENT: {
-    bgColor: '#FFF3E0',
+    bgColor: 'rgba(255, 180, 44, 0.15)',
     textColor: '#FF5124',
     label: 'RENT'
   },
   SALE: {
-    bgColor: '#E8F5E9',
-    textColor: '#10B981',
+    bgColor: 'rgba(255, 180, 44, 0.12)',
+    textColor: '#FFB42C',
     label: 'FOR SALE'
   },
   EVENT_PRO: {
-    bgColor: '#F3E5F5',
-    textColor: '#9C27B0',
+    bgColor: 'rgba(255, 180, 44, 0.12)',
+    textColor: '#FF5124',
     label: 'EVENT PRO'
   }
 };

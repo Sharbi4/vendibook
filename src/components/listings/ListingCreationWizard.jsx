@@ -1336,10 +1336,10 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
                 <button
                   type="button"
                   key={option.value}
-                  className={`relative overflow-hidden rounded-2xl border text-left transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#FF6A3D]/30 ${
+                  className={`relative overflow-hidden rounded-2xl border text-left transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange/30 ${
                     formData.listingType === option.value
-                      ? 'border-[#FF6A3D] bg-white shadow-lg ring-2 ring-[#FF6A3D] ring-offset-2'
-                      : 'border-slate-200 bg-white hover:border-[#FF6A3D]/70 hover:shadow-lg'
+                      ? 'border-orange bg-white shadow-lg ring-2 ring-orange ring-offset-2'
+                      : 'border-slate-200 bg-white hover:border-orange/70 hover:shadow-lg'
                   }`}
                   onClick={() => {
                     setFormData(prev => ({
@@ -2112,7 +2112,7 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
       <div className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <section className="space-y-6">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#FF6A3D]">Success</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-orange">Success</p>
             <h2 className="mt-3 text-3xl font-bold text-slate-900">{successTitle}</h2>
             <p className="mt-2 text-slate-600">{successSubtitle}</p>
           </div>
@@ -2120,20 +2120,20 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Listing</p>
             <p className="mt-2 text-2xl font-semibold text-slate-900">{publishedListing?.title || formData.basics.title || 'Untitled listing'}</p>
             <p className="text-sm text-slate-600">{[publishedListing?.city || formData.basics.city, publishedListing?.state || formData.basics.state].filter(Boolean).join(', ') || 'Location not set'}</p>
-            <span className="mt-3 inline-flex rounded-full bg-[#FF6A3D]/10 px-3 py-1 text-xs font-semibold text-[#FF6A3D]">
+            <span className="mt-3 inline-flex rounded-full bg-orange/10 px-3 py-1 text-xs font-semibold text-orange">
               {formatListingTypeLabel(publishedListing?.listing_type || mapWizardListingType(formData.listingType))}
             </span>
           </div>
           <div className="space-y-3">
             <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-              <LinkIcon className="h-4 w-4 text-[#FF6A3D]" />
+              <LinkIcon className="h-4 w-4 text-orange" />
               <span className="truncate">{shareLink || 'Share link not available yet'}</span>
             </div>
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={() => navigate(buildListingPath(publishedListing))}
-                className="inline-flex items-center gap-2 rounded-full bg-[#FF6A3D] px-5 py-2 text-sm font-semibold text-white shadow-lg"
+                className="inline-flex items-center gap-2 rounded-full bg-orange px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-gold"
               >
                 View listing
                 <ArrowRight className="h-4 w-4" />
@@ -2141,7 +2141,7 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
               <button
                 type="button"
                 onClick={copyLink}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-[#FF6A3D]"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-orange"
               >
                 <Copy className="h-4 w-4" /> Copy share link
               </button>
@@ -2151,14 +2151,14 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex items-center justify-center rounded-full border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 hover:border-[#FF6A3D]"
+            className="inline-flex items-center justify-center rounded-full border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 hover:border-orange"
           >
             {backButtonLabel}
           </button>
         </section>
         <aside className="rounded-3xl border border-slate-100 bg-slate-50 p-6 text-center shadow-inner">
           <div ref={qrCanvasRef} className="mx-auto inline-flex items-center justify-center rounded-2xl bg-white p-4 shadow-sm">
-            <QRCodeCanvas value={shareLink || 'https://vendibook.com'} size={200} includeMargin fgColor="#FF6A3D" />
+            <QRCodeCanvas value={shareLink || 'https://vendibook.com'} size={200} includeMargin fgColor="#FF5124" />
           </div>
           <p className="mt-4 text-lg font-semibold text-slate-900">Vendibook QR ready</p>
           <p className="mt-2 text-sm text-slate-600">Print or share this code so people can quickly open your listing.</p>
@@ -2166,14 +2166,14 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
             <button
               type="button"
               onClick={downloadQr}
-              className="w-full rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-[#FF6A3D]"
+              className="w-full rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-orange"
             >
               <span className="inline-flex items-center justify-center gap-2"><Download className="h-4 w-4" /> Download QR code</span>
             </button>
             <button
               type="button"
               onClick={() => navigate(buildListingPath(publishedListing))}
-              className="w-full rounded-full bg-[#FF6A3D]/10 px-5 py-2 text-sm font-semibold text-[#FF6A3D]"
+              className="w-full rounded-full bg-orange/10 px-5 py-2 text-sm font-semibold text-orange"
             >
               Open listing page
             </button>

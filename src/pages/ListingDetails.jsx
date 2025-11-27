@@ -699,7 +699,7 @@ function ListingDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5]">
+    <div className="min-h-screen bg-[#F8F8F8]">
       <header className="border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center px-4 py-4 sm:px-6">
           <button
@@ -714,7 +714,7 @@ function ListingDetails() {
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
         <section className="mb-8">
-          <div className="relative flex h-64 items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-[#FFF4E0] to-[#FFE7C2] p-6 sm:h-80 lg:h-96">
+          <div className="relative flex h-64 items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-[rgba(255, 180, 44, 0.18)] to-[rgba(255, 180, 44, 0.18)] p-6 sm:h-80 lg:h-96">
             <span className="absolute left-6 top-6 inline-flex items-center rounded-full bg-slate-900/80 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white shadow-lg">
               {categoryBadgeLabel}
             </span>
@@ -790,7 +790,7 @@ function ListingDetails() {
                   {tags.map((tag, index) => (
                     <span
                       key={`${tag}-${index}`}
-                      className="rounded-full bg-[#F7F7F7] px-3 py-1 text-xs font-medium text-[#717171]"
+                      className="rounded-full bg-[#F8F8F8] px-3 py-1 text-xs font-medium text-[rgba(52, 52, 52, 0.65)]"
                     >
                       {tag}
                     </span>

@@ -237,7 +237,7 @@ function HostDashboardPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#FBF7F2]">
+    <div className="min-h-screen bg-[rgba(255, 180, 44, 0.12)]">
       <AppHeader />
       <header className="border-b border-orange-100 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:px-6">

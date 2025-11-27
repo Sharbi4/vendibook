@@ -352,21 +352,21 @@ export const getListingTypeInfo = (listingType) => {
     [LISTING_TYPES.RENT]: {
       label: 'For Rent',
       color: '#FF5124',
-      bgColor: '#FFF3F0',
+      bgColor: 'rgba(255, 81, 36, 0.08)',
       actionLabel: 'Request Rental',
       pricePrefix: 'From'
     },
     [LISTING_TYPES.SALE]: {
       label: 'For Sale',
       color: '#FFB42C',
-      bgColor: '#FFF9E6',
+      bgColor: 'rgba(255, 180, 44, 0.15)',
       actionLabel: 'Contact Seller',
       pricePrefix: ''
     },
     [LISTING_TYPES.EVENT_PRO]: {
       label: 'Event Pro',
       color: '#343434',
-      bgColor: '#F7F7F7',
+      bgColor: '#F8F8F8',
       actionLabel: 'Check Availability',
       pricePrefix: 'Rate'
     }
