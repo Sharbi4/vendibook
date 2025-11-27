@@ -13,6 +13,7 @@ import {
 import { useHostDashboardData } from '../hooks/useHostDashboardData';
 import { USER_ROLE_LABELS, USER_ROLES } from '../constants/roles';
 import { useCurrentRole } from '../hooks/useCurrentRole';
+import AppHeader from '../components/AppHeader';
 
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
@@ -237,6 +238,7 @@ function HostDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#FBF7F2]">
+      <AppHeader />
       <header className="border-b border-orange-100 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:px-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

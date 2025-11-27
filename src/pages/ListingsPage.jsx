@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ListingCard from '../components/ListingCard';
 import { useListingsQuery } from '../hooks/useListingsQuery';
+import AppHeader from '../components/AppHeader';
 
 const LISTING_TYPE_OPTIONS = [
   { label: 'All listing types', value: '' },
@@ -95,6 +96,7 @@ function ListingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <AppHeader />
       <header className="bg-white border-b border-gray-200">
         <div className="mx-auto max-w-6xl px-4 py-10">
           <p className="text-sm font-semibold uppercase tracking-wide text-orange-500">The marketplace</p>

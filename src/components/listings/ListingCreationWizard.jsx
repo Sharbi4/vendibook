@@ -224,6 +224,15 @@ const createId = () => (
     : Math.random().toString(36).slice(2, 10)
 );
 
+const findLastIndex = (array, predicate) => {
+  for (let index = array.length - 1; index >= 0; index -= 1) {
+    if (predicate(array[index], index, array)) {
+      return index;
+    }
+  }
+  return -1;
+};
+
 const EVENT_PRO_SERVICE_TYPES = [
   'Catering',
   'Bartender',
@@ -284,6 +293,36 @@ const VENDOR_MARKET_STEP_CONFIG = [
   { key: 'media', label: 'Media upload', description: 'Photos & visuals' },
   { key: 'preview', label: 'Review & publish', description: 'Finalize details' }
 ];
+
+const GUIDED_STEPS = [
+  { id: 'type', title: 'Listing type', subtitle: 'What are you listing?' },
+  { id: 'basics', title: 'Tell us the basics', subtitle: 'Category, location, and service area' },
+  { id: 'schedule', title: 'When is this available?', subtitle: 'Booking windows & coverage' },
+  { id: 'pricing', title: 'Pricing & packages', subtitle: 'Rates, tiers, and packages' },
+  { id: 'media', title: 'Upload photos & media', subtitle: 'Showcase the experience' },
+  { id: 'documents', title: 'Documents & compliance', subtitle: 'Insurance, permits, and proof' },
+  { id: 'addons', title: 'Optional add-ons', subtitle: 'Upsells, vendor perks, extras' },
+  { id: 'preview', title: 'Review & publish', subtitle: 'Double-check and go live' }
+];
+
+const STEP_KEY_TO_GUIDE = {
+  type: 'type',
+  basics: 'basics',
+  eventProIntro: 'basics',
+  eventProProfile: 'basics',
+  vendorEventOverview: 'basics',
+  schedule: 'schedule',
+  eventProLogistics: 'schedule',
+  vendorLocation: 'schedule',
+  pricing: 'pricing',
+  eventProPackages: 'pricing',
+  vendorSpaceTypes: 'pricing',
+  media: 'media',
+  documents: 'documents',
+  vendorMarketAddOns: 'addons',
+  addOns: 'addons',
+  preview: 'preview'
+};
 
 const RENTAL_CATEGORIES = [
   { value: 'food-truck', label: 'Food truck' },
@@ -523,6 +562,31 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
   const activeStepKey = activeStep?.key || stepConfig[0].key;
   const isTypeStepActive = activeStepKey === 'type';
   const isContinueDisabled = currentStep === totalSteps - 1 || (isTypeStepActive && !formData.listingType);
+  const stepGuideSequence = useMemo(
+    () => stepConfig.map((step) => STEP_KEY_TO_GUIDE[step.key] || 'type'),
+    [stepConfig]
+  );
+  const activeGuideId = STEP_KEY_TO_GUIDE[activeStepKey] || 'type';
+  const activeGuideIndex = GUIDED_STEPS.findIndex((guide) => guide.id === activeGuideId);
+  const safeActiveGuideIndex = activeGuideIndex >= 0 ? activeGuideIndex : 0;
+  const activeGuide = GUIDED_STEPS[safeActiveGuideIndex];
+  const guideStates = useMemo(() => (
+    GUIDED_STEPS.map((guide) => {
+      const firstIndex = stepGuideSequence.findIndex((id) => id === guide.id);
+      if (firstIndex === -1) {
+        return { ...guide, status: 'skipped', firstIndex: -1, lastIndex: -1 };
+      }
+      const lastIndex = findLastIndex(stepGuideSequence, (id) => id === guide.id);
+      const status = activeGuideId === guide.id
+        ? 'active'
+        : currentStep > lastIndex
+          ? 'completed'
+          : currentStep < firstIndex
+            ? 'upcoming'
+            : 'active';
+      return { ...guide, status, firstIndex, lastIndex };
+    })
+  ), [activeGuideId, currentStep, stepGuideSequence]);
 
   useEffect(() => {
     return () => {
@@ -1378,9 +1442,9 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
         return (
           <div className="space-y-6">
             <header>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Step 2</p>
-              <h2 className="text-3xl font-bold text-slate-900 mt-2">Basics & service area</h2>
-              <p className="text-slate-600 mt-2">These details help guests discover you.</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">Tell us the basics</p>
+              <h2 className="text-3xl font-bold text-slate-900 mt-2">Dial in what renters see first.</h2>
+              <p className="text-slate-600 mt-2">Lock in your listing name, category, and service radius so hosts know if you are a fit.</p>
             </header>
             <div className="grid gap-5">
               <label className="block">
@@ -1476,9 +1540,9 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
         return (
           <div className="space-y-6">
             <header>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Step 3</p>
-              <h2 className="text-3xl font-bold text-slate-900 mt-2">Schedule & booking mode</h2>
-              <p className="text-slate-600 mt-2">Explain how guests can reserve your offer.</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">When is this available?</p>
+              <h2 className="text-3xl font-bold text-slate-900 mt-2">Set the cadence for bookings.</h2>
+              <p className="text-slate-600 mt-2">Share your booking mode, timing guardrails, and availability story.</p>
             </header>
             {formData.listingType === 'eventPro' ? (
               <div className="space-y-5">
@@ -1621,9 +1685,9 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
         return (
           <div className="space-y-6">
             <header>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Step 4</p>
-              <h2 className="text-3xl font-bold text-slate-900 mt-2">Pricing & packages</h2>
-              <p className="text-slate-600 mt-2">Share transparent pricing. Hosts can always adjust later.</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">Pricing & packages</p>
+              <h2 className="text-3xl font-bold text-slate-900 mt-2">Help planners budget instantly.</h2>
+              <p className="text-slate-600 mt-2">Add rates, surcharges, or curated packages so renters understand your value.</p>
             </header>
             {isEventProListing ? (
               <div className="rounded-2xl border border-amber-200 bg-amber-50/40 p-4 text-sm text-amber-800">
@@ -1696,9 +1760,9 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
         return (
           <div className="space-y-6">
             <header>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Step 5</p>
-              <h2 className="text-3xl font-bold text-slate-900 mt-2">{isVendorListing ? 'Market visuals & gallery' : 'Photos & media'}</h2>
-              <p className="text-slate-600 mt-2">{isVendorListing ? 'Showcase past market energy, booth layouts, and highlight reels so vendors can picture themselves onsite.' : 'Beautiful visuals help renters trust your experience.'}</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">Upload photos & media</p>
+              <h2 className="text-3xl font-bold text-slate-900 mt-2">{isVendorListing ? 'Show the market energy.' : 'Let the experience shine.'}</h2>
+              <p className="text-slate-600 mt-2">{isVendorListing ? 'Highlight past vendor rows, attendee energy, and any hero imagery so organizers can picture themselves onsite.' : 'Strong visuals boost trust and booking confidence—add a hero, gallery, and optional video.'}</p>
             </header>
             <div className="space-y-5">
               <section className="rounded-2xl border border-dashed border-orange-300 bg-orange-50/50 p-6">
@@ -1769,9 +1833,9 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
         return (
           <div className="space-y-6">
             <header>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Step 6</p>
-              <h2 className="text-3xl font-bold text-slate-900 mt-2">Documents & compliance</h2>
-              <p className="text-slate-600 mt-2">We keep these private until booking confirmation.</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">Documents & compliance</p>
+              <h2 className="text-3xl font-bold text-slate-900 mt-2">Give renters peace of mind.</h2>
+              <p className="text-slate-600 mt-2">Upload insurance, permits, and acknowledge listing terms. We keep everything private until booking.</p>
             </header>
             <div className="space-y-4">
               {[
@@ -1819,9 +1883,9 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
         return (
           <div className="space-y-6">
             <header>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Step 7</p>
-              <h2 className="text-3xl font-bold text-slate-900 mt-2">Add-ons & upsells</h2>
-              <p className="text-slate-600 mt-2">Delight renters with curated extras.</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">Optional add-ons</p>
+              <h2 className="text-3xl font-bold text-slate-900 mt-2">Boost bookings with smart extras.</h2>
+              <p className="text-slate-600 mt-2">Offer staffing, custom wraps, booth upgrades, or vendor perks to drive higher cart values.</p>
             </header>
             <div className="space-y-4">
               {formData.addOns.map(addOn => (
@@ -1897,9 +1961,9 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
         return (
           <div className="space-y-6">
             <header>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Step 8</p>
-              <h2 className="text-3xl font-bold text-slate-900 mt-2">Preview & publish</h2>
-              <p className="text-slate-600 mt-2">Give everything one more look before going live.</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">Review & publish</p>
+              <h2 className="text-3xl font-bold text-slate-900 mt-2">Give everything one more look.</h2>
+              <p className="text-slate-600 mt-2">Confirm pricing, media, and add-ons before saving or pushing live.</p>
             </header>
             {submissionState.status === 'error' && submissionState.errorMessage ? (
               <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -2121,26 +2185,52 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
 
   const editingView = (
     <div className="space-y-6">
-      <div className="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-4">
+      <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Progress</p>
-            <h2 className="text-lg font-semibold text-slate-900">{activeStep?.label}</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Step {safeActiveGuideIndex + 1} • {activeGuide.subtitle}</p>
+            <h2 className="mt-1 text-2xl font-bold text-slate-900">{activeGuide.title}</h2>
+            <p className="text-sm text-slate-500">{activeStep?.description || 'Work through each chapter, then review and publish your listing.'}</p>
           </div>
           <p className="text-sm font-semibold text-slate-500">Step {currentStep + 1} of {totalSteps}</p>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-6 grid gap-3 md:grid-cols-4 xl:grid-cols-8">
+          {guideStates.map((guide, index) => {
+            const isDisabled = guide.firstIndex === -1;
+            const statusClass = guide.status === 'completed'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : guide.status === 'active'
+                ? 'border-orange-300 bg-orange-50 text-orange-700 shadow-sm'
+                : guide.status === 'skipped'
+                  ? 'border-slate-100 bg-white/70 text-slate-400 opacity-60'
+                  : 'border-slate-200 bg-white text-slate-500';
+            return (
+              <button
+                key={guide.id}
+                type="button"
+                onClick={() => (!isDisabled ? goToStep(guide.firstIndex) : null)}
+                disabled={isDisabled}
+                className={`rounded-2xl border px-3 py-3 text-left text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-200 ${statusClass}`}
+              >
+                <span className="text-xs uppercase tracking-[0.35em]">Step {index + 1}</span>
+                <p className="mt-1 text-base font-semibold">{guide.title}</p>
+                <p className="text-xs text-slate-500">{guide.subtitle}</p>
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2 rounded-2xl border border-dashed border-slate-200 bg-white/70 p-3">
           {stepConfig.map((step, index) => (
             <button
               key={step.key}
               type="button"
               onClick={() => goToStep(index)}
-              className={`flex-1 rounded-full border px-3 py-2 text-xs font-semibold transition ${
+              className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
                 index === currentStep
-                  ? 'border-[#FF6A3D] bg-[#FF6A3D]/10 text-[#FF6A3D]'
+                  ? 'bg-orange-500 text-white shadow'
                   : index < currentStep
-                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                    : 'border-slate-200 text-slate-500 hover:border-orange-200'
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-white text-slate-600 hover:bg-slate-100'
               }`}
             >
               {step.label}

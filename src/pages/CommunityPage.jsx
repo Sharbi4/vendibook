@@ -74,6 +74,42 @@ function CommunityPage() {
         variant: 'primary'
       }}
     >
+      <section className="mb-8 overflow-hidden rounded-3xl border border-orange-200 bg-gradient-to-br from-orange-500 via-orange-400 to-rose-400 p-8 text-white shadow-lg">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,2.5fr)_minmax(0,1fr)] lg:items-center">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-white/80">Community programs</p>
+            <h2 className="mt-3 text-3xl font-bold leading-tight">Stay plugged into real operators, not random forums.</h2>
+            <p className="mt-3 text-white/90">
+              Weekly meetups, live office hours, and curated topic threads help every host, vendor organizer, and Event Pro stay booked and resourced.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3 text-sm font-semibold">
+              {['Accountability pods', 'Office hours every week', 'Curated vendor drills'].map((pill) => (
+                <span key={pill} className="rounded-full bg-white/15 px-4 py-2 text-white/90 backdrop-blur">
+                  {pill}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-4">
+            {[{
+              label: 'Markets collaborating',
+              value: '42'
+            }, {
+              label: 'Threads resolved monthly',
+              value: '180+'
+            }, {
+              label: 'Live mentorship seats',
+              value: '60 per month'
+            }].map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-white/30 bg-white/10 p-4 text-white">
+                <p className="text-2xl font-bold">{stat.value}</p>
+                <p className="text-xs uppercase tracking-[0.35em] text-white/80">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
@@ -93,13 +129,13 @@ function CommunityPage() {
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-blue-600" />
+                <MessageCircle className="h-5 w-5 text-orange-500" />
                 <h2 className="text-lg font-semibold text-gray-900">Trending threads</h2>
               </div>
               <button
                 type="button"
                 onClick={() => navigate('/messages')}
-                className="text-sm font-semibold text-blue-700 hover:text-blue-800"
+                className="text-sm font-semibold text-orange-600 hover:text-orange-700"
               >
                 View inbox
               </button>
@@ -126,7 +162,7 @@ function CommunityPage() {
         <div className="space-y-6">
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
             <div className="mb-3 flex items-center gap-2">
-              <CalendarDays className="h-5 w-5 text-green-600" />
+              <CalendarDays className="h-5 w-5 text-orange-500" />
               <h3 className="text-lg font-semibold text-gray-900">Meetups & office hours</h3>
             </div>
             <div className="space-y-3">
@@ -141,7 +177,7 @@ function CommunityPage() {
             <button
               type="button"
               onClick={() => navigate('/host/onboarding')}
-              className="mt-4 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+              className="mt-4 w-full rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600"
             >
               Save my spot
             </button>
@@ -149,7 +185,7 @@ function CommunityPage() {
 
           <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
             <div className="mb-4 flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-purple-600" />
+              <MapPin className="h-5 w-5 text-orange-500" />
               <h3 className="text-lg font-semibold text-gray-900">Spotlight</h3>
             </div>
             <div className="space-y-3">
@@ -158,10 +194,10 @@ function CommunityPage() {
                   key={item.title}
                   type="button"
                   onClick={() => navigate(item.link)}
-                  className="flex w-full items-start gap-3 rounded-xl border border-gray-100 bg-gray-50 p-4 text-left hover:border-blue-200"
+                  className="flex w-full items-start gap-3 rounded-xl border border-gray-100 bg-gray-50 p-4 text-left transition hover:border-orange-200"
                 >
                   <div className="rounded-lg bg-white p-2 shadow-sm">
-                    <item.icon className="h-5 w-5 text-blue-600" />
+                    <item.icon className="h-5 w-5 text-orange-500" />
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-gray-900">{item.title}</p>

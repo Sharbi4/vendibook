@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useListings } from '../hooks/useListings.js';
 import { useNavigate } from 'react-router-dom';
-import { Search, MapPin, Calendar, ChevronRight, Truck, Users, UtensilsCrossed, Store, ShoppingCart, Menu, X, ChevronDown, ChevronUp, Star, Check, DollarSign, Zap, Coffee } from 'lucide-react';
+import { Search, MapPin, Calendar, ChevronRight, Truck, Users, UtensilsCrossed, Store, ShoppingCart, X, ChevronDown, ChevronUp, Star, Check, DollarSign, Zap, Coffee } from 'lucide-react';
+import AppHeader from '../components/AppHeader';
+
+// TODO: Replace with curated Vendibook brand photography once the production asset is finalized.
+const HERO_IMAGE_URL = '/images/hero-food-truck.jpg';
 
 function HomePage() {
   const navigate = useNavigate();
@@ -13,7 +17,6 @@ function HomePage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Filters state
   const [showFilters, setShowFilters] = useState(false);
@@ -73,17 +76,30 @@ function HomePage() {
   };
 
   const currentCategories = categoriesByType[listingType] || categoriesByType.rent;
+  const selectedCategoryData = currentCategories.find(c => c.id === selectedCategory) || currentCategories[0];
+  const SelectedCategoryIcon = selectedCategoryData?.icon || Store;
 
   const amenitiesList = ['Power', 'Water', 'Propane', 'Full Kitchen', 'Storage', 'WiFi'];
 
-  const navLinks = [
-    { label: 'Rent Equipment', path: '/listings' },
-    { label: 'Buy Equipment', path: '/listings' },
-    { label: 'Become a Host', path: '/become-host' },
-    { label: 'Community', path: '/community' },
-    { label: 'Dashboard', path: '/host/dashboard' },
-    { label: 'Profile', path: '/profile' }
+  const searchCtaCopy = {
+    rent: 'Find rentals',
+    sale: 'Find trucks for sale',
+    'event-pro': 'Find event pros'
+  };
+
+  const appliedCategoryLabel = appliedSearch.category !== 'all'
+    ? allCategories.find(c => c.id === appliedSearch.category)?.name || 'All categories'
+    : 'All categories';
+  const heroSummaryParts = [
+    appliedSearch.location || 'Any location',
+    appliedCategoryLabel,
+    appliedSearch.startDate
+      ? `${appliedSearch.startDate}${appliedSearch.endDate ? ` → ${appliedSearch.endDate}` : ''}`
+      : 'Flexible dates'
   ];
+  const heroSummary = heroSummaryParts.join(' • ');
+  const modalCtaLabel = searchCtaCopy[listingType] || 'Find rentals';
+
 
   // Fetch dynamic listings from API (Neon) and merge with legacy mock data until fully migrated
   const { listings: dynamicListings, loading: listingsLoading } = useListings(appliedSearch);
@@ -274,8 +290,22 @@ function HomePage() {
     if (deliveryOnly) params.set('deliveryOnly', 'true');
     if (verifiedOnly) params.set('verifiedOnly', 'true');
 
+    setAppliedSearch({
+      listingType,
+      location,
+      category: selectedCategory,
+      startDate,
+      endDate,
+      priceMin,
+      priceMax,
+      amenities: selectedAmenities,
+      deliveryOnly,
+      verifiedOnly
+    });
+
     // Navigate to listings page with search params
     navigate(`/listings?${params.toString()}`);
+    setSearchModalOpen(false);
   };
 
   const handleBookNow = (listing) => {
@@ -357,32 +387,18 @@ function HomePage() {
     };
 
     return (
-      <div style={{
-        position: 'absolute',
-        top: '100%',
-        left: 0,
-        marginTop: '8px',
-        background: 'white',
-        border: '1px solid #DDD',
-        borderRadius: '12px',
-        padding: '16px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        zIndex: 1000,
-        minWidth: '300px'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <button onClick={prevMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>←</button>
-          <div style={{ fontWeight: '600', fontSize: '15px' }}>{monthNames[currentMonth]} {currentYear}</div>
-          <button onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>→</button>
+      <div className="absolute left-0 top-full z-50 mt-3 w-full min-w-[280px] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl">
+        <div className="mb-3 flex items-center justify-between text-sm font-semibold text-slate-700">
+          <button type="button" onClick={prevMonth} className="rounded-full p-1 text-slate-500 hover:bg-slate-100">←</button>
+          <div>{monthNames[currentMonth]} {currentYear}</div>
+          <button type="button" onClick={nextMonth} className="rounded-full p-1 text-slate-500 hover:bg-slate-100">→</button>
         </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px', marginBottom: '8px' }}>
+        <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-400">
           {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-            <div key={day} style={{ textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#717171' }}>{day}</div>
+            <div key={day}>{day}</div>
           ))}
         </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+        <div className="mt-2 grid grid-cols-7 gap-1">
           {Array.from({ length: firstDayOfMonth }).map((_, i) => (
             <div key={`empty-${i}`} />
           ))}
@@ -393,17 +409,15 @@ function HomePage() {
             return (
               <button
                 key={day}
+                type="button"
                 onClick={() => handleDateClick(day)}
-                style={{
-                  padding: '8px',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  background: selected ? '#FF5124' : inRange ? '#FFF3F0' : 'transparent',
-                  color: selected ? 'white' : '#222',
-                  fontWeight: selected ? '600' : '400'
-                }}
+                className={`rounded-lg py-2 text-sm font-semibold transition ${
+                  selected
+                    ? 'bg-orange-500 text-white shadow-sm'
+                    : inRange
+                      ? 'bg-orange-50 text-slate-700'
+                      : 'text-slate-700 hover:bg-slate-100'
+                }`}
               >
                 {day}
               </button>
@@ -435,167 +449,76 @@ function HomePage() {
   }, [searchModalOpen]);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'white' }}>
-      {/* Header */}
-      <header style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        background: 'white',
-        borderBottom: '1px solid #EBEBEB',
-        boxShadow: '0 1px 0 rgba(0,0,0,0.05)'
-      }}>
-        <div style={{ maxWidth: '1760px', margin: '0 auto', padding: '0 40px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '80px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                background: '#FF5124',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Truck style={{ width: '18px', height: '18px', color: 'white' }} />
-              </div>
-              <span style={{
-                fontSize: '20px',
-                fontWeight: '700',
-                color: '#FF5124',
-                letterSpacing: '-0.5px'
-              }}>
-                vendibook
-              </span>
-            </div>
-
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '32px', flexWrap: 'wrap' }}>
-              {navLinks.map((link) => (
-                <button
-                  key={link.path}
-                  type="button"
-                  onClick={() => navigate(link.path)}
-                  style={{
-                    color: '#222',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    textDecoration: 'none',
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {link.label}
-                </button>
-              ))}
-            </nav>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <button style={{
-                color: '#222',
-                fontSize: '14px',
-                fontWeight: '600',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '8px 16px',
-                borderRadius: '22px',
-                transition: 'background 0.2s'
-              }}>
-                Sign In
-              </button>
-              <button style={{
-                background: '#FF5124',
-                color: 'white',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '24px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(255, 81, 36, 0.3)',
-                transition: 'transform 0.2s, box-shadow 0.2s'
-              }}>
-                Sign Up
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-white">
+      <AppHeader />
 
       {/* Hero Section */}
-      <section style={{
-        background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #FF5124 100%)',
-        padding: '80px 40px 120px',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255, 81, 36, 0.1) 0%, transparent 50%)',
-          pointerEvents: 'none'
-        }} />
+      <section className="relative overflow-hidden bg-slate-950">
+        <img
+          src={HERO_IMAGE_URL}
+          alt="Food truck serving happy guests"
+          className="absolute inset-0 h-full w-full object-cover opacity-60"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/50 to-orange-900/40" />
 
-        <div style={{ maxWidth: '1180px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
-          <h1 style={{
-            fontSize: '56px',
-            fontWeight: '700',
-            color: 'white',
-            marginBottom: '16px',
-            lineHeight: '1.1',
-            letterSpacing: '-2px'
-          }}>
-            Not sure? You can now <span style={{ color: '#FF5124' }}>try it</span>.
-          </h1>
-          <p style={{
-            fontSize: '20px',
-            color: 'rgba(255,255,255,0.9)',
-            marginBottom: '48px',
-            fontWeight: '400'
-          }}>
-            From food trucks to ghost kitchens—start your mobile business today
-          </p>
-
-          {/* Simplified Search Trigger */}
-          <div
-            onClick={() => setSearchModalOpen(true)}
-            style={{
-              background: 'white',
-              borderRadius: '16px',
-              padding: '24px 32px',
-              boxShadow: '0 16px 48px rgba(0,0,0,0.2)',
-              maxWidth: '900px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              transition: 'transform 0.2s',
-            }}
-            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
-            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-          >
-            <div>
-              <div style={{ fontSize: '15px', fontWeight: '600', color: '#222', marginBottom: '4px' }}>
-                Search for rentals, sales, or event pros
-              </div>
-              <div style={{ fontSize: '14px', color: '#717171' }}>
-                {appliedSearch.location || 'Any location'} • {appliedSearch.category !== 'all' ? allCategories.find(c => c.id === appliedSearch.category)?.name : 'All categories'} • {appliedSearch.startDate ? `${appliedSearch.startDate} to ${appliedSearch.endDate || '...'}` : 'Any dates'}
-              </div>
+        <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-10 px-4 py-16 text-white sm:px-6 lg:px-8 lg:py-24">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.45em] text-orange-200">Mobile business marketplace</p>
+            <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
+              Not sure? You can now <span className="text-orange-300">try it</span>.
+            </h1>
+            <p className="mt-4 text-lg text-white/80 sm:text-xl">
+              From food trucks to vendor markets, Vendibook helps you test, launch, or scale every mobile concept with real inventory and real partners.
+            </p>
+            <div className="mt-8 grid gap-4 text-sm sm:grid-cols-3">
+              {[{
+                label: 'Verified hosts',
+                value: '600+'
+              }, {
+                label: 'Markets & pop-ups',
+                value: '120 every week'
+              }, {
+                label: 'Avg. booking time',
+                value: '6 minutes'
+              }].map((stat) => (
+                <div key={stat.label} className="rounded-2xl border border-white/20 bg-white/5 p-4 backdrop-blur">
+                  <p className="text-2xl font-bold text-white">{stat.value}</p>
+                  <p className="text-xs uppercase tracking-[0.35em] text-white/70">{stat.label}</p>
+                </div>
+              ))}
             </div>
-            <div style={{
-              background: '#FF5124',
-              color: 'white',
-              padding: '12px 24px',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontWeight: '600',
-              fontSize: '15px'
-            }}>
-              <Search style={{ width: '18px', height: '18px' }} />
-              Search
+          </div>
+
+          <div className="w-full max-w-4xl">
+            <div className="rounded-3xl bg-white/95 p-6 shadow-2xl backdrop-blur">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Current filters</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">{heroSummary}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSearchModalOpen(true)}
+                  className="inline-flex items-center justify-center rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-orange-600"
+                >
+                  <Search className="mr-2 h-4 w-4" />
+                  {modalCtaLabel}
+                </button>
+              </div>
+              <div className="mt-6 grid gap-4 text-sm text-slate-600 sm:grid-cols-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Location</p>
+                  <p className="mt-1 font-semibold text-slate-900">{appliedSearch.location || 'Any city'}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Category</p>
+                  <p className="mt-1 font-semibold text-slate-900">{appliedCategoryLabel}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Dates</p>
+                  <p className="mt-1 font-semibold text-slate-900">{appliedSearch.startDate ? `${appliedSearch.startDate}${appliedSearch.endDate ? ` → ${appliedSearch.endDate}` : ''}` : 'Flexible schedule'}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -603,317 +526,190 @@ function HomePage() {
 
       {/* Search Modal */}
       {searchModalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: '20px'
-          }}
-          onClick={() => setSearchModalOpen(false)}
-        >
+        <div className="fixed inset-0 z-50">
           <div
-            style={{
-              background: 'white',
-              borderRadius: '16px',
-              maxWidth: '900px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div style={{ padding: '24px', borderBottom: '1px solid #EBEBEB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#222' }}>Search Vendibook</h2>
-              <button
-                onClick={() => setSearchModalOpen(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '8px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <X style={{ width: '24px', height: '24px', color: '#717171' }} />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div style={{ padding: '24px' }}>
-              {/* Listing Type Segmented Control */}
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  I'm looking to
-                </label>
-                <div style={{ display: 'flex', gap: '8px', background: '#F7F7F7', padding: '4px', borderRadius: '12px' }}>
-                  {[
-                    { id: 'rent', label: 'Rent Equipment' },
-                    { id: 'sale', label: 'Buy Equipment' },
-                    { id: 'event-pro', label: 'Book Event Pro' }
-                  ].map(type => (
-                    <button
-                      key={type.id}
-                      onClick={() => {
-                        setListingType(type.id);
-                        setSelectedCategory('all');
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '12px',
-                        border: 'none',
-                        borderRadius: '8px',
-                        background: listingType === type.id ? 'white' : 'transparent',
-                        color: listingType === type.id ? '#FF5124' : '#717171',
-                        fontWeight: listingType === type.id ? '600' : '500',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        boxShadow: listingType === type.id ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                      }}
-                    >
-                      {type.label}
-                    </button>
-                  ))}
+            className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm"
+            onClick={() => setSearchModalOpen(false)}
+          />
+          <div className="relative z-10 flex min-h-full items-end justify-center p-4 sm:items-center">
+            <div className="w-full max-w-3xl rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-orange-500">Plan your next activation</p>
+                  <h2 className="mt-2 text-2xl font-bold text-slate-900">Search Vendibook</h2>
+                  <p className="text-sm text-slate-600">Rent equipment, buy inventory, or book event pros—all from one polished modal.</p>
                 </div>
-              </div>
-
-              {/* Location */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Location
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <MapPin style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: '#717171' }} />
-                  <input
-                    type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Phoenix, AZ"
-                    style={{
-                      width: '100%',
-                      padding: '14px 14px 14px 44px',
-                      border: '1px solid #DDD',
-                      borderRadius: '8px',
-                      fontSize: '15px',
-                      outline: 'none',
-                      transition: 'border-color 0.2s'
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Category */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Category
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px' }}>
-                    {currentCategories.find(c => c.id === selectedCategory)?.emoji || '🏪'}
-                  </span>
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '14px 14px 14px 44px',
-                      border: '1px solid #DDD',
-                      borderRadius: '8px',
-                      fontSize: '15px',
-                      outline: 'none',
-                      cursor: 'pointer',
-                      appearance: 'none',
-                      background: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23717171' d='M6 9L1 4h10z'/%3E%3C/svg%3E") no-repeat right 14px center`,
-                      backgroundColor: 'white'
-                    }}
-                  >
-                    {currentCategories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Date Range */}
-              <div style={{ marginBottom: '20px', position: 'relative' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Dates
-                </label>
-                <div
-                  onClick={() => setShowCalendar(!showCalendar)}
-                  style={{
-                    padding: '14px 14px 14px 44px',
-                    border: '1px solid #DDD',
-                    borderRadius: '8px',
-                    fontSize: '15px',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    background: 'white'
-                  }}
+                <button
+                  type="button"
+                  onClick={() => setSearchModalOpen(false)}
+                  className="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:text-slate-900"
+                  aria-label="Close search modal"
                 >
-                  <Calendar style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: '#717171' }} />
-                  {startDate && endDate ? (
-                    <span style={{ color: '#222' }}>{startDate} to {endDate}</span>
-                  ) : startDate ? (
-                    <span style={{ color: '#222' }}>{startDate} (select end date)</span>
-                  ) : (
-                    <span style={{ color: '#717171' }}>Select dates</span>
-                  )}
-                </div>
-                {showCalendar && <SimpleDatePicker />}
+                  <X className="h-5 w-5" />
+                </button>
               </div>
 
-              {/* More Filters Toggle */}
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #DDD',
-                  borderRadius: '8px',
-                  background: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#222',
-                  marginBottom: '20px'
-                }}
-              >
-                <span>More filters</span>
-                {showFilters ? <ChevronUp style={{ width: '18px', height: '18px' }} /> : <ChevronDown style={{ width: '18px', height: '18px' }} />}
-              </button>
-
-              {/* Filters Panel */}
-              {showFilters && (
-                <div style={{ padding: '20px', background: '#F7F7F7', borderRadius: '12px', marginBottom: '20px' }}>
-                  {/* Price Range */}
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Price Range
-                    </label>
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                      <input
-                        type="number"
-                        value={priceMin}
-                        onChange={(e) => setPriceMin(e.target.value)}
-                        placeholder="Min"
-                        style={{
-                          flex: 1,
-                          padding: '12px',
-                          border: '1px solid #DDD',
-                          borderRadius: '8px',
-                          fontSize: '15px',
-                          outline: 'none'
+              <div className="space-y-6 px-6 py-6">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">I'm looking to</p>
+                  <div className="mt-3 flex flex-wrap gap-2 rounded-full bg-slate-100 p-1">
+                    {[
+                      { id: 'rent', label: 'Rent equipment' },
+                      { id: 'sale', label: 'Buy equipment' },
+                      { id: 'event-pro', label: 'Book event pro' }
+                    ].map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => {
+                          setListingType(option.id);
+                          setSelectedCategory('all');
                         }}
-                      />
-                      <input
-                        type="number"
-                        value={priceMax}
-                        onChange={(e) => setPriceMax(e.target.value)}
-                        placeholder="Max"
-                        style={{
-                          flex: 1,
-                          padding: '12px',
-                          border: '1px solid #DDD',
-                          borderRadius: '8px',
-                          fontSize: '15px',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Amenities */}
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#222', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Amenities
-                    </label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {amenitiesList.map(amenity => (
-                        <button
-                          key={amenity}
-                          onClick={() => toggleAmenity(amenity)}
-                          style={{
-                            padding: '8px 16px',
-                            border: `2px solid ${selectedAmenities.includes(amenity) ? '#FF5124' : '#DDD'}`,
-                            borderRadius: '20px',
-                            background: selectedAmenities.includes(amenity) ? '#FFF3F0' : 'white',
-                            color: selectedAmenities.includes(amenity) ? '#FF5124' : '#717171',
-                            fontSize: '13px',
-                            fontWeight: selectedAmenities.includes(amenity) ? '600' : '500',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          {selectedAmenities.includes(amenity) && <Check style={{ width: '14px', height: '14px' }} />}
-                          {amenity}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Toggles */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={deliveryOnly}
-                        onChange={(e) => setDeliveryOnly(e.target.checked)}
-                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                      />
-                      <span style={{ fontSize: '14px', fontWeight: '500', color: '#222' }}>Delivery Available only</span>
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={verifiedOnly}
-                        onChange={(e) => setVerifiedOnly(e.target.checked)}
-                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                      />
-                      <span style={{ fontSize: '14px', fontWeight: '500', color: '#222' }}>Verified Hosts only</span>
-                    </label>
+                        className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                          listingType === option.id
+                            ? 'bg-white text-orange-600 shadow'
+                            : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              )}
 
-              {/* Search Button */}
-              <button
-                onClick={handleSearch}
-                style={{
-                  width: '100%',
-                  background: '#FF5124',
-                  color: 'white',
-                  border: 'none',
-                  padding: '16px',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  boxShadow: '0 4px 12px rgba(255, 81, 36, 0.4)'
-                }}
-              >
-                <Search style={{ width: '20px', height: '20px' }} />
-                {listingType === 'rent' ? 'Find Rentals' : listingType === 'sale' ? 'Find Equipment' : 'Find Event Pros'}
-              </button>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Location
+                    <div className="relative mt-2">
+                      <MapPin className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        placeholder="Phoenix, AZ"
+                        className="w-full rounded-2xl border border-slate-200 px-4 py-3 pl-10 text-base text-slate-900 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                      />
+                    </div>
+                  </label>
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Category
+                    <div className="relative mt-2">
+                      <SelectedCategoryIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                      <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="w-full appearance-none rounded-2xl border border-slate-200 px-4 py-3 pl-10 pr-10 text-base text-slate-900 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                      >
+                        {currentCategories.map((cat) => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    </div>
+                  </label>
+                </div>
+
+                <div className="text-sm font-semibold text-slate-700">
+                  Dates
+                  <div className="relative mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowCalendar((prev) => !prev)}
+                      className="flex w-full items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-left text-base font-semibold text-slate-900 shadow-sm focus:outline-none"
+                    >
+                      <Calendar className="h-5 w-5 text-slate-400" />
+                      <span className="text-sm font-medium text-slate-600">
+                        {startDate && endDate ? `${startDate} → ${endDate}` : startDate ? `${startDate} (select end date)` : 'Select dates'}
+                      </span>
+                    </button>
+                    {showCalendar && <SimpleDatePicker />}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowFilters((prev) => !prev)}
+                  className="flex w-full items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm"
+                >
+                  More filters
+                  {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+
+                {showFilters && (
+                  <div className="space-y-6 rounded-2xl border border-slate-100 bg-slate-50/70 p-5">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Price range</p>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <input
+                          type="number"
+                          value={priceMin}
+                          onChange={(e) => setPriceMin(e.target.value)}
+                          placeholder="Min"
+                          className="rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                        />
+                        <input
+                          type="number"
+                          value={priceMax}
+                          onChange={(e) => setPriceMax(e.target.value)}
+                          placeholder="Max"
+                          className="rounded-2xl border border-slate-200 px-4 py-3 text-base text-slate-900 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Amenities</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {amenitiesList.map((amenity) => (
+                          <button
+                            key={amenity}
+                            type="button"
+                            onClick={() => toggleAmenity(amenity)}
+                            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                              selectedAmenities.includes(amenity)
+                                ? 'border-orange-500 bg-orange-50 text-orange-600'
+                                : 'border-slate-200 text-slate-600 hover:border-orange-200'
+                            }`}
+                          >
+                            {selectedAmenities.includes(amenity) && <Check className="mr-2 h-4 w-4" />}
+                            {amenity}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={deliveryOnly}
+                          onChange={(e) => setDeliveryOnly(e.target.checked)}
+                          className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                        />
+                        Delivery available only
+                      </label>
+                      <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={verifiedOnly}
+                          onChange={(e) => setVerifiedOnly(e.target.checked)}
+                          className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                        />
+                        Verified hosts only
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleSearch}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-6 py-4 text-base font-semibold text-white shadow-lg transition hover:bg-orange-600"
+                >
+                  <Search className="h-5 w-5" />
+                  {modalCtaLabel}
+                </button>
+              </div>
             </div>
           </div>
         </div>
