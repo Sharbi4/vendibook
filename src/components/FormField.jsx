@@ -24,27 +24,14 @@ function FormField({
   error,
   children
 }) {
-  const baseInputStyle = {
-    width: '100%',
-    padding: '12px',
-    border: error ? '1px solid #D84D42' : '1px solid #EBEBEB',
-    borderRadius: '8px',
-    fontSize: '15px',
-    fontFamily: 'inherit'
-  };
+  const baseInputClass = `brand-input ${error ? 'border-orange ring-2 ring-orange/30' : 'border border-[rgba(52,52,52,0.15)]'}`;
 
   return (
-    <div style={{ marginBottom: '24px' }}>
+    <div className="mb-6">
       {label && (
-        <label style={{
-          display: 'block',
-          fontSize: '14px',
-          fontWeight: '600',
-          marginBottom: '8px',
-          color: '#343434'
-        }}>
+        <label className="mb-2 block text-sm font-semibold text-charcoal">
           {label}
-          {required && <span style={{ color: '#D84D42' }}> *</span>}
+          {required && <span className="text-orange"> *</span>}
         </label>
       )}
 
@@ -54,7 +41,7 @@ function FormField({
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          style={baseInputStyle}
+          className={`${baseInputClass} text-base font-medium text-charcoal placeholder:text-charcoal/55`}
         />
       )}
 
@@ -64,7 +51,7 @@ function FormField({
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          style={baseInputStyle}
+          className={`${baseInputClass} text-base font-medium text-charcoal placeholder:text-charcoal/55`}
         />
       )}
 
@@ -74,7 +61,7 @@ function FormField({
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          style={baseInputStyle}
+          className={`${baseInputClass} text-base font-medium text-charcoal placeholder:text-charcoal/55`}
         />
       )}
 
@@ -83,11 +70,7 @@ function FormField({
           value={value}
           onChange={onChange}
           placeholder={placeholder}
-          style={{
-            ...baseInputStyle,
-            minHeight: '120px',
-            resize: 'vertical'
-          }}
+          className={`${baseInputClass} min-h-[120px] resize-y text-base font-medium text-charcoal placeholder:text-charcoal/55`}
         />
       )}
 
@@ -95,7 +78,7 @@ function FormField({
         <select
           value={value}
           onChange={onChange}
-          style={baseInputStyle}
+          className={`${baseInputClass} text-base font-medium text-charcoal`}
         >
           <option value="">Select an option</option>
           {options.map((opt) => (
@@ -107,18 +90,12 @@ function FormField({
       )}
 
       {type === 'checkbox' && (
-        <label style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          cursor: 'pointer',
-          fontSize: '15px'
-        }}>
+        <label className="flex cursor-pointer items-center gap-3 text-base font-medium text-charcoal">
           <input
             type="checkbox"
             checked={value}
             onChange={onChange}
-            style={{ cursor: 'pointer' }}
+            className="h-5 w-5 rounded border-[rgba(52,52,52,0.3)] text-orange focus:ring-orange/40"
           />
           <span>{placeholder}</span>
         </label>
@@ -127,12 +104,7 @@ function FormField({
       {children}
 
       {error && (
-        <p style={{
-          color: '#D84D42',
-          fontSize: '13px',
-          marginTop: '6px',
-          marginBottom: '0'
-        }}>
+        <p className="mt-2 text-sm font-semibold text-orange">
           {error}
         </p>
       )}
