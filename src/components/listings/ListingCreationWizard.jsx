@@ -72,6 +72,16 @@ const resolvePrimaryPrice = (data) => {
     if (hourlyRate) return hourlyRate;
   }
 
+  if ((data.listingType || '').toLowerCase().includes('vendor')) {
+    const spaces = Array.isArray(data.vendorSpaceTypes) ? data.vendorSpaceTypes : [];
+    for (const space of spaces) {
+      const possible = toNumber(space?.price);
+      if (possible) {
+        return possible;
+      }
+    }
+  }
+
   return (
     toNumber(pricing.baseDailyRate) ??
     toNumber(pricing.weekendRate) ??
@@ -84,6 +94,7 @@ const resolvePrimaryPrice = (data) => {
 const mapWizardListingType = (value) => {
   const normalized = (value || '').toString().trim().toLowerCase();
   if (normalized.includes('event')) return 'EVENT_PRO';
+  if (normalized.includes('vendor')) return 'VENDOR_SPACE';
   if (normalized.includes('sale')) return 'SALE';
   return 'RENT';
 };
@@ -91,6 +102,7 @@ const mapWizardListingType = (value) => {
 const mapApiListingTypeToWizard = (value) => {
   const normalized = (value || '').toString().trim().toUpperCase();
   if (normalized === 'EVENT_PRO') return 'eventPro';
+  if (normalized === 'VENDOR_SPACE') return 'vendor_space';
   return 'rental';
 };
 
@@ -174,7 +186,35 @@ const hydrateFormDataFromListing = (listing) => {
     eventProLogistics: {
       ...INITIAL_EVENT_PRO_LOGISTICS,
       serviceRadiusMiles: listing.service_radius_miles || INITIAL_EVENT_PRO_LOGISTICS.serviceRadiusMiles
-    }
+    },
+    vendorEvent: {
+      ...INITIAL_VENDOR_EVENT,
+      ...(listing.vendor_market?.event || {})
+    },
+    vendorLocation: {
+      ...INITIAL_VENDOR_LOCATION,
+      ...(listing.vendor_market?.location || {})
+    },
+    vendorSpaceTypes: Array.isArray(listing.vendor_market?.space_types)
+      ? listing.vendor_market.space_types.map((space) => ({
+          id: space.id || createId(),
+          name: space.name || '',
+          price: space.price || '',
+          quantityAvailable: space.quantityAvailable || space.quantity_available || '',
+          includesElectricity: Boolean(space.includesElectricity ?? space.includes_electricity),
+          includesTable: Boolean(space.includesTable ?? space.includes_table),
+          notes: space.notes || ''
+        }))
+      : [createVendorSpaceType()],
+    vendorAddOns: Array.isArray(listing.vendor_market?.add_ons)
+      ? listing.vendor_market.add_ons.map((addOn) => ({
+          id: addOn.id || createId(),
+          name: addOn.name || '',
+          price: addOn.price || '',
+          priceUnit: addOn.priceUnit || addOn.price_unit || 'flat',
+          description: addOn.description || ''
+        }))
+      : [createVendorAddOn()]
   };
 };
 
@@ -206,6 +246,12 @@ const EVENT_PRO_TRAVEL_POLICIES = [
   { value: 'custom_quote', label: 'Custom quote' }
 ];
 
+const VENDOR_ADD_ON_PRICE_UNITS = [
+  { value: 'flat', label: 'Flat fee' },
+  { value: 'per_day', label: 'Per day' },
+  { value: 'per_event', label: 'Per event' }
+];
+
 const RENTAL_STEP_CONFIG = [
   { key: 'type', label: 'Listing type', description: 'Tell us what you offer' },
   { key: 'basics', label: 'Basics', description: 'Location & positioning' },
@@ -227,6 +273,16 @@ const EVENT_PRO_STEP_CONFIG = [
   { key: 'documents', label: 'Documents', description: 'Compliance & proof' },
   { key: 'addOns', label: 'Add-ons', description: 'Upsells & extras' },
   { key: 'preview', label: 'Preview', description: 'Review & publish' }
+];
+
+const VENDOR_MARKET_STEP_CONFIG = [
+  { key: 'type', label: 'Listing type', description: 'Tell us what you offer' },
+  { key: 'vendorEventOverview', label: 'Event overview', description: 'Name & story' },
+  { key: 'vendorLocation', label: 'Location & logistics', description: 'Where vendors will go' },
+  { key: 'vendorSpaceTypes', label: 'Space types', description: 'Booths & pricing' },
+  { key: 'vendorMarketAddOns', label: 'Vendor add-ons', description: 'Upsells vendors can choose' },
+  { key: 'media', label: 'Media upload', description: 'Photos & visuals' },
+  { key: 'preview', label: 'Review & publish', description: 'Finalize details' }
 ];
 
 const RENTAL_CATEGORIES = [
@@ -283,6 +339,24 @@ const createEventProPackageAddOn = () => ({
   priceUnit: 'per_event'
 });
 
+const createVendorSpaceType = () => ({
+  id: createId(),
+  name: '',
+  price: '',
+  quantityAvailable: '',
+  includesElectricity: false,
+  includesTable: false,
+  notes: ''
+});
+
+const createVendorAddOn = () => ({
+  id: createId(),
+  name: '',
+  price: '',
+  priceUnit: 'flat',
+  description: ''
+});
+
 const INITIAL_EVENT_PRO_PROFILE = {
   serviceType: '',
   businessName: '',
@@ -301,6 +375,28 @@ const INITIAL_EVENT_PRO_LOGISTICS = {
   providesStaffOnsite: true,
   includesSetupAndBreakdown: true,
   acceptsLastMinuteBookings: false
+};
+
+const INITIAL_VENDOR_EVENT = {
+  eventName: '',
+  eventType: '',
+  description: '',
+  scheduleType: 'single',
+  startDate: '',
+  endDate: '',
+  eventHours: '',
+  heroNote: ''
+};
+
+const INITIAL_VENDOR_LOCATION = {
+  eventAddress: '',
+  eventCity: '',
+  eventState: '',
+  indoorOutdoor: 'indoor',
+  parkingAvailable: true,
+  electricityAvailable: true,
+  waterAvailable: false,
+  restroomsAvailable: true
 };
 
 const buildEventProLogisticsSummary = (logistics, schedule = INITIAL_FORM_DATA.schedule) => {
@@ -391,13 +487,21 @@ const INITIAL_FORM_DATA = {
   notes: '',
   eventProProfile: { ...INITIAL_EVENT_PRO_PROFILE },
   eventProPackages: [createEventProPackage()],
-  eventProLogistics: { ...INITIAL_EVENT_PRO_LOGISTICS }
+  eventProLogistics: { ...INITIAL_EVENT_PRO_LOGISTICS },
+  vendorEvent: { ...INITIAL_VENDOR_EVENT },
+  vendorLocation: { ...INITIAL_VENDOR_LOCATION },
+  vendorSpaceTypes: [createVendorSpaceType()],
+  vendorAddOns: [createVendorAddOn()]
 };
 
-function ListingCreationWizard({ onClose, mode = 'create', initialData = null, listingId: listingIdProp = null }) {
+function ListingCreationWizard({ onClose, mode = 'create', initialData = null, listingId: listingIdProp = null, defaultListingType = '' }) {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState(() => INITIAL_FORM_DATA);
+  const [formData, setFormData] = useState(() => (
+    defaultListingType
+      ? { ...INITIAL_FORM_DATA, listingType: defaultListingType }
+      : INITIAL_FORM_DATA
+  ));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionState, setSubmissionState] = useState({ status: 'idle', errorMessage: '', listing: null, shareUrl: '' });
   const [viewMode, setViewMode] = useState('editing');
@@ -408,7 +512,12 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
   const derivedMode = initialData || listingIdProp ? 'edit' : mode;
   const isEditMode = derivedMode === 'edit';
   const isEventProListing = formData.listingType === 'eventPro' || formData.listingType === 'event_pro';
-  const stepConfig = isEventProListing ? EVENT_PRO_STEP_CONFIG : RENTAL_STEP_CONFIG;
+  const isVendorListing = formData.listingType === 'vendor_space' || formData.listingType === 'vendorSpace';
+  const stepConfig = isVendorListing
+    ? VENDOR_MARKET_STEP_CONFIG
+    : isEventProListing
+      ? EVENT_PRO_STEP_CONFIG
+      : RENTAL_STEP_CONFIG;
   const totalSteps = stepConfig.length;
   const activeStep = stepConfig[currentStep] || stepConfig[0];
   const activeStepKey = activeStep?.key || stepConfig[0].key;
@@ -433,6 +542,11 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
     setCopyFeedback('');
   }, [initialData]);
 
+  useEffect(() => {
+    if (initialData || !defaultListingType) return;
+    setFormData((prev) => (prev.listingType ? prev : { ...prev, listingType: defaultListingType }));
+  }, [defaultListingType, initialData]);
+
   const contextValue = useMemo(() => ({ formData, setFormData }), [formData]);
 
   useEffect(() => {
@@ -449,31 +563,49 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
       listingType,
       eventProProfile,
       eventProPackages,
-      eventProLogistics
+      eventProLogistics,
+      vendorEvent,
+      vendorLocation,
+      vendorSpaceTypes,
+      vendorAddOns
     } = formData;
     const isEventPro = listingType === 'eventPro' || listingType === 'event_pro';
+    const isVendor = listingType === 'vendor_space' || listingType === 'vendorSpace';
     const profile = eventProProfile || INITIAL_EVENT_PRO_PROFILE;
     const logistics = eventProLogistics || INITIAL_EVENT_PRO_LOGISTICS;
+    const vendorEventData = vendorEvent || INITIAL_VENDOR_EVENT;
+    const vendorLocationData = vendorLocation || INITIAL_VENDOR_LOCATION;
     const baseCityState = [basics.city, basics.state].filter(Boolean).join(', ');
     const profileCityState = [profile.city || basics.city, profile.state || basics.state].filter(Boolean).join(', ');
-    const previewLocationText = isEventPro ? profileCityState || baseCityState : baseCityState;
+    const vendorCityState = [vendorLocationData.eventCity || basics.city, vendorLocationData.eventState || basics.state].filter(Boolean).join(', ');
+    const previewLocationText = isVendor
+      ? vendorLocationData.eventAddress?.trim() || vendorCityState
+      : isEventPro
+        ? profileCityState || baseCityState
+        : baseCityState;
     const serviceRadius = isEventPro
       ? Number(logistics.serviceRadiusMiles || basics.serviceRadius)
       : basics.serviceRadius;
-    const trimmedServiceLabel = isEventPro
-      ? profile.serviceAreaDescription?.trim() || basics.serviceLabel?.trim() || ''
-      : basics.serviceLabel?.trim() || '';
+    const trimmedServiceLabel = isVendor
+      ? vendorLocationData.eventAddress?.trim() || vendorCityState
+      : isEventPro
+        ? profile.serviceAreaDescription?.trim() || basics.serviceLabel?.trim() || ''
+        : basics.serviceLabel?.trim() || '';
     const hasRadius = Boolean(serviceRadius);
-    const serviceAreaText = trimmedServiceLabel
-      ? trimmedServiceLabel
-      : hasRadius && previewLocationText
-        ? `Serves locations within ${serviceRadius} miles of ${previewLocationText}`
-        : '';
+    const serviceAreaText = isVendor
+      ? (vendorLocationData.eventAddress?.trim() ? `Event location: ${vendorLocationData.eventAddress}` : vendorCityState)
+      : trimmedServiceLabel
+        ? trimmedServiceLabel
+        : hasRadius && previewLocationText
+          ? `Serves locations within ${serviceRadius} miles of ${previewLocationText}`
+          : '';
 
     const primaryMedia = media.coverPreview || media.gallery?.[0]?.preview || '';
-    const fallbackImage = isEventPro
-      ? 'https://images.unsplash.com/photo-1481833761820-0509d3217039?w=900&auto=format&fit=crop&q=80'
-      : 'https://images.unsplash.com/photo-1505471768190-0af6755fab1c?w=900&auto=format&fit=crop&q=80';
+    const fallbackImage = isVendor
+      ? 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=900&auto=format&fit=crop&q=80'
+      : isEventPro
+        ? 'https://images.unsplash.com/photo-1481833761820-0509d3217039?w=900&auto=format&fit=crop&q=80'
+        : 'https://images.unsplash.com/photo-1505471768190-0af6755fab1c?w=900&auto=format&fit=crop&q=80';
 
     const heroImage = primaryMedia || fallbackImage;
     const primaryPrice = resolvePrimaryPrice(formData);
@@ -483,33 +615,46 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
       daily: 'Daily rental',
       'daily-with-time': 'Daily rental with pickup & return times',
       hourly: 'Hourly rental',
-      'event-pro': 'Event Pro booking',
-      'per-event': 'Event Pro booking',
+      'event-pro': 'Per event booking',
+      'per-event': 'Per event booking',
       'package': 'Package-based event'
     };
 
     const bookingModeKey = schedule.bookingMode || (isEventPro ? 'event-pro' : 'daily');
     const bookingModeLabel = bookingModeLookup[bookingModeKey] || 'Rental mode not set';
 
-    const packageSource = isEventPro ? (eventProPackages || []) : (pricing.packages || []);
+    const packageSource = isVendor
+      ? (vendorSpaceTypes || [])
+      : isEventPro
+        ? (eventProPackages || [])
+        : (pricing.packages || []);
     const previewPackages = packageSource.map((pkg) => {
       const name = pkg.name || pkg.title || '';
       const description = pkg.description || pkg.summary || '';
       const priceValue = isEventPro ? pkg.basePrice : pkg.price;
-      const guests = pkg.servesCount || pkg.guestCount || '';
+      const capacityLabel = isVendor
+        ? (pkg.quantityAvailable ? `${pkg.quantityAvailable} spaces available` : '')
+        : pkg.servesCount || pkg.guestCount || '';
       return {
         id: pkg.id,
         name: buildDisplayValue(name, 'Package name not set'),
         description: buildDisplayValue(description, 'Describe this package'),
         price: buildDisplayValue(formatUSD(priceValue), 'Pricing not yet added'),
-        serves: buildDisplayValue(guests ? `Up to ${guests} guests` : '', 'Add guest count')
+        serves: buildDisplayValue(
+          capacityLabel
+            ? (isVendor ? capacityLabel : `Up to ${capacityLabel} guests`)
+            : '',
+          isVendor ? 'Add space quantity' : 'Add guest count'
+        )
       };
     });
 
-    const previewAddOns = (addOns || []).map((addOn) => ({
+    const addOnSource = isVendor ? (vendorAddOns || []) : (addOns || []);
+    const previewAddOns = addOnSource.map((addOn) => ({
       id: addOn.id,
       name: buildDisplayValue(addOn.name, 'Add-on name not set'),
-      price: buildDisplayValue(formatUSD(addOn.price), 'Pricing not yet added')
+      price: buildDisplayValue(formatUSD(addOn.price), 'Pricing not yet added'),
+      unit: addOn.priceUnit || ''
     }));
 
     const packageChips = isEventPro
@@ -533,11 +678,44 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
         }
       : null;
 
+    const vendorScheduleSummary = () => {
+      if (!vendorEventData.startDate && !vendorEventData.endDate) return 'Dates not set';
+      if (vendorEventData.scheduleType === 'multi') {
+        return `${vendorEventData.startDate || 'Start date'} → ${vendorEventData.endDate || 'End date'}`;
+      }
+      return vendorEventData.startDate || 'Date TBD';
+    };
+
+    const vendorDetails = isVendor
+      ? {
+          name: buildDisplayValue(vendorEventData.eventName, 'Name your vendor market'),
+          eventType: buildDisplayValue(vendorEventData.eventType, 'Describe the vibe'),
+          description: buildDisplayValue(vendorEventData.description, 'Share what vendors can expect'),
+          schedule: buildDisplayValue(
+            vendorEventData.eventHours
+              ? `${vendorScheduleSummary()} • ${vendorEventData.eventHours}`
+              : vendorScheduleSummary(),
+            'Add dates & hours'
+          ),
+          location: buildDisplayValue(
+            vendorLocationData.eventAddress || vendorCityState,
+            'Add event address'
+          ),
+          amenities: {
+            indoorOutdoor: vendorLocationData.indoorOutdoor,
+            parkingAvailable: vendorLocationData.parkingAvailable,
+            electricityAvailable: vendorLocationData.electricityAvailable,
+            waterAvailable: vendorLocationData.waterAvailable,
+            restroomsAvailable: vendorLocationData.restroomsAvailable
+          }
+        }
+      : null;
+
     return {
       title: buildDisplayValue(basics.title, 'Untitled listing'),
       category: buildDisplayValue(
-        basics.category || (isEventPro ? profile.serviceType || 'Event professional' : 'Rental equipment'),
-        isEventPro ? 'Event professional' : 'Rental equipment'
+        basics.category || (isVendor ? 'Vendor market' : isEventPro ? profile.serviceType || 'Event professional' : 'Rental equipment'),
+        isVendor ? 'Vendor market' : isEventPro ? 'Event professional' : 'Rental equipment'
       ),
       location: buildDisplayValue(previewLocationText, 'Location not set'),
       service: buildDisplayValue(serviceAreaText, 'Service area not set'),
@@ -547,7 +725,8 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
       packages: previewPackages,
       addOns: previewAddOns,
       listingType,
-      eventProDetails
+      eventProDetails,
+      vendorDetails
     };
   }, [formData]);
 
@@ -622,6 +801,49 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
     };
   });
 
+  const setVendorEventField = (field, value) => setFormData((prev) => {
+    const nextBasics = field === 'eventName'
+      ? { ...prev.basics, title: value }
+      : prev.basics;
+    return {
+      ...prev,
+      basics: nextBasics,
+      vendorEvent: { ...prev.vendorEvent, [field]: value }
+    };
+  });
+
+  const setVendorLocationField = (field, value) => setFormData((prev) => {
+    let nextBasics = prev.basics;
+    if (field === 'eventCity') {
+      nextBasics = { ...nextBasics, city: value };
+    } else if (field === 'eventState') {
+      nextBasics = { ...nextBasics, state: value };
+    }
+    return {
+      ...prev,
+      basics: nextBasics,
+      vendorLocation: { ...prev.vendorLocation, [field]: value }
+    };
+  });
+
+  const setVendorSpaceTypes = (updater) => setFormData((prev) => {
+    const current = prev.vendorSpaceTypes || [];
+    const next = typeof updater === 'function' ? updater(current) : updater;
+    return {
+      ...prev,
+      vendorSpaceTypes: next && next.length ? next : [createVendorSpaceType()]
+    };
+  });
+
+  const setVendorAddOns = (updater) => setFormData((prev) => {
+    const current = prev.vendorAddOns || [];
+    const next = typeof updater === 'function' ? updater(current) : updater;
+    return {
+      ...prev,
+      vendorAddOns: next && next.length ? next : [createVendorAddOn()]
+    };
+  });
+
   const handleAddEventProPackage = () => {
     setEventProPackages((prev) => [...prev, createEventProPackage()]);
   };
@@ -656,6 +878,30 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
         ? { ...pkg, addOns: (pkg.addOns || []).filter((addOn) => addOn.id !== addOnId) }
         : pkg
     )));
+  };
+
+  const handleAddVendorSpaceType = () => {
+    setVendorSpaceTypes((prev) => [...prev, createVendorSpaceType()]);
+  };
+
+  const handleVendorSpaceTypeChange = (spaceId, field, value) => {
+    setVendorSpaceTypes((prev) => prev.map((space) => (space.id === spaceId ? { ...space, [field]: value } : space)));
+  };
+
+  const handleRemoveVendorSpaceType = (spaceId) => {
+    setVendorSpaceTypes((prev) => prev.filter((space) => space.id !== spaceId));
+  };
+
+  const handleAddVendorAddOn = () => {
+    setVendorAddOns((prev) => [...prev, createVendorAddOn()]);
+  };
+
+  const handleVendorAddOnChange = (addOnId, field, value) => {
+    setVendorAddOns((prev) => prev.map((addOn) => (addOn.id === addOnId ? { ...addOn, [field]: value } : addOn)));
+  };
+
+  const handleRemoveVendorAddOn = (addOnId) => {
+    setVendorAddOns((prev) => prev.filter((addOn) => addOn.id !== addOnId));
   };
 
   const handleGalleryUpload = (event) => {
@@ -739,17 +985,22 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
       throw new Error('Select a listing type before publishing.');
     }
 
-    const title = formData.basics.title?.trim();
+    const vendorEventData = formData.vendorEvent || INITIAL_VENDOR_EVENT;
+    const vendorLocationData = formData.vendorLocation || INITIAL_VENDOR_LOCATION;
+    const isEventPro = formData.listingType === 'eventPro' || formData.listingType === 'event_pro';
+    const isVendorListing = formData.listingType === 'vendor_space' || formData.listingType === 'vendorSpace';
+
+    const title = (isVendorListing ? vendorEventData.eventName : formData.basics.title)?.trim();
     if (!title) {
       throw new Error('Add a listing title before publishing.');
     }
 
-    const city = formData.basics.city?.trim();
+    const city = (isVendorListing ? (vendorLocationData.eventCity || formData.basics.city) : formData.basics.city)?.trim();
     if (!city) {
       throw new Error('City is required.');
     }
 
-    const state = formData.basics.state?.trim();
+    const state = (isVendorListing ? (vendorLocationData.eventState || formData.basics.state) : formData.basics.state)?.trim();
     if (!state) {
       throw new Error('State is required.');
     }
@@ -759,20 +1010,31 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
       throw new Error('Add at least one price before publishing.');
     }
 
-    const isEventPro = formData.listingType === 'eventPro' || formData.listingType === 'event_pro';
-    const bookingMode = formData.schedule.bookingMode || (isEventPro ? 'per-event' : 'daily-with-time');
-    const defaultStartTime = isEventPro
+    const bookingMode = isVendorListing
+      ? 'per-event'
+      : formData.schedule.bookingMode || (isEventPro ? 'per-event' : 'daily-with-time');
+    const defaultStartTime = (isEventPro && !isVendorListing)
       ? formData.schedule.earliestStartTime
-      : formData.schedule.defaultPickupTime;
-    const defaultEndTime = isEventPro
+      : isVendorListing
+        ? null
+        : formData.schedule.defaultPickupTime;
+    const defaultEndTime = (isEventPro && !isVendorListing)
       ? formData.schedule.latestEndTime
-      : formData.schedule.defaultReturnTime;
-    const serviceRadiusValue = isEventPro
-      ? Number(formData.eventProLogistics.serviceRadiusMiles || formData.basics.serviceRadius)
-      : Number(formData.basics.serviceRadius);
-    const displayZoneLabel = isEventPro
-      ? (formData.eventProProfile.serviceAreaDescription || formData.basics.serviceLabel || '').trim() || null
-      : formData.basics.serviceLabel?.trim() || null;
+      : isVendorListing
+        ? null
+        : formData.schedule.defaultReturnTime;
+    const serviceRadiusValue = isVendorListing
+      ? 0
+      : isEventPro
+        ? Number(formData.eventProLogistics.serviceRadiusMiles || formData.basics.serviceRadius)
+        : Number(formData.basics.serviceRadius);
+    const resolvedServiceRadius = Number.isFinite(serviceRadiusValue) ? serviceRadiusValue : 15;
+    const displayZoneLabel = isVendorListing
+      ? (vendorLocationData.eventAddress || vendorLocationData.eventCity || '').trim() || null
+      : isEventPro
+        ? (formData.eventProProfile.serviceAreaDescription || formData.basics.serviceLabel || '').trim() || null
+        : formData.basics.serviceLabel?.trim() || null;
+    const serviceZoneType = isVendorListing ? 'fixed' : 'radius';
 
     const payload = {
       title,
@@ -787,8 +1049,8 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
       display_city: city,
       display_state: state,
       display_zone_label: displayZoneLabel,
-      service_zone_type: 'radius',
-      service_radius_miles: serviceRadiusValue || 15,
+      service_zone_type: serviceZoneType,
+      service_radius_miles: resolvedServiceRadius,
       // TODO: connect packages, add-ons, and media uploads once schema supports them.
     };
 
@@ -833,6 +1095,53 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
       };
 
       // TODO: Persist event_pro_profile, event_pro_packages, and event_pro_logistics once the listings schema supports JSONB metadata.
+    }
+
+    if (isVendorListing) {
+      payload.vendor_market = {
+        event: {
+          name: vendorEventData.eventName || '',
+          type: vendorEventData.eventType || '',
+          description: vendorEventData.description || '',
+          schedule_type: vendorEventData.scheduleType || 'single',
+          start_date: vendorEventData.startDate || '',
+          end_date: vendorEventData.scheduleType === 'multi' ? (vendorEventData.endDate || vendorEventData.startDate) : vendorEventData.startDate,
+          event_hours: vendorEventData.eventHours || ''
+        },
+        location: {
+          address: vendorLocationData.eventAddress || '',
+          city: vendorLocationData.eventCity || city,
+          state: vendorLocationData.eventState || state,
+          indoor_outdoor: vendorLocationData.indoorOutdoor || 'indoor',
+          parking_available: Boolean(vendorLocationData.parkingAvailable),
+          electricity_available: Boolean(vendorLocationData.electricityAvailable),
+          water_available: Boolean(vendorLocationData.waterAvailable),
+          restrooms_available: Boolean(vendorLocationData.restroomsAvailable)
+        },
+        space_types: (formData.vendorSpaceTypes || []).map((space) => ({
+          id: space.id,
+          name: space.name || '',
+          price: space.price ? Number(space.price) : null,
+          quantity_available: space.quantityAvailable || '',
+          includes_electricity: Boolean(space.includesElectricity),
+          includes_table: Boolean(space.includesTable),
+          notes: space.notes || ''
+        })),
+        add_ons: (formData.vendorAddOns || []).map((addOn) => ({
+          id: addOn.id,
+          name: addOn.name || '',
+          price: addOn.price ? Number(addOn.price) : null,
+          price_unit: addOn.priceUnit || 'flat',
+          description: addOn.description || ''
+        })),
+        schedule: {
+          schedule_type: vendorEventData.scheduleType || 'single',
+          start_date: vendorEventData.startDate || '',
+          end_date: vendorEventData.scheduleType === 'multi' ? (vendorEventData.endDate || vendorEventData.startDate) : vendorEventData.startDate,
+          event_hours: vendorEventData.eventHours || ''
+        }
+      };
+      // TODO: Persist vendor_market payload (event, location, space_types, add_ons) once the Neon schema supports vendor organizer metadata.
     }
 
     return payload;
@@ -952,6 +1261,12 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
                   title: 'Book an Event Pro',
                   description: 'Catering, dessert bars, bartending, coffee carts, candy setups and more.',
                   image: 'https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?w=600&auto=format&fit=crop&q=80'
+                },
+                {
+                  value: 'vendor_space',
+                  title: 'Host a Vendor Market',
+                  description: 'Farmer markets, swap meets, vendor rows with booth reservations and add-ons.',
+                  image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=600&auto=format&fit=crop&q=80'
                 }
               ].map(option => (
                 <button
@@ -972,7 +1287,7 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
                       },
                       schedule: {
                         ...prev.schedule,
-                        bookingMode: option.value === 'eventPro' ? 'per-event' : 'daily'
+                        bookingMode: option.value === 'eventPro' || option.value === 'vendor_space' ? 'per-event' : 'daily'
                       }
                     }));
                   }}
@@ -1024,6 +1339,38 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
             schedule={formData.schedule}
             onChange={setEventProLogisticsField}
             onScheduleChange={setSchedule}
+          />
+        );
+      case 'vendorEventOverview':
+        return (
+          <VendorEventOverviewStep
+            eventData={formData.vendorEvent}
+            onChangeField={setVendorEventField}
+          />
+        );
+      case 'vendorLocation':
+        return (
+          <VendorLocationStep
+            locationData={formData.vendorLocation}
+            onChangeField={setVendorLocationField}
+          />
+        );
+      case 'vendorSpaceTypes':
+        return (
+          <VendorSpaceTypesStep
+            spaces={formData.vendorSpaceTypes}
+            onAddSpace={handleAddVendorSpaceType}
+            onRemoveSpace={handleRemoveVendorSpaceType}
+            onChangeSpace={handleVendorSpaceTypeChange}
+          />
+        );
+      case 'vendorMarketAddOns':
+        return (
+          <VendorAddOnsStep
+            addOns={formData.vendorAddOns}
+            onAdd={handleAddVendorAddOn}
+            onRemove={handleRemoveVendorAddOn}
+            onChange={handleVendorAddOnChange}
           />
         );
       // TODO: Replace inline Step 2 form with a dedicated BasicsStep component powered by ListingWizardContext.
@@ -1350,15 +1697,15 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
           <div className="space-y-6">
             <header>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Step 5</p>
-              <h2 className="text-3xl font-bold text-slate-900 mt-2">Photos & media</h2>
-              <p className="text-slate-600 mt-2">Beautiful visuals help renters trust your experience.</p>
+              <h2 className="text-3xl font-bold text-slate-900 mt-2">{isVendorListing ? 'Market visuals & gallery' : 'Photos & media'}</h2>
+              <p className="text-slate-600 mt-2">{isVendorListing ? 'Showcase past market energy, booth layouts, and highlight reels so vendors can picture themselves onsite.' : 'Beautiful visuals help renters trust your experience.'}</p>
             </header>
             <div className="space-y-5">
               <section className="rounded-2xl border border-dashed border-orange-300 bg-orange-50/50 p-6">
                 <div className="flex flex-col items-center text-center">
                   <Camera className="h-10 w-10 text-orange-500" />
                   <p className="mt-3 text-lg font-semibold text-slate-900">Cover image</p>
-                  <p className="text-sm text-slate-600">This is the hero image for your listing card.</p>
+                  <p className="text-sm text-slate-600">This is the hero image for your {isVendorListing ? 'market card' : 'listing card'}.</p>
                   <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-full bg-orange-600 px-5 py-2 text-sm font-semibold text-white shadow-lg">
                     <Upload className="h-4 w-4" /> Upload cover
                     <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
@@ -1366,6 +1713,7 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
                   {formData.media.coverPreview && (
                     <img src={formData.media.coverPreview} alt="Cover" className="mt-4 h-48 w-full rounded-2xl object-cover" />
                   )}
+                  {/* TODO: Persist vendor hero and gallery uploads once the storage layer is wired for role-specific media. */}
                 </div>
               </section>
               <section className="rounded-2xl border border-slate-200 bg-white p-6">
@@ -1610,10 +1958,40 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
                     {derivedPreview.addOns.map(addOn => (
                       <li key={addOn.id} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
                         <span className={addOn.name.isPlaceholder ? 'text-slate-500' : undefined}>{addOn.name.text}</span>
-                        <span className={`font-semibold ${addOn.price.isPlaceholder ? 'text-slate-500' : 'text-slate-900'}`}>{addOn.price.text}</span>
+                        <span className={`font-semibold ${addOn.price.isPlaceholder ? 'text-slate-500' : 'text-slate-900'}`}>
+                          {addOn.price.text}{addOn.unit ? ` • ${addOn.unit}` : ''}
+                        </span>
                       </li>
                     ))}
                   </ul>
+                </section>
+              ) : null}
+              {isVendorListing && derivedPreview.vendorDetails ? (
+                <section className="mt-6">
+                  <h4 className="text-lg font-semibold text-slate-900">Event details</h4>
+                  <div className="mt-3 grid gap-4 md:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Schedule</p>
+                      <p className={`mt-1 text-sm ${derivedPreview.vendorDetails.schedule.isPlaceholder ? 'text-slate-500' : 'text-slate-700'}`}>
+                        {derivedPreview.vendorDetails.schedule.text}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Location</p>
+                      <p className={`mt-1 text-sm ${derivedPreview.vendorDetails.location.isPlaceholder ? 'text-slate-500' : 'text-slate-700'}`}>
+                        {derivedPreview.vendorDetails.location.text}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 rounded-2xl border border-slate-100 bg-white p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Amenities</p>
+                    <ul className="mt-2 grid gap-2 text-sm text-slate-600 md:grid-cols-2">
+                      <li>{derivedPreview.vendorDetails.amenities.indoorOutdoor === 'indoor' ? 'Indoor experience' : derivedPreview.vendorDetails.amenities.indoorOutdoor === 'hybrid' ? 'Hybrid experience' : 'Outdoor experience'}</li>
+                      <li>{derivedPreview.vendorDetails.amenities.parkingAvailable ? 'Parking available' : 'Parking TBD'}</li>
+                      <li>{derivedPreview.vendorDetails.amenities.electricityAvailable ? 'Electricity hookups provided' : 'Bring your own power'}</li>
+                      <li>{derivedPreview.vendorDetails.amenities.restroomsAvailable ? 'Restrooms onsite' : 'Restrooms TBD'}</li>
+                    </ul>
+                  </div>
                 </section>
               ) : null}
             </div>
@@ -1651,10 +2029,18 @@ function ListingCreationWizard({ onClose, mode = 'create', initialData = null, l
 
   const publishedListing = submissionState.listing;
   const shareLink = submissionState.shareUrl || (publishedListing ? buildShareUrl(publishedListing) : '');
-  const successTitle = isEditMode ? 'Your changes are live on Vendibook.' : 'Your listing is live on Vendibook.';
-  const successSubtitle = isEditMode
-    ? 'We refreshed your public link and QR code with the latest details.'
-    : 'Share your link anywhere or download a QR code for events.';
+  const publishedListingType = publishedListing?.listing_type || mapWizardListingType(formData.listingType);
+  const isVendorSuccess = publishedListingType === 'VENDOR_SPACE';
+  const successTitle = isVendorSuccess
+    ? 'Your Vendor Market is Live on Vendibook!'
+    : isEditMode
+      ? 'Your changes are live on Vendibook.'
+      : 'Your listing is live on Vendibook.';
+  const successSubtitle = isVendorSuccess
+    ? 'Share your event with vendors and let them reserve available booth spaces instantly.'
+    : isEditMode
+      ? 'We refreshed your public link and QR code with the latest details.'
+      : 'Share your link anywhere or download a QR code for events.';
   const backButtonLabel = isEditMode ? 'Back to listings' : 'Back to dashboard';
 
   const successView = (
@@ -2267,6 +2653,392 @@ function EventProLogisticsStep({ logistics, schedule, onChange, onScheduleChange
   );
 }
 
+function VendorEventOverviewStep({ eventData, onChangeField }) {
+  const data = eventData || INITIAL_VENDOR_EVENT;
+
+  return (
+    <div className="space-y-6">
+      <header>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Vendor market flow</p>
+        <h2 className="text-3xl font-bold text-slate-900 mt-2">Vendor market overview</h2>
+        <p className="text-slate-600 mt-2">Introduce your event so vendors instantly understand the vibe and logistics.</p>
+      </header>
+      <div className="grid gap-5 md:grid-cols-2">
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">Event name</span>
+          <input
+            type="text"
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            placeholder="Sunset Makers Market"
+            value={data.eventName}
+            onChange={(e) => onChangeField('eventName', e.target.value)}
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">Event type</span>
+          <input
+            type="text"
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            placeholder="Farmers market, swap meet, themed fair"
+            value={data.eventType}
+            onChange={(e) => onChangeField('eventType', e.target.value)}
+          />
+        </label>
+      </div>
+      <label className="block">
+        <span className="text-sm font-semibold text-slate-700">Description</span>
+        <textarea
+          className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+          rows={4}
+          placeholder="Share what vendors can sell, crowd expectations, and any curation notes."
+          value={data.description}
+          onChange={(e) => onChangeField('description', e.target.value)}
+        />
+      </label>
+      <div>
+        <span className="text-sm font-semibold text-slate-700">Is this single-day or multi-day?</span>
+        <div className="mt-3 flex flex-wrap gap-3">
+          {['single', 'multi'].map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onChangeField('scheduleType', value)}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                data.scheduleType === value
+                  ? 'bg-orange-600 text-white shadow-md'
+                  : 'border border-slate-200 bg-white text-slate-700 hover:border-orange-200'
+              }`}
+            >
+              {value === 'single' ? 'Single day' : 'Multi-day'}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-5 md:grid-cols-3">
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">Start date</span>
+          <input
+            type="date"
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            value={data.startDate}
+            onChange={(e) => onChangeField('startDate', e.target.value)}
+          />
+        </label>
+        {data.scheduleType === 'multi' ? (
+          <label className="block">
+            <span className="text-sm font-semibold text-slate-700">End date</span>
+            <input
+              type="date"
+              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+              value={data.endDate}
+              onChange={(e) => onChangeField('endDate', e.target.value)}
+            />
+          </label>
+        ) : (
+          <div className="block text-sm font-semibold text-slate-700">
+            End date
+            <div className="mt-2 rounded-2xl border border-dashed border-slate-200 px-4 py-3 text-sm text-slate-400">
+              Auto-filled for single-day events
+            </div>
+          </div>
+        )}
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">Event hours</span>
+          <input
+            type="text"
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            placeholder="9:00 AM - 3:00 PM"
+            value={data.eventHours}
+            onChange={(e) => onChangeField('eventHours', e.target.value)}
+          />
+        </label>
+      </div>
+      <section className="rounded-3xl border border-dashed border-orange-200 bg-orange-50/50 p-6 text-center">
+        <div className="rounded-2xl border border-orange-200 bg-white/80 p-6">
+          <p className="text-lg font-semibold text-slate-900">Event hero preview</p>
+          <p className="mt-2 text-sm text-slate-600">Use this space to imagine your future hero graphic.</p>
+          {/* TODO: Replace placeholder hero with an illustration or uploaded artwork once design assets are ready. */}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function VendorLocationStep({ locationData, onChangeField }) {
+  const data = locationData || INITIAL_VENDOR_LOCATION;
+
+  return (
+    <div className="space-y-6">
+      <header>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Vendor market flow</p>
+        <h2 className="text-3xl font-bold text-slate-900 mt-2">Location & logistics</h2>
+        <p className="text-slate-600 mt-2">Tell vendors where to show up and what support you provide onsite.</p>
+      </header>
+      <label className="block">
+        <span className="text-sm font-semibold text-slate-700">Event address (exact)</span>
+        <input
+          type="text"
+          className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+          placeholder="123 Main St, Phoenix AZ"
+          value={data.eventAddress}
+          onChange={(e) => onChangeField('eventAddress', e.target.value)}
+        />
+        <p className="mt-1 text-xs text-slate-500">Exact addresses are masked until a booking is confirmed.</p>
+      </label>
+      <div className="grid gap-5 md:grid-cols-2">
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">City</span>
+          <input
+            type="text"
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            placeholder="Phoenix"
+            value={data.eventCity}
+            onChange={(e) => onChangeField('eventCity', e.target.value)}
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">State / region</span>
+          <select
+            className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+            value={data.eventState}
+            onChange={(e) => onChangeField('eventState', e.target.value)}
+          >
+            <option value="">State</option>
+            {STATE_OPTIONS.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div>
+        <span className="text-sm font-semibold text-slate-700">Is the event indoor or outdoor?</span>
+        <div className="mt-3 flex flex-wrap gap-3">
+          {['indoor', 'outdoor', 'hybrid'].map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onChangeField('indoorOutdoor', value)}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                data.indoorOutdoor === value
+                  ? 'bg-orange-600 text-white shadow'
+                  : 'border border-slate-200 bg-white text-slate-700 hover:border-orange-200'
+              }`}
+            >
+              {value.charAt(0).toUpperCase() + value.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {[{
+          field: 'parkingAvailable',
+          label: 'Parking available for vendors'
+        }, {
+          field: 'electricityAvailable',
+          label: 'Electricity hookups provided'
+        }, {
+          field: 'waterAvailable',
+          label: 'Water access onsite'
+        }, {
+          field: 'restroomsAvailable',
+          label: 'Restrooms available'
+        }].map((option) => (
+          <label key={option.field} className="inline-flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+              checked={Boolean(data[option.field])}
+              onChange={(e) => onChangeField(option.field, e.target.checked)}
+            />
+            {option.label}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function VendorSpaceTypesStep({ spaces, onAddSpace, onRemoveSpace, onChangeSpace }) {
+  const safeSpaces = Array.isArray(spaces) && spaces.length ? spaces : [createVendorSpaceType()];
+
+  return (
+    <div className="space-y-6">
+      <header>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Vendor market flow</p>
+        <h2 className="text-3xl font-bold text-slate-900 mt-2">Space types</h2>
+        <p className="text-slate-600 mt-2">Define each booth or space vendors can reserve. Be explicit about inclusions.</p>
+      </header>
+      {safeSpaces.map((space, index) => (
+        <section key={space.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-500">Space {index + 1}</p>
+              <p className="text-lg font-semibold text-slate-900">{space.name || 'Untitled space'}</p>
+            </div>
+            {safeSpaces.length > 1 && (
+              <button
+                type="button"
+                onClick={() => onRemoveSpace(space.id)}
+                className="text-slate-400 hover:text-rose-500"
+              >
+                <Trash2 className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            <label className="block text-sm font-semibold text-slate-700">
+              Space name
+              <input
+                type="text"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+                placeholder="10x10 Standard Booth"
+                value={space.name}
+                onChange={(e) => onChangeSpace(space.id, 'name', e.target.value)}
+              />
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              Price per space
+              <input
+                type="number"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+                placeholder="150"
+                value={space.price}
+                onChange={(e) => onChangeSpace(space.id, 'price', e.target.value)}
+              />
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              Quantity available
+              <input
+                type="number"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+                placeholder="25"
+                value={space.quantityAvailable}
+                onChange={(e) => onChangeSpace(space.id, 'quantityAvailable', e.target.value)}
+              />
+            </label>
+          </div>
+          <label className="mt-4 block text-sm font-semibold text-slate-700">
+            Notes / inclusions
+            <textarea
+              className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+              rows={3}
+              placeholder="Includes 6-foot table, power access, load-in instructions."
+              value={space.notes}
+              onChange={(e) => onChangeSpace(space.id, 'notes', e.target.value)}
+            />
+          </label>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {[{
+              field: 'includesElectricity',
+              label: 'Includes electricity'
+            }, {
+              field: 'includesTable',
+              label: 'Includes table'
+            }].map((option) => (
+              <label key={option.field} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                  checked={Boolean(space[option.field])}
+                  onChange={(e) => onChangeSpace(space.id, option.field, e.target.checked)}
+                />
+                {option.label}
+              </label>
+            ))}
+          </div>
+        </section>
+      ))}
+      <button
+        type="button"
+        onClick={onAddSpace}
+        className="inline-flex items-center gap-2 rounded-full border border-dashed border-orange-300 px-5 py-2 text-sm font-semibold text-orange-600"
+      >
+        <Plus className="h-4 w-4" /> Add space type
+      </button>
+    </div>
+  );
+}
+
+function VendorAddOnsStep({ addOns, onAdd, onRemove, onChange }) {
+  const safeAddOns = Array.isArray(addOns) && addOns.length ? addOns : [createVendorAddOn()];
+
+  return (
+    <div className="space-y-6">
+      <header>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Vendor market flow</p>
+        <h2 className="text-3xl font-bold text-slate-900 mt-2">Optional add-ons</h2>
+        <p className="text-slate-600 mt-2">Offer electricity upgrades, overnight storage, marketing boosts, or additional services.</p>
+      </header>
+      {safeAddOns.map((addOn) => (
+        <section key={addOn.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="block text-sm font-semibold text-slate-700">
+              Add-on name
+              <input
+                type="text"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+                placeholder="Power upgrade"
+                value={addOn.name}
+                onChange={(e) => onChange(addOn.id, 'name', e.target.value)}
+              />
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              Price
+              <input
+                type="number"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+                placeholder="50"
+                value={addOn.price}
+                onChange={(e) => onChange(addOn.id, 'price', e.target.value)}
+              />
+            </label>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <label className="block text-sm font-semibold text-slate-700">
+              Price unit
+              <select
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+                value={addOn.priceUnit}
+                onChange={(e) => onChange(addOn.id, 'priceUnit', e.target.value)}
+              >
+                {VENDOR_ADD_ON_PRICE_UNITS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-semibold text-slate-700">
+              Description
+              <textarea
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3"
+                rows={3}
+                placeholder="Includes onsite tech for load-in/out."
+                value={addOn.description}
+                onChange={(e) => onChange(addOn.id, 'description', e.target.value)}
+              />
+            </label>
+          </div>
+          {safeAddOns.length > 1 && (
+            <button
+              type="button"
+              onClick={() => onRemove(addOn.id)}
+              className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-rose-600"
+            >
+              <Trash2 className="h-4 w-4" /> Remove add-on
+            </button>
+          )}
+        </section>
+      ))}
+      <button
+        type="button"
+        onClick={onAdd}
+        className="inline-flex items-center gap-2 rounded-full border border-dashed border-orange-300 px-5 py-2 text-sm font-semibold text-orange-600"
+      >
+        <Plus className="h-4 w-4" /> Add another add-on
+      </button>
+    </div>
+  );
+}
+
 function LivePreviewCard({ preview }) {
   return (
     <div className="space-y-5">
@@ -2293,6 +3065,29 @@ function LivePreviewCard({ preview }) {
             <p className={`text-xs ${preview.eventProDetails.logistics?.isPlaceholder ? 'text-slate-500' : 'text-orange-100/80'}`}>
               {preview.eventProDetails.logistics?.text}
             </p>
+          </div>
+        ) : null}
+        {preview.vendorDetails ? (
+          <div className="mt-3 space-y-2">
+            <span className="rounded-full bg-orange-500/20 px-3 py-1 text-xs font-semibold text-orange-100">Vendor Market</span>
+            <p className={`text-sm font-semibold ${preview.vendorDetails.name.isPlaceholder ? 'text-slate-400' : 'text-orange-50'}`}>
+              {preview.vendorDetails.name.text}
+            </p>
+            <p className={`text-sm ${preview.vendorDetails.description.isPlaceholder ? 'text-slate-500' : 'text-orange-100/80'}`}>
+              {preview.vendorDetails.description.text}
+            </p>
+            <p className={`text-xs ${preview.vendorDetails.schedule.isPlaceholder ? 'text-slate-500' : 'text-orange-100/90'}`}>
+              {preview.vendorDetails.schedule.text}
+            </p>
+            <p className={`text-xs ${preview.vendorDetails.location.isPlaceholder ? 'text-slate-500' : 'text-orange-100/80'}`}>
+              {preview.vendorDetails.location.text}
+            </p>
+            <ul className="text-xs text-orange-100/70">
+              <li>{preview.vendorDetails.amenities.indoorOutdoor === 'indoor' ? 'Indoor experience' : 'Outdoor friendly'}</li>
+              <li>
+                {preview.vendorDetails.amenities.parkingAvailable ? 'Parking available' : 'Parking TBD'} • {preview.vendorDetails.amenities.electricityAvailable ? 'Power available' : 'Bring power'}
+              </li>
+            </ul>
           </div>
         ) : null}
         <p className={`mt-4 text-3xl font-semibold ${preview.price.isPlaceholder ? 'text-slate-500' : ''}`}>
@@ -2343,7 +3138,8 @@ ListingCreationWizard.propTypes = {
   onClose: PropTypes.func,
   mode: PropTypes.oneOf(['create', 'edit']),
   initialData: PropTypes.object,
-  listingId: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+  listingId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  defaultListingType: PropTypes.string
 };
 
 EventProIntroStep.propTypes = {
@@ -2372,6 +3168,30 @@ EventProLogisticsStep.propTypes = {
   onScheduleChange: PropTypes.func.isRequired
 };
 
+VendorEventOverviewStep.propTypes = {
+  eventData: PropTypes.object,
+  onChangeField: PropTypes.func.isRequired
+};
+
+VendorLocationStep.propTypes = {
+  locationData: PropTypes.object,
+  onChangeField: PropTypes.func.isRequired
+};
+
+VendorSpaceTypesStep.propTypes = {
+  spaces: PropTypes.arrayOf(PropTypes.object).isRequired,
+  onAddSpace: PropTypes.func.isRequired,
+  onRemoveSpace: PropTypes.func.isRequired,
+  onChangeSpace: PropTypes.func.isRequired
+};
+
+VendorAddOnsStep.propTypes = {
+  addOns: PropTypes.arrayOf(PropTypes.object).isRequired,
+  onAdd: PropTypes.func.isRequired,
+  onRemove: PropTypes.func.isRequired,
+  onChange: PropTypes.func.isRequired
+};
+
 LivePreviewCard.propTypes = {
   preview: PropTypes.object.isRequired
 };
@@ -2380,7 +3200,8 @@ ListingCreationWizard.defaultProps = {
   onClose: () => {},
   mode: 'create',
   initialData: null,
-  listingId: null
+  listingId: null,
+  defaultListingType: ''
 };
 
 export default ListingCreationWizard;

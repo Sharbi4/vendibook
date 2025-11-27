@@ -1,9 +1,12 @@
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import ListingCreationWizard from '../components/listings/ListingCreationWizard';
 
 function HostOnboardingWizard() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const defaultListingType = queryParams.get('type') || '';
 
   return (
     <PageShell
@@ -12,7 +15,10 @@ function HostOnboardingWizard() {
       maxWidth="max-w-6xl"
       action={{ label: 'Back to dashboard', onClick: () => navigate('/host/dashboard') }}
     >
-      <ListingCreationWizard onClose={() => navigate('/host/dashboard')} />
+      <ListingCreationWizard
+        onClose={() => navigate('/host/dashboard')}
+        defaultListingType={defaultListingType}
+      />
     </PageShell>
   );
 }

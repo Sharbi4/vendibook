@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PageShell from '../components/layout/PageShell';
 import HostIdentityCard from '../components/profile/HostIdentityCard';
 import HostProfileForm from '../components/profile/HostProfileForm';
 import AccountServiceSettingsCard from '../components/profile/AccountServiceSettingsCard';
 import SocialLinksCard from '../components/profile/SocialLinksCard';
+import { useCurrentRole } from '../hooks/useCurrentRole';
+import { USER_ROLE_LABELS, USER_ROLES } from '../constants/roles';
 
 const PROFILE_TABS = [
   { id: 'overview', label: 'Overview' },
@@ -14,10 +17,13 @@ const PROFILE_TABS = [
 const SUBTITLE = 'Manage your Vendibook presence, update your host identity, and keep settings in sync.';
 
 function ProfilePage() {
+  const navigate = useNavigate();
+  const { currentRole } = useCurrentRole();
   const [activeTab, setActiveTab] = useState('overview');
   const [userState, setUserState] = useState({ status: 'loading', data: null, error: '' });
   const [settingsState, setSettingsState] = useState({ status: 'idle', data: null });
   const [socialState, setSocialState] = useState({ status: 'idle', data: null });
+  const activeRoleLabel = USER_ROLE_LABELS[currentRole] || USER_ROLE_LABELS[USER_ROLES.HOST];
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -148,6 +154,19 @@ function ProfilePage() {
 
   return (
     <PageShell title="Profile" subtitle={SUBTITLE} maxWidth="max-w-6xl">
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
+        <span className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
+          Acting as {activeRoleLabel}
+        </span>
+        <p className="text-slate-600">You can switch roles from the dashboard role picker.</p>
+        <button
+          type="button"
+          onClick={() => navigate('/host/dashboard')}
+          className="text-xs font-semibold text-orange-600 underline-offset-4 hover:underline"
+        >
+          Go to dashboard switcher
+        </button>
+      </div>
       {renderTabs()}
       {userState.error ? (
         <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
