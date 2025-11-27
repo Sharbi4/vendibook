@@ -45,6 +45,11 @@ function parseCoordinate(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function getListingId(listing, index) {
+  if (!listing) return `listing-${index}`;
+  return listing.id ?? `listing-${index}`;
+}
+
 function ListingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialFilters = useMemo(() => parseFiltersFromSearchParams(searchParams), [searchParams]);
@@ -75,6 +80,14 @@ function ListingsPage() {
   } = useListingsQuery(initialFilters);
 
   const safeListings = Array.isArray(listings) ? listings : [];
+
+  const searchCenter = useMemo(() => {
+    const lat = parseCoordinate(appliedFilters.latitude);
+    const lng = parseCoordinate(appliedFilters.longitude);
+    if (lat == null || lng == null) return null;
+    return { lat, lng };
+  }, [appliedFilters.latitude, appliedFilters.longitude]);
+
   const listingsWithDistance = useMemo(() => {
     return safeListings.map((listing) => {
       const lat = parseCoordinate(listing.latitude ?? listing.lat);
@@ -115,7 +128,7 @@ function ListingsPage() {
         }
         const price = listing.price ?? listing.price_per_day ?? listing.pricePerDay ?? null;
         return {
-          id: listing.id ?? `listing-${index}`,
+          id: getListingId(listing, index),
           lat,
           lng,
           title: listing.title,
@@ -137,11 +150,14 @@ function ListingsPage() {
 
   useEffect(() => {
     if (!filteredListings.length) {
-      setActiveListingId(null);
+      if (activeListingId !== null) {
+        setActiveListingId(null);
+      }
       return;
     }
-    if (!filteredListings.some((listing) => listing.id === activeListingId)) {
-      setActiveListingId(filteredListings[0].id);
+    const hasActive = filteredListings.some((listing, index) => getListingId(listing, index) === activeListingId);
+    if (!hasActive) {
+      setActiveListingId(getListingId(filteredListings[0], 0));
     }
   }, [filteredListings, activeListingId]);
 
@@ -193,13 +209,6 @@ function ListingsPage() {
       lng: parseCoordinate(formFilters.longitude) ?? undefined
     };
   }, [formFilters.locationLabel, formFilters.locationText, formFilters.latitude, formFilters.longitude, formFilters.city, formFilters.state]);
-
-  const searchCenter = useMemo(() => {
-    const lat = parseCoordinate(appliedFilters.latitude);
-    const lng = parseCoordinate(appliedFilters.longitude);
-    if (lat == null || lng == null) return null;
-    return { lat, lng };
-  }, [appliedFilters.latitude, appliedFilters.longitude]);
 
   const commitFilters = (updater) => {
     setAppliedFilters((prev) => {
@@ -644,7 +653,7 @@ function ListingsPage() {
             {!isLoading && !isError && filteredListings.length > 0 && (
               <div className="grid gap-6 pt-2 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredListings.map((listing, index) => {
-                  const listingId = listing.id ?? `${listing.title ?? 'listing'}-${index}`;
+                  const listingId = getListingId(listing, index);
                   const isActive = activeListingId === listingId;
                   return (
                     <div

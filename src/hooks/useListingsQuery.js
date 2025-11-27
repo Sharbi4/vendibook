@@ -24,6 +24,28 @@ const buildQueryString = (params = {}) => {
   return searchParams.toString();
 };
 
+const sanitizeCoordinateValue = (value, fallback) => {
+  if (value === undefined) return fallback;
+  if (value === '' || value == null) {
+    return '';
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : fallback;
+  }
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+
+const sanitizeDistanceValue = (value, fallback) => {
+  if (value === undefined) return fallback;
+  if (value === '' || value == null) return '';
+  if (typeof value === 'number') {
+    return value > 0 ? value : fallback;
+  }
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : fallback;
+};
+
 export function useListingsQuery(initialState = {}) {
   const [queryState, setQueryState] = useState(() => ({
     mode: initialState.mode || SEARCH_MODE.RENT,
@@ -34,9 +56,9 @@ export function useListingsQuery(initialState = {}) {
     endDate: initialState.endDate || '',
     page: Number(initialState.page) > 0 ? Number(initialState.page) : 1,
     limit: initialState.limit || DEFAULT_LIMIT,
-    latitude: Number.isFinite(initialState.latitude) ? initialState.latitude : '',
-    longitude: Number.isFinite(initialState.longitude) ? initialState.longitude : '',
-    distanceMiles: Number.isFinite(initialState.distanceMiles) ? initialState.distanceMiles : '',
+    latitude: sanitizeCoordinateValue(initialState.latitude, ''),
+    longitude: sanitizeCoordinateValue(initialState.longitude, ''),
+    distanceMiles: sanitizeDistanceValue(initialState.distanceMiles, ''),
   }));
 
   const [listings, setListings] = useState([]);
@@ -53,7 +75,7 @@ export function useListingsQuery(initialState = {}) {
 
   useEffect(() => {
     const controller = new AbortController();
-    let isActive = true;
+    let isMounted = true;
 
     async function loadListings() {
       setIsLoading(true);
@@ -75,23 +97,27 @@ export function useListingsQuery(initialState = {}) {
           throw new Error(payload.error || payload.message || 'Unable to load listings');
         }
 
+        if (!isMounted) return;
+
         setListings(Array.isArray(payload.data) ? payload.data : []);
         setPagination(payload.pagination || null);
       } catch (err) {
         if (err.name === 'AbortError') return;
+        if (!isMounted) return;
         setError(err);
         setListings([]);
         setPagination(null);
       } finally {
-        if (isActive) {
+        if (isMounted) {
           setIsLoading(false);
         }
       }
     }
 
     loadListings();
+
     return () => {
-      isActive = false;
+      isMounted = false;
       controller.abort();
     };
   }, [queryString, refreshIndex]);
@@ -105,6 +131,9 @@ export function useListingsQuery(initialState = {}) {
       listingType: updates.listingType ?? prev.listingType,
       startDate: updates.startDate ?? prev.startDate,
       endDate: updates.endDate ?? prev.endDate,
+      latitude: sanitizeCoordinateValue(updates.latitude, prev.latitude),
+      longitude: sanitizeCoordinateValue(updates.longitude, prev.longitude),
+      distanceMiles: sanitizeDistanceValue(updates.distanceMiles, prev.distanceMiles),
       page: 1,
     }));
   }, []);
@@ -124,14 +153,7 @@ export function useListingsQuery(initialState = {}) {
     isError: Boolean(error),
     error,
     refetch,
-      setFilters({
-        mode: next.mode,
-        city: next.city,
-        state: next.state,
-        listingType: next.listingType,
-        startDate: next.startDate,
-        endDate: next.endDate,
-        latitude: next.latitude,
-        longitude: next.longitude,
-        distanceMiles: next.distanceMiles
-      });
+    setFilters,
+    setPage,
+  };
+}
