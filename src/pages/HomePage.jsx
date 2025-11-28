@@ -45,87 +45,213 @@ import {
 const HERO_VIDEO_URL = '/videos/hero-mobile-vendors.mp4';
 const CATEGORY_COLOR_PALETTE = ['#FF5124', '#4CAF50', '#343434', '#F8F8F8'];
 
-// Inject global keyframe animations for modern UI
+// Inject global keyframe animations for premium UI
 const injectStyles = () => {
-  if (typeof document !== 'undefined' && !document.getElementById('vendibook-animations')) {
+  if (typeof document !== 'undefined' && !document.getElementById('vendibook-premium-styles')) {
     const style = document.createElement('style');
-    style.id = 'vendibook-animations';
+    style.id = 'vendibook-premium-styles';
     style.textContent = `
-      @keyframes vendibookFadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
+      /* Premium easing curves */
+      :root {
+        --vb-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+        --vb-ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+        --vb-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+        --vb-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      
+      @keyframes vbFadeUp {
+        from { opacity: 0; transform: translateY(24px); }
         to { opacity: 1; transform: translateY(0); }
       }
-      @keyframes vendibookScaleIn {
-        from { opacity: 0; transform: scale(0.95); }
+      @keyframes vbFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes vbScaleUp {
+        from { opacity: 0; transform: scale(0.96); }
         to { opacity: 1; transform: scale(1); }
       }
-      @keyframes vendibookPulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.02); }
+      @keyframes vbSlideDown {
+        from { opacity: 0; transform: translateY(-12px); }
+        to { opacity: 1; transform: translateY(0); }
       }
-      @keyframes vendibookShimmer {
-        0% { background-position: -200% 0; }
-        100% { background-position: 200% 0; }
+      
+      /* Sparkle animation for Event Pro tab */
+      @keyframes sparkleOrbit {
+        0% { 
+          opacity: 0;
+          transform: translate(0, 0) scale(0);
+        }
+        10% {
+          opacity: 1;
+          transform: translate(var(--tx1, 3px), var(--ty1, -8px)) scale(1);
+        }
+        50% {
+          opacity: 0.8;
+          transform: translate(var(--tx2, -5px), var(--ty2, -15px)) scale(0.8);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(var(--tx3, 8px), var(--ty3, -25px)) scale(0);
+        }
       }
-      .vb-card-hover {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      .sparkle-container {
+        position: absolute;
+        inset: -8px;
+        pointer-events: none;
+        overflow: visible;
       }
-      .vb-card-hover:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.08);
+      
+      .sparkle-particle {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+        box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.5);
+        animation: sparkleOrbit 3s ease-in-out infinite;
       }
-      .vb-btn-hover {
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      /* Card with premium hover */
+      .vb-card {
+        transition: transform 0.4s var(--vb-ease-out-expo), box-shadow 0.4s var(--vb-ease-out-expo);
+        will-change: transform;
       }
-      .vb-btn-hover:hover {
+      .vb-card:hover {
+        transform: translateY(-6px) scale(1.01);
+        box-shadow: 0 24px 48px -12px rgba(0,0,0,0.15), 0 12px 24px -8px rgba(0,0,0,0.1);
+      }
+      .vb-card:active {
+        transform: translateY(-2px) scale(0.995);
+        transition-duration: 0.1s;
+      }
+      
+      /* Button with premium press effect */
+      .vb-btn {
+        transition: all 0.25s var(--vb-ease-out-expo);
+        will-change: transform, box-shadow;
+      }
+      .vb-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(255,81,36,0.35);
       }
-      .vb-btn-hover:active {
-        transform: translateY(0);
+      .vb-btn:active {
+        transform: translateY(0) scale(0.98);
+        transition-duration: 0.1s;
       }
-      .vb-chip-hover {
-        transition: all 0.15s ease-out;
+      
+      /* Chip with subtle spring */
+      .vb-chip {
+        transition: all 0.2s var(--vb-spring);
       }
-      .vb-chip-hover:hover {
-        transform: scale(1.05);
+      .vb-chip:hover {
+        transform: scale(1.03);
       }
-      .vb-image-zoom {
-        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      .vb-chip:active {
+        transform: scale(0.97);
       }
-      .vb-image-zoom:hover {
-        transform: scale(1.08);
+      
+      /* Image with smooth zoom */
+      .vb-img-zoom {
+        transition: transform 0.5s var(--vb-ease-out-expo);
       }
-      .vb-fade-in {
-        animation: vendibookFadeInUp 0.5s ease-out forwards;
+      .vb-img-zoom:hover {
+        transform: scale(1.06);
       }
-      .vb-scale-in {
-        animation: vendibookScaleIn 0.3s ease-out forwards;
+      
+      /* Entrance animations */
+      .vb-enter-fade-up {
+        animation: vbFadeUp 0.6s var(--vb-ease-out-expo) forwards;
       }
+      .vb-enter-scale {
+        animation: vbScaleUp 0.4s var(--vb-ease-out-expo) forwards;
+      }
+      .vb-enter-fade {
+        animation: vbFadeIn 0.3s ease-out forwards;
+      }
+      
+      /* Stagger delay utilities */
+      .vb-delay-1 { animation-delay: 50ms; }
+      .vb-delay-2 { animation-delay: 100ms; }
+      .vb-delay-3 { animation-delay: 150ms; }
+      .vb-delay-4 { animation-delay: 200ms; }
+      
+      /* Focus ring – accessibility with style */
+      .vb-focus:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(255,81,36,0.4);
+      }
+      
+      /* Glassmorphism */
+      .vb-glass {
+        background: rgba(255,255,255,0.08);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+      }
+      
+      /* Premium shadow layers */
+      .vb-shadow-sm { box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06); }
+      .vb-shadow-md { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.03); }
+      .vb-shadow-lg { box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.06); }
+      .vb-shadow-xl { box-shadow: 0 20px 40px -10px rgba(0,0,0,0.12), 0 10px 20px -8px rgba(0,0,0,0.08); }
+      .vb-shadow-2xl { box-shadow: 0 30px 60px -15px rgba(0,0,0,0.18), 0 20px 40px -12px rgba(0,0,0,0.1); }
     `;
     document.head.appendChild(style);
   }
 };
 injectStyles();
 
-// Sparkle Particle Component for Event Pro Mode
-const SparkleParticle = ({ delay, left, size }) => (
-  <div
-    style={{
-      position: 'absolute',
-      left: `${left}%`,
-      bottom: '0',
-      width: `${size}px`,
-      height: `${size}px`,
-      background: '#FFB42C',
-      borderRadius: '50%',
-      opacity: 0,
-      animation: `sparkleFloat 4s ${delay}s ease-in-out infinite`,
-      boxShadow: `0 0 ${size * 2}px rgba(255, 180, 44, 0.6)`,
-      pointerEvents: 'none'
-    }}
-  />
-);
+// Sparkle particles component for Event Pro tab border
+const TabSparkles = () => {
+  const sparkles = [];
+  const positions = [
+    { left: '10%', top: '0%' },
+    { left: '30%', top: '0%' },
+    { left: '50%', top: '0%' },
+    { left: '70%', top: '0%' },
+    { left: '90%', top: '0%' },
+    { left: '100%', top: '25%' },
+    { left: '100%', top: '75%' },
+    { left: '90%', top: '100%' },
+    { left: '70%', top: '100%' },
+    { left: '50%', top: '100%' },
+    { left: '30%', top: '100%' },
+    { left: '10%', top: '100%' },
+    { left: '0%', top: '75%' },
+    { left: '0%', top: '25%' },
+  ];
+  
+  for (let i = 0; i < positions.length; i++) {
+    const pos = positions[i];
+    const delay = i * 0.2;
+    const tx1 = (Math.random() - 0.5) * 10;
+    const ty1 = (Math.random() - 0.5) * 10;
+    const tx2 = (Math.random() - 0.5) * 15;
+    const ty2 = (Math.random() - 0.5) * 15;
+    const tx3 = (Math.random() - 0.5) * 20;
+    const ty3 = (Math.random() - 0.5) * 20;
+    
+    sparkles.push(
+      <div
+        key={i}
+        className="sparkle-particle"
+        style={{
+          left: pos.left,
+          top: pos.top,
+          animationDelay: `${delay}s`,
+          '--tx1': `${tx1}px`,
+          '--ty1': `${ty1}px`,
+          '--tx2': `${tx2}px`,
+          '--ty2': `${ty2}px`,
+          '--tx3': `${tx3}px`,
+          '--ty3': `${ty3}px`,
+        }}
+      />
+    );
+  }
+  
+  return <div className="sparkle-container">{sparkles}</div>;
+};
 
 const VendibookGridIcon = ({ className = 'h-5 w-5 text-charcoal', strokeWidth = 1.75 }) => (
   <svg
@@ -647,171 +773,465 @@ function HomePage() {
   // Get current mode's brand color
   const currentBrandColor = TAB_COLORS[activeTab]?.bg || '#FF5124';
 
+  // Mode-specific filter state
+  const [rentFilters, setRentFilters] = useState({
+    priceMin: '',
+    priceMax: '',
+    startDate: '',
+    endDate: '',
+    delivery: '',
+    distance: '',
+    size: '',
+    addOns: { branding: false, generator: false, waterTank: false, hoodSystem: false, staff: false }
+  });
+
+  const [saleFilters, setSaleFilters] = useState({
+    priceMin: '',
+    priceMax: '',
+    condition: '',
+    year: '',
+    mileage: '',
+    equipment: '',
+    deliveryOption: ''
+  });
+
+  const [eventProFilters, setEventProFilters] = useState({
+    budget: '',
+    eventDate: '',
+    serviceType: '',
+    headcount: '',
+    distance: '',
+    availability: ''
+  });
+
   return (
-    <AppLayout fullWidth contentClassName="bg-[#F7F7F7]">
-      {/* Hero Section – modern Airbnb-style */}
-      <section className="relative flex min-h-[480px] items-start justify-center overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-8 sm:pt-12">
-        {/* Video background with overlay */}
+    <AppLayout fullWidth contentClassName="bg-[#FAFAFA]">
+      {/* Hero Section */}
+      <section className="relative flex min-h-[600px] items-center justify-center overflow-hidden bg-[#0A0A0B]">
+        {/* Background */}
         <div className="absolute inset-0">
-          <video
-            className="h-full w-full object-cover opacity-60"
-            src={HERO_VIDEO_URL}
-            autoPlay
-            muted
-            loop
-            playsInline
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-[#0F0F10] to-black" />
+          <div 
+            className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-15 blur-[120px] transition-colors duration-700"
+            style={{ backgroundColor: currentBrandColor }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
-          {/* Subtle grain texture overlay */}
-          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")' }} />
         </div>
 
-        {/* Sparkle animation – behind search card */}
-        {activeTab === SEARCH_MODE.EVENT_PRO && (
-          <div className="pointer-events-none absolute inset-0 z-0">
-            {Array.from({ length: 50 }).map((_, index) => (
-              <SparkleParticle
-                key={index}
-                delay={(index % 10) * 0.35}
-                left={5 + (index * 2)}
-                size={6}
-              />
-            ))}
-          </div>
-        )}
-
         {/* Search module container */}
-        <div className="relative z-10 mx-auto w-full max-w-2xl px-4 sm:px-6 vb-fade-in">
-          {/* Mode tabs – pill-style with glass effect */}
-          <div className="mb-4 flex justify-center">
-            <div className="inline-flex gap-2 rounded-full bg-white/10 p-1.5 backdrop-blur-xl">
+        <div className="relative z-10 mx-auto w-full max-w-[680px] px-5 sm:px-6 vb-enter-fade-up">
+          {/* Mode tabs – centered with equal spacing */}
+          <div className="mb-8 flex justify-center">
+            <div className="inline-flex items-center gap-3">
               {modeOptions.map((option) => {
                 const isActive = activeTab === option.id;
                 const TabIcon = option.icon;
+                const isEventPro = option.id === SEARCH_MODE.EVENT_PRO;
+                
                 return (
                   <button
                     key={option.id}
                     type="button"
                     onClick={() => handleModeChange(option.id)}
-                    className={`vb-chip-hover flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-200 ${isActive ? 'shadow-lg' : 'hover:bg-white/10'}`}
+                    className="vb-chip vb-focus relative flex items-center gap-2 rounded-full px-6 py-3 text-[14px] font-semibold transition-all duration-300"
                     style={{
                       backgroundColor: isActive ? option.color : 'transparent',
-                      color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.8)'
+                      color: isActive ? '#FFFFFF' : '#FF5124',
+                      border: isActive ? 'none' : '1px solid #FF5124',
+                      boxShadow: isActive ? `0 8px 24px -4px ${option.color}40` : 'none'
                     }}
                   >
-                    <TabIcon className="h-4 w-4" />
-                    {option.label}
+                    {/* Sparkle effect for Event Pro when active */}
+                    {isEventPro && isActive && <TabSparkles />}
+                    <TabIcon className="h-4 w-4" strokeWidth={2} />
+                    <span>{option.label}</span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Search card – glassmorphism with depth */}
+          {/* Search card */}
           <div
-            className="vb-scale-in overflow-hidden rounded-3xl shadow-[0_25px_60px_-12px_rgba(0,0,0,0.5)] transition-all duration-300"
+            className="vb-enter-scale overflow-hidden rounded-[24px] transition-all duration-500"
             style={{
               backgroundColor: currentBrandColor,
-              boxShadow: `0 25px 60px -12px ${currentBrandColor}40, 0 10px 30px -5px rgba(0,0,0,0.3)`
+              boxShadow: `0 32px 64px -16px ${currentBrandColor}40`
             }}
           >
-            {/* Card inner content with padding */}
-            <div className="p-6 sm:p-8">
-              {/* Two-column layout */}
-              <div className="grid gap-6 md:grid-cols-2">
-                {/* Left: WHERE */}
-                <div>
-                  <label className="mb-3 block text-xs font-bold uppercase tracking-[0.2em] text-white/90">Where</label>
-                  <div className="[&_label]:hidden [&_input]:rounded-xl [&_input]:border-0 [&_input]:bg-white [&_input]:px-4 [&_input]:py-3.5 [&_input]:text-sm [&_input]:font-medium [&_input]:text-slate-800 [&_input]:shadow-sm [&_input]:placeholder:text-slate-400 [&>div>label>div]:rounded-xl [&>div>label>div]:border-0 [&>div>label>div]:bg-white [&>div>label>div]:shadow-sm">
-                    <LocationAutocomplete
-                      value={locationSelection}
-                      onChange={handleLocationSelect}
-                      onQueryChange={handleLocationQueryChange}
-                      label=""
-                      placeholder="City, region, or address"
-                      className="w-full"
-                    />
-                  </div>
+            <div className="p-8">
+              {/* WHERE section */}
+              <div className="mb-6">
+                <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.15em] text-white">Where</label>
+                <div className="[&_label]:hidden [&_input]:rounded-[12px] [&_input]:border-0 [&_input]:bg-white [&_input]:px-5 [&_input]:py-4 [&_input]:text-[15px] [&_input]:font-medium [&_input]:text-slate-800 [&_input]:placeholder:text-slate-500 [&>div>label>div]:rounded-[12px] [&>div>label>div]:border-0 [&>div>label>div]:bg-white">
+                  <LocationAutocomplete
+                    value={locationSelection}
+                    onChange={handleLocationSelect}
+                    onQueryChange={handleLocationQueryChange}
+                    label=""
+                    placeholder="City, region, or address"
+                    className="w-full"
+                  />
                 </div>
+              </div>
 
-                {/* Right: WHAT */}
-                <div>
-                  <label className="mb-3 block text-xs font-bold uppercase tracking-[0.2em] text-white/90">What are you looking for?</label>
-                  <div className="flex flex-wrap gap-2">
-                    {WHAT_OPTIONS.map((opt) => {
-                      const isSelected = opt.value === '' ? !filters.listingType : filters.listingType === opt.value;
-                      return (
-                        <button
-                          key={opt.value || 'all'}
-                          type="button"
-                          onClick={() => handleCategoryChange(opt.value)}
-                          className={`vb-chip-hover rounded-full px-4 py-2.5 text-xs font-bold transition-all duration-200 ${isSelected ? 'shadow-md' : ''}`}
-                          style={{
-                            backgroundColor: isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.15)',
-                            border: 'none',
-                            color: isSelected ? currentBrandColor : '#FFFFFF',
-                            backdropFilter: isSelected ? 'none' : 'blur(4px)'
-                          }}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+              {/* WHAT ARE YOU LOOKING FOR section */}
+              <div className="mb-6">
+                <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.15em] text-white">What are you looking for</label>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {WHAT_OPTIONS.map((opt) => {
+                    const isSelected = opt.value === '' ? !filters.listingType : filters.listingType === opt.value;
+                    return (
+                      <button
+                        key={opt.value || 'all'}
+                        type="button"
+                        onClick={() => handleCategoryChange(opt.value)}
+                        className="vb-chip vb-focus rounded-full px-5 py-3 text-[13px] font-semibold transition-all"
+                        style={{
+                          backgroundColor: isSelected ? '#FFFFFF' : 'transparent',
+                          color: isSelected ? currentBrandColor : '#FFFFFF',
+                          border: isSelected ? 'none' : '1px solid rgba(255,255,255,0.8)'
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Actions row */}
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-center">
                 <button
                   type="button"
                   onClick={handleSearch}
-                  className="vb-btn-hover inline-flex items-center justify-center gap-2.5 rounded-full bg-white px-8 py-4 text-sm font-bold shadow-lg"
-                  style={{ color: currentBrandColor }}
+                  className="vb-btn vb-focus inline-flex items-center justify-center gap-3 rounded-full bg-white px-10 py-4 text-[15px] font-bold text-slate-800 shadow-lg"
                 >
-                  <Search className="h-5 w-5" />
+                  <Search className="h-5 w-5" strokeWidth={2.5} />
                   Search
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowFilters((p) => !p)}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-white/20 px-5 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/30"
+                  className="vb-btn vb-focus inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-[13px] font-semibold text-slate-800"
                 >
-                  <SlidersHorizontal className="h-4 w-4" />
+                  <SlidersHorizontal className="h-4 w-4" strokeWidth={2} />
                   Filters
+                  {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </button>
               </div>
 
-              {/* Advanced filters panel */}
+              {/* MODE-SPECIFIC FILTERS */}
               {showFilters && (
-                <div className="mt-6 grid gap-4 rounded-2xl bg-white/15 p-5 backdrop-blur-sm sm:grid-cols-2 lg:grid-cols-3">
-                  <div>
-                    <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-white/80">Price range</label>
-                    <input type="text" placeholder="e.g. $50 – $200" className="w-full rounded-xl border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm placeholder:text-slate-400" />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-white/80">Dates</label>
-                    <button
-                      type="button"
-                      onClick={() => setShowCalendar((p) => !p)}
-                      className="flex w-full items-center justify-between rounded-xl bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm"
-                    >
-                      <span>{filters.startDate && filters.endDate ? `${filters.startDate} → ${filters.endDate}` : 'Select dates'}</span>
-                      <Calendar className="h-4 w-4 text-slate-400" />
-                    </button>
-                    {showCalendar && <SimpleDatePicker />}
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-white/80">Delivery</label>
-                    <select className="w-full rounded-xl border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm">
-                      <option value="">Any</option>
-                      <option value="delivery">Delivery included</option>
-                      <option value="pickup">Self pick-up</option>
-                    </select>
-                  </div>
+                <div className="rounded-[16px] bg-white/10 p-6 backdrop-blur-sm">
+                  {/* FOR RENT FILTERS */}
+                  {activeTab === SEARCH_MODE.RENT && (
+                    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                      {/* Price Range */}
+                      <div>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Price Range</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            placeholder="Min"
+                            value={rentFilters.priceMin}
+                            onChange={(e) => setRentFilters(p => ({ ...p, priceMin: e.target.value }))}
+                            className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800 placeholder:text-slate-400"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Max"
+                            value={rentFilters.priceMax}
+                            onChange={(e) => setRentFilters(p => ({ ...p, priceMax: e.target.value }))}
+                            className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800 placeholder:text-slate-400"
+                          />
+                        </div>
+                      </div>
+                      {/* Dates */}
+                      <div className="relative">
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Dates</label>
+                        <button
+                          type="button"
+                          onClick={() => setShowCalendar((p) => !p)}
+                          className="flex w-full items-center justify-between rounded-[10px] bg-white px-4 py-3 text-sm font-medium text-slate-800"
+                        >
+                          <span className="text-slate-500">{filters.startDate && filters.endDate ? `${filters.startDate} → ${filters.endDate}` : 'Select dates'}</span>
+                          <Calendar className="h-4 w-4 text-slate-400" />
+                        </button>
+                        {showCalendar && <SimpleDatePicker />}
+                      </div>
+                      {/* Delivery */}
+                      <div>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Delivery</label>
+                        <select
+                          value={rentFilters.delivery}
+                          onChange={(e) => setRentFilters(p => ({ ...p, delivery: e.target.value }))}
+                          className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800"
+                        >
+                          <option value="">Any</option>
+                          <option value="included">Delivery included</option>
+                          <option value="optional">Delivery optional</option>
+                          <option value="pickup">Pickup only</option>
+                        </select>
+                      </div>
+                      {/* Distance */}
+                      <div>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Distance (miles)</label>
+                        <input
+                          type="number"
+                          placeholder="Radius in miles"
+                          value={rentFilters.distance}
+                          onChange={(e) => setRentFilters(p => ({ ...p, distance: e.target.value }))}
+                          className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800 placeholder:text-slate-400"
+                        />
+                      </div>
+                      {/* Size/Length */}
+                      <div>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Size / Length</label>
+                        <select
+                          value={rentFilters.size}
+                          onChange={(e) => setRentFilters(p => ({ ...p, size: e.target.value }))}
+                          className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800"
+                        >
+                          <option value="">Any size</option>
+                          <option value="small">Small (under 16ft)</option>
+                          <option value="medium">Medium (16-24ft)</option>
+                          <option value="large">Large (24ft+)</option>
+                        </select>
+                      </div>
+                      {/* Add-ons */}
+                      <div className="sm:col-span-2 lg:col-span-1">
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Add-ons</label>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            { key: 'branding', label: 'Branding kit' },
+                            { key: 'generator', label: 'Generator' },
+                            { key: 'waterTank', label: 'Water tank' },
+                            { key: 'hoodSystem', label: 'Hood system' },
+                            { key: 'staff', label: 'Staff included' }
+                          ].map(({ key, label }) => (
+                            <label key={key} className="flex cursor-pointer items-center gap-2 rounded-full bg-white px-3 py-2 text-xs font-medium text-slate-700">
+                              <input
+                                type="checkbox"
+                                checked={rentFilters.addOns[key]}
+                                onChange={(e) => setRentFilters(p => ({ ...p, addOns: { ...p.addOns, [key]: e.target.checked } }))}
+                                className="h-4 w-4 rounded border-slate-300 text-[#FF5124] focus:ring-[#FF5124]"
+                              />
+                              {label}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* FOR SALE FILTERS */}
+                  {activeTab === SEARCH_MODE.BUY && (
+                    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                      {/* Price Range */}
+                      <div>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Price Range</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            placeholder="Min"
+                            value={saleFilters.priceMin}
+                            onChange={(e) => setSaleFilters(p => ({ ...p, priceMin: e.target.value }))}
+                            className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800 placeholder:text-slate-400"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Max"
+                            value={saleFilters.priceMax}
+                            onChange={(e) => setSaleFilters(p => ({ ...p, priceMax: e.target.value }))}
+                            className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800 placeholder:text-slate-400"
+                          />
+                        </div>
+                      </div>
+                      {/* Condition */}
+                      <div>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Condition</label>
+                        <select
+                          value={saleFilters.condition}
+                          onChange={(e) => setSaleFilters(p => ({ ...p, condition: e.target.value }))}
+                          className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800"
+                        >
+                          <option value="">Any</option>
+                          <option value="new">New</option>
+                          <option value="like-new">Like new</option>
+                          <option value="used">Used</option>
+                        </select>
+                      </div>
+                      {/* Year */}
+                      <div>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Year</label>
+                        <select
+                          value={saleFilters.year}
+                          onChange={(e) => setSaleFilters(p => ({ ...p, year: e.target.value }))}
+                          className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800"
+                        >
+                          <option value="">Any year</option>
+                          {Array.from({ length: 15 }, (_, i) => 2024 - i).map(year => (
+                            <option key={year} value={year}>{year}</option>
+                          ))}
+                        </select>
+                      </div>
+                      {/* Mileage */}
+                      <div>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Mileage</label>
+                        <input
+                          type="number"
+                          placeholder="Max mileage"
+                          value={saleFilters.mileage}
+                          onChange={(e) => setSaleFilters(p => ({ ...p, mileage: e.target.value }))}
+                          className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800 placeholder:text-slate-400"
+                        />
+                      </div>
+                      {/* Equipment Package */}
+                      <div>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Equipment Package</label>
+                        <select
+                          value={saleFilters.equipment}
+                          onChange={(e) => setSaleFilters(p => ({ ...p, equipment: e.target.value }))}
+                          className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800"
+                        >
+                          <option value="">Any</option>
+                          <option value="basic">Basic</option>
+                          <option value="full-kitchen">Full kitchen</option>
+                          <option value="coffee">Coffee</option>
+                          <option value="dessert">Dessert</option>
+                          <option value="bar">Bar</option>
+                        </select>
+                      </div>
+                      {/* Delivery Option */}
+                      <div>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Delivery Option</label>
+                        <select
+                          value={saleFilters.deliveryOption}
+                          onChange={(e) => setSaleFilters(p => ({ ...p, deliveryOption: e.target.value }))}
+                          className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800"
+                        >
+                          <option value="">Any</option>
+                          <option value="included">Delivery included</option>
+                          <option value="fee">Delivery available for fee</option>
+                          <option value="pickup">Buyer pickup</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* EVENT PRO FILTERS */}
+                  {activeTab === SEARCH_MODE.EVENT_PRO && (
+                    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                      {/* Budget */}
+                      <div>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Budget</label>
+                        <select
+                          value={eventProFilters.budget}
+                          onChange={(e) => setEventProFilters(p => ({ ...p, budget: e.target.value }))}
+                          className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800"
+                        >
+                          <option value="">Any budget</option>
+                          <option value="under-1000">Under $1,000</option>
+                          <option value="1000-5000">$1,000 - $5,000</option>
+                          <option value="over-5000">Over $5,000</option>
+                        </select>
+                      </div>
+                      {/* Event Date */}
+                      <div className="relative">
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Event Date</label>
+                        <button
+                          type="button"
+                          onClick={() => setShowCalendar((p) => !p)}
+                          className="flex w-full items-center justify-between rounded-[10px] bg-white px-4 py-3 text-sm font-medium text-slate-800"
+                        >
+                          <span className="text-slate-500">{eventProFilters.eventDate || 'Select date'}</span>
+                          <Calendar className="h-4 w-4 text-slate-400" />
+                        </button>
+                        {showCalendar && <SimpleDatePicker />}
+                      </div>
+                      {/* Service Type */}
+                      <div>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Service Type</label>
+                        <select
+                          value={eventProFilters.serviceType}
+                          onChange={(e) => setEventProFilters(p => ({ ...p, serviceType: e.target.value }))}
+                          className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800"
+                        >
+                          <option value="">Any service</option>
+                          <option value="food-truck">Food truck catering</option>
+                          <option value="bartender">Bartender</option>
+                          <option value="dj">DJ</option>
+                          <option value="photographer">Photographer</option>
+                          <option value="entertainer">Entertainer</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      {/* Headcount */}
+                      <div>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Headcount</label>
+                        <select
+                          value={eventProFilters.headcount}
+                          onChange={(e) => setEventProFilters(p => ({ ...p, headcount: e.target.value }))}
+                          className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800"
+                        >
+                          <option value="">Any size</option>
+                          <option value="under-50">Under 50</option>
+                          <option value="50-100">50 - 100</option>
+                          <option value="over-100">Over 100</option>
+                        </select>
+                      </div>
+                      {/* Distance */}
+                      <div>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Distance (miles)</label>
+                        <input
+                          type="number"
+                          placeholder="Service radius"
+                          value={eventProFilters.distance}
+                          onChange={(e) => setEventProFilters(p => ({ ...p, distance: e.target.value }))}
+                          className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800 placeholder:text-slate-400"
+                        />
+                      </div>
+                      {/* Availability */}
+                      <div>
+                        <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-white">Availability</label>
+                        <select
+                          value={eventProFilters.availability}
+                          onChange={(e) => setEventProFilters(p => ({ ...p, availability: e.target.value }))}
+                          className="w-full rounded-[10px] border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800"
+                        >
+                          <option value="">Any</option>
+                          <option value="verified">Verified available</option>
+                          <option value="flexible">Flexible</option>
+                          <option value="weekends">Weekends only</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Trust badges */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-[12px] font-medium text-white/40">
+            <span className="flex items-center gap-1.5">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              Verified hosts
+            </span>
+            <span className="flex items-center gap-1.5">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Instant booking
+            </span>
+            <span className="flex items-center gap-1.5">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+              Secure payments
+            </span>
           </div>
         </div>
       </section>
@@ -1020,26 +1440,26 @@ function HomePage() {
         </div>
       )}
 
-      {/* Listings Grid – modern Airbnb-style */}
-      <section className="mx-auto max-w-[1400px] px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
+      {/* Listings Grid – Premium card layout */}
+      <section className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 lg:px-12 lg:py-16">
         {/* Active filters */}
         {activeFilterChips.length > 0 && (
-          <div className="mb-6 flex flex-wrap items-center gap-3">
+          <div className="mb-8 flex flex-wrap items-center gap-2">
             {activeFilterChips.map((chip) => (
               <button
                 type="button"
                 key={chip.key}
                 onClick={chip.onRemove}
-                className="vb-chip-hover inline-flex items-center gap-2 rounded-full border border-[#FF5124]/30 bg-[#FF5124]/5 px-4 py-2 text-sm font-semibold text-[#FF5124] transition-all hover:bg-[#FF5124]/10"
+                className="vb-chip vb-focus inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300"
               >
                 {chip.label}
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3.5 w-3.5 text-slate-400" />
               </button>
             ))}
             <button
               type="button"
               onClick={clearAllFilters}
-              className="text-sm font-semibold text-slate-500 underline underline-offset-2 transition-colors hover:text-slate-700"
+              className="text-[13px] font-medium text-slate-500 underline underline-offset-2 transition-colors hover:text-slate-700"
             >
               Clear all
             </button>
@@ -1047,87 +1467,89 @@ function HomePage() {
         )}
 
         {/* Section header */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <div className="mb-10">
+          <h2 className="text-[28px] font-bold tracking-[-0.02em] text-slate-900 sm:text-[32px]">
             {filteredListings.length} {listingResultsLabel} {listingsAreaLabel}
           </h2>
-          <p className="mt-1 text-base text-slate-500">
+          <p className="mt-2 text-[15px] text-slate-500">
             {appliedCategoryLabel}
           </p>
         </div>
 
         {/* Cards grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredListings.map((listing, index) => (
             <div
               key={listing.id}
-              className="vb-card-hover group cursor-pointer rounded-2xl bg-white shadow-sm"
-              style={{ animationDelay: `${index * 50}ms` }}
+              className={`vb-card vb-focus group cursor-pointer overflow-hidden rounded-[20px] bg-white vb-shadow-md`}
+              style={{ animationDelay: `${index * 40}ms` }}
               onClick={() => handleOpenQuickView(listing)}
             >
               {/* Image container */}
-              <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl">
+              <div className="relative aspect-[4/3] overflow-hidden">
                 <img
                   src={listing.image}
                   alt={listing.title}
-                  className="vb-image-zoom h-full w-full object-cover"
+                  className="vb-img-zoom h-full w-full object-cover"
                 />
-                {/* Gradient overlay on hover */}
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                {/* Gradient overlay */}
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 {/* Badges */}
                 {listing.deliveryAvailable && (
-                  <div className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-slate-800 shadow-md backdrop-blur-sm">
+                  <div className="absolute left-3 top-3 rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-800 shadow-md">
                     Delivery
                   </div>
                 )}
                 {listing.isVerified && (
-                  <div className="absolute right-3 top-3 rounded-full bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white shadow-md">
-                    ✓ Verified
+                  <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow-md">
+                    <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    Verified
                   </div>
                 )}
                 {/* Wishlist button */}
                 <button
                   type="button"
-                  className="absolute right-3 bottom-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-600 opacity-0 shadow-md backdrop-blur-sm transition-all group-hover:opacity-100 hover:scale-110 hover:bg-white hover:text-[#FF5124]"
+                  className="vb-btn absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-500 opacity-0 shadow-lg transition-all group-hover:opacity-100 hover:text-[#FF5124]"
                   onClick={(e) => { e.stopPropagation(); }}
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
                 </button>
               </div>
 
               {/* Card content */}
-              <div className="p-4">
-                {/* Title + Rating row */}
-                <div className="mb-2 flex items-start justify-between gap-2">
-                  <h3 className="line-clamp-1 text-base font-semibold text-slate-900">
+              <div className="p-5">
+                {/* Title + Rating */}
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <h3 className="line-clamp-1 text-[15px] font-semibold leading-snug text-slate-900">
                     {listing.title}
                   </h3>
-                  <div className="flex shrink-0 items-center gap-1 text-sm">
-                    <Star className="h-4 w-4 fill-[#FF5124] text-[#FF5124]" />
-                    <span className="font-semibold text-slate-900">{listing.rating}</span>
-                    <span className="text-slate-400">({listing.reviews})</span>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    <span className="text-[14px] font-semibold text-slate-900">{listing.rating}</span>
                   </div>
                 </div>
 
                 {/* Location */}
-                <p className="mb-1 flex items-center gap-1.5 text-sm text-slate-500">
-                  <MapPin className="h-3.5 w-3.5" />
+                <p className="mb-1 flex items-center gap-1.5 text-[13px] text-slate-500">
+                  <MapPin className="h-3.5 w-3.5" strokeWidth={1.5} />
                   {listing.location}
                 </p>
 
                 {/* Host */}
-                <p className="mb-3 text-sm text-slate-500">
-                  Hosted by {listing.host}
+                <p className="mb-4 text-[13px] text-slate-500">
+                  {listing.host}
                 </p>
 
                 {/* Tags */}
-                <div className="mb-3 flex flex-wrap gap-1.5">
+                <div className="mb-4 flex flex-wrap gap-1.5">
                   {(listing.highlights || listing.tags || []).slice(0, 3).map((feature, idx) => (
                     <span
                       key={idx}
-                      className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600"
+                      className="rounded-md bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600"
                     >
                       {feature}
                     </span>
@@ -1135,12 +1557,12 @@ function HomePage() {
                 </div>
 
                 {/* Price */}
-                <div className="flex items-baseline gap-1 border-t border-slate-100 pt-3">
-                  <span className="text-lg font-bold text-slate-900">
+                <div className="flex items-baseline gap-1.5 border-t border-slate-100 pt-4">
+                  <span className="text-[18px] font-bold tracking-tight text-slate-900">
                     ${listing.price?.toLocaleString()}
                   </span>
                   {listing.priceUnit && (
-                    <span className="text-sm text-slate-500">/ {listing.priceUnit}</span>
+                    <span className="text-[13px] text-slate-500">/ {listing.priceUnit}</span>
                   )}
                 </div>
               </div>
@@ -1150,20 +1572,20 @@ function HomePage() {
 
         {/* Empty state */}
         {filteredListings.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-              <Store className="h-8 w-8 text-slate-400" />
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-slate-100">
+              <Store className="h-10 w-10 text-slate-400" strokeWidth={1.5} />
             </div>
-            <h3 className="mb-2 text-lg font-semibold text-slate-900">No results found</h3>
-            <p className="max-w-md text-slate-500">Try adjusting your filters or search criteria to find what you're looking for.</p>
+            <h3 className="mb-2 text-[18px] font-semibold text-slate-900">No results found</h3>
+            <p className="max-w-sm text-[15px] text-slate-500">Try adjusting your filters or search criteria to discover more options.</p>
           </div>
         )}
       </section>
 
-      {/* Quick View Overlay – modern modal */}
+      {/* Quick View Overlay – Premium modal */}
       {quickViewListing && (
-        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/60 px-4 py-8 backdrop-blur-sm">
-          <div className="vb-scale-in relative w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-[0_25px_80px_-12px_rgba(0,0,0,0.4)]" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 px-5 py-10 backdrop-blur-md vb-enter-fade">
+          <div className="vb-enter-scale relative w-full max-w-3xl overflow-hidden rounded-[28px] bg-white shadow-[0_32px_80px_-16px_rgba(0,0,0,0.35)]" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
             <button
               type="button"
               onClick={handleCloseQuickView}
