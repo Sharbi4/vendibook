@@ -1879,25 +1879,6 @@ function HomePage() {
               </div>
             ))}
           </div>
-          </div>
-
-          {/* Map column */}
-          <aside className="sticky top-[96px] hidden h-[520px] overflow-hidden rounded-3xl border border-slate-200/80 bg-slate-50/80 shadow-[0_18px_45px_rgba(15,23,42,0.08)] lg:block">
-            <div className="flex h-full flex-col">
-              <div className="border-b border-slate-200 bg-white/90 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Map preview</p>
-                <p className="text-sm text-slate-700">
-                  Centered {appliedLocationLabel ? `near ${appliedLocationLabel}` : 'near you'}
-                </p>
-              </div>
-              <div className="relative flex-1 bg-slate-200">
-                {/* Mapbox map can be wired here using lat/lng from locationSelection */}
-                <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-xs text-slate-600">
-                  Interactive map coming next: well center pins near your selected area using Mapbox.
-                </div>
-              </div>
-            </div>
-          </aside>
         </div>
       </section>
 
