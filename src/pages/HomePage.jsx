@@ -45,6 +45,69 @@ import {
 const HERO_VIDEO_URL = '/videos/hero-mobile-vendors.mp4';
 const CATEGORY_COLOR_PALETTE = ['#FF5124', '#4CAF50', '#343434', '#F8F8F8'];
 
+// Inject global keyframe animations for modern UI
+const injectStyles = () => {
+  if (typeof document !== 'undefined' && !document.getElementById('vendibook-animations')) {
+    const style = document.createElement('style');
+    style.id = 'vendibook-animations';
+    style.textContent = `
+      @keyframes vendibookFadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes vendibookScaleIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      @keyframes vendibookPulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.02); }
+      }
+      @keyframes vendibookShimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      .vb-card-hover {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .vb-card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.08);
+      }
+      .vb-btn-hover {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .vb-btn-hover:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(255,81,36,0.35);
+      }
+      .vb-btn-hover:active {
+        transform: translateY(0);
+      }
+      .vb-chip-hover {
+        transition: all 0.15s ease-out;
+      }
+      .vb-chip-hover:hover {
+        transform: scale(1.05);
+      }
+      .vb-image-zoom {
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .vb-image-zoom:hover {
+        transform: scale(1.08);
+      }
+      .vb-fade-in {
+        animation: vendibookFadeInUp 0.5s ease-out forwards;
+      }
+      .vb-scale-in {
+        animation: vendibookScaleIn 0.3s ease-out forwards;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+};
+injectStyles();
+
 // Sparkle Particle Component for Event Pro Mode
 const SparkleParticle = ({ delay, left, size }) => (
   <div
@@ -585,20 +648,22 @@ function HomePage() {
   const currentBrandColor = TAB_COLORS[activeTab]?.bg || '#FF5124';
 
   return (
-    <AppLayout fullWidth contentClassName="bg-white">
-      {/* Hero Section – search in upper third */}
-      <section className="relative flex min-h-[420px] items-start justify-center overflow-hidden bg-black pt-6 sm:pt-8">
-        {/* Video background */}
+    <AppLayout fullWidth contentClassName="bg-[#F7F7F7]">
+      {/* Hero Section – modern Airbnb-style */}
+      <section className="relative flex min-h-[480px] items-start justify-center overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-8 sm:pt-12">
+        {/* Video background with overlay */}
         <div className="absolute inset-0">
           <video
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover opacity-60"
             src={HERO_VIDEO_URL}
             autoPlay
             muted
             loop
             playsInline
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
+          {/* Subtle grain texture overlay */}
+          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")' }} />
         </div>
 
         {/* Sparkle animation – behind search card */}
@@ -615,132 +680,138 @@ function HomePage() {
           </div>
         )}
 
-        {/* Search module container – unified centerline */}
-        <div className="relative z-10 mx-auto w-full max-w-2xl px-4 sm:px-6">
-          {/* Mode tabs – centered, equal spacing, above card */}
-          <div className="flex justify-center gap-3 pb-0">
-            {modeOptions.map((option) => {
-              const isActive = activeTab === option.id;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => handleModeChange(option.id)}
-                  className="rounded-lg px-5 py-2.5 text-sm font-semibold transition-all"
-                  style={{
-                    backgroundColor: isActive ? option.color : 'transparent',
-                    border: isActive ? 'none' : '1px solid #FF5124',
-                    color: isActive ? '#FFFFFF' : '#FF5124',
-                    minWidth: '120px'
-                  }}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
+        {/* Search module container */}
+        <div className="relative z-10 mx-auto w-full max-w-2xl px-4 sm:px-6 vb-fade-in">
+          {/* Mode tabs – pill-style with glass effect */}
+          <div className="mb-4 flex justify-center">
+            <div className="inline-flex gap-2 rounded-full bg-white/10 p-1.5 backdrop-blur-xl">
+              {modeOptions.map((option) => {
+                const isActive = activeTab === option.id;
+                const TabIcon = option.icon;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => handleModeChange(option.id)}
+                    className={`vb-chip-hover flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-200 ${isActive ? 'shadow-lg' : 'hover:bg-white/10'}`}
+                    style={{
+                      backgroundColor: isActive ? option.color : 'transparent',
+                      color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.8)'
+                    }}
+                  >
+                    <TabIcon className="h-4 w-4" />
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Search card – directly under tabs, no gap */}
+          {/* Search card – glassmorphism with depth */}
           <div
-            className="mt-0 rounded-2xl p-6 shadow-2xl transition-colors duration-300"
+            className="vb-scale-in overflow-hidden rounded-3xl shadow-[0_25px_60px_-12px_rgba(0,0,0,0.5)] transition-all duration-300"
             style={{
-              backgroundColor: currentBrandColor
+              backgroundColor: currentBrandColor,
+              boxShadow: `0 25px 60px -12px ${currentBrandColor}40, 0 10px 30px -5px rgba(0,0,0,0.3)`
             }}
           >
-            {/* Two-column layout: WHERE left, WHAT right */}
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Left: WHERE */}
-              <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-white">Where</label>
-                <div className="[&_label]:hidden [&_input]:rounded-lg [&_input]:border-0 [&_input]:bg-white [&_input]:px-4 [&_input]:py-3 [&_input]:text-sm [&_input]:text-slate-800 [&_input]:placeholder:text-slate-500 [&>div>label>div]:rounded-lg [&>div>label>div]:border-0 [&>div>label>div]:bg-white">
-                  <LocationAutocomplete
-                    value={locationSelection}
-                    onChange={handleLocationSelect}
-                    onQueryChange={handleLocationQueryChange}
-                    label=""
-                    placeholder="City, region, or address"
-                    className="w-full"
-                  />
+            {/* Card inner content with padding */}
+            <div className="p-6 sm:p-8">
+              {/* Two-column layout */}
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Left: WHERE */}
+                <div>
+                  <label className="mb-3 block text-xs font-bold uppercase tracking-[0.2em] text-white/90">Where</label>
+                  <div className="[&_label]:hidden [&_input]:rounded-xl [&_input]:border-0 [&_input]:bg-white [&_input]:px-4 [&_input]:py-3.5 [&_input]:text-sm [&_input]:font-medium [&_input]:text-slate-800 [&_input]:shadow-sm [&_input]:placeholder:text-slate-400 [&>div>label>div]:rounded-xl [&>div>label>div]:border-0 [&>div>label>div]:bg-white [&>div>label>div]:shadow-sm">
+                    <LocationAutocomplete
+                      value={locationSelection}
+                      onChange={handleLocationSelect}
+                      onQueryChange={handleLocationQueryChange}
+                      label=""
+                      placeholder="City, region, or address"
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+
+                {/* Right: WHAT */}
+                <div>
+                  <label className="mb-3 block text-xs font-bold uppercase tracking-[0.2em] text-white/90">What are you looking for?</label>
+                  <div className="flex flex-wrap gap-2">
+                    {WHAT_OPTIONS.map((opt) => {
+                      const isSelected = opt.value === '' ? !filters.listingType : filters.listingType === opt.value;
+                      return (
+                        <button
+                          key={opt.value || 'all'}
+                          type="button"
+                          onClick={() => handleCategoryChange(opt.value)}
+                          className={`vb-chip-hover rounded-full px-4 py-2.5 text-xs font-bold transition-all duration-200 ${isSelected ? 'shadow-md' : ''}`}
+                          style={{
+                            backgroundColor: isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.15)',
+                            border: 'none',
+                            color: isSelected ? currentBrandColor : '#FFFFFF',
+                            backdropFilter: isSelected ? 'none' : 'blur(4px)'
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
-              {/* Right: WHAT ARE YOU LOOKING FOR + 4 chips */}
-              <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-white">What are you looking for?</label>
-                <div className="flex flex-wrap gap-2">
-                  {WHAT_OPTIONS.map((opt) => {
-                    const isSelected = opt.value === '' ? !filters.listingType : filters.listingType === opt.value;
-                    return (
-                      <button
-                        key={opt.value || 'all'}
-                        type="button"
-                        onClick={() => handleCategoryChange(opt.value)}
-                        className="rounded-full px-4 py-2 text-xs font-semibold transition-all"
-                        style={{
-                          backgroundColor: isSelected ? '#FFFFFF' : 'transparent',
-                          border: isSelected ? 'none' : '1px solid #FFFFFF',
-                          color: isSelected ? currentBrandColor : '#FFFFFF'
-                        }}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
+              {/* Actions row */}
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  onClick={handleSearch}
+                  className="vb-btn-hover inline-flex items-center justify-center gap-2.5 rounded-full bg-white px-8 py-4 text-sm font-bold shadow-lg"
+                  style={{ color: currentBrandColor }}
+                >
+                  <Search className="h-5 w-5" />
+                  Search
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowFilters((p) => !p)}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-white/20 px-5 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/30"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filters
+                </button>
               </div>
+
+              {/* Advanced filters panel */}
+              {showFilters && (
+                <div className="mt-6 grid gap-4 rounded-2xl bg-white/15 p-5 backdrop-blur-sm sm:grid-cols-2 lg:grid-cols-3">
+                  <div>
+                    <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-white/80">Price range</label>
+                    <input type="text" placeholder="e.g. $50 – $200" className="w-full rounded-xl border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm placeholder:text-slate-400" />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-white/80">Dates</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowCalendar((p) => !p)}
+                      className="flex w-full items-center justify-between rounded-xl bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm"
+                    >
+                      <span>{filters.startDate && filters.endDate ? `${filters.startDate} → ${filters.endDate}` : 'Select dates'}</span>
+                      <Calendar className="h-4 w-4 text-slate-400" />
+                    </button>
+                    {showCalendar && <SimpleDatePicker />}
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-[11px] font-bold uppercase tracking-widest text-white/80">Delivery</label>
+                    <select className="w-full rounded-xl border-0 bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm">
+                      <option value="">Any</option>
+                      <option value="delivery">Delivery included</option>
+                      <option value="pickup">Self pick-up</option>
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
-
-            {/* Actions row: Search + Filters */}
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                type="button"
-                onClick={handleSearch}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold shadow-lg transition hover:shadow-xl"
-                style={{ color: currentBrandColor }}
-              >
-                <Search className="h-4 w-4" />
-                Search
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowFilters((p) => !p)}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold transition hover:bg-white/90"
-                style={{ color: currentBrandColor }}
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                Filters
-              </button>
-            </div>
-
-            {/* Advanced filters panel */}
-            {showFilters && (
-              <div className="mt-4 grid gap-4 rounded-xl bg-white/20 p-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div>
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-white">Price range</label>
-                  <input type="text" placeholder="e.g. $50 – $200" className="w-full rounded-lg bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-500" />
-                </div>
-                <div>
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-white">Dates</label>
-                  <button
-                    type="button"
-                    onClick={() => setShowCalendar((p) => !p)}
-                    className="flex w-full items-center justify-between rounded-lg bg-white px-3 py-2 text-sm text-slate-800"
-                  >
-                    <span>{filters.startDate && filters.endDate ? `${filters.startDate} → ${filters.endDate}` : 'Select dates'}</span>
-                    <Calendar className="h-4 w-4 text-slate-500" />
-                  </button>
-                  {showCalendar && <SimpleDatePicker />}
-                </div>
-                <div>
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-white">Delivery</label>
-                  <select className="w-full rounded-lg bg-white px-3 py-2 text-sm text-slate-800">
-                    <option value="">Any</option>
-                    <option value="delivery">Delivery included</option>
-                    <option value="pickup">Self pick-up</option>
-                  </select>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </section>
@@ -949,175 +1020,150 @@ function HomePage() {
         </div>
       )}
 
-      {/* Listings Grid – directly under search, no icon bar */}
-      <section style={{ maxWidth: '1400px', margin: '0 auto', padding: '32px 24px 80px' }}>
+      {/* Listings Grid – modern Airbnb-style */}
+      <section className="mx-auto max-w-[1400px] px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
+        {/* Active filters */}
         {activeFilterChips.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', marginBottom: '24px' }}>
+          <div className="mb-6 flex flex-wrap items-center gap-3">
             {activeFilterChips.map((chip) => (
               <button
                 type="button"
                 key={chip.key}
                 onClick={chip.onRemove}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 14px',
-                  borderRadius: '999px',
-                  border: '1px solid #FF5124',
-                  background: 'rgba(255, 81, 36, 0.05)',
-                  color: '#FF5124',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
+                className="vb-chip-hover inline-flex items-center gap-2 rounded-full border border-[#FF5124]/30 bg-[#FF5124]/5 px-4 py-2 text-sm font-semibold text-[#FF5124] transition-all hover:bg-[#FF5124]/10"
               >
                 {chip.label}
-                <X style={{ width: '14px', height: '14px' }} />
+                <X className="h-3.5 w-3.5" />
               </button>
             ))}
             <button
               type="button"
               onClick={clearAllFilters}
-              style={{
-                padding: '6px 12px',
-                border: 'none',
-                background: 'transparent',
-                color: 'rgba(52, 52, 52, 0.65)',
-                fontSize: '13px',
-                fontWeight: 600,
-                textDecoration: 'underline',
-                cursor: 'pointer'
-              }}
+              className="text-sm font-semibold text-slate-500 underline underline-offset-2 transition-colors hover:text-slate-700"
             >
               Clear all
             </button>
           </div>
         )}
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ fontSize: '26px', fontWeight: '600', color: '#343434', marginBottom: '8px' }}>
+
+        {/* Section header */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             {filteredListings.length} {listingResultsLabel} {listingsAreaLabel}
           </h2>
-          <p style={{ fontSize: '15px', color: 'rgba(52, 52, 52, 0.65)' }}>
+          <p className="mt-1 text-base text-slate-500">
             {appliedCategoryLabel}
           </p>
         </div>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-          gap: '40px 24px'
-        }}>
-          {filteredListings.map((listing) => (
+        {/* Cards grid */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filteredListings.map((listing, index) => (
             <div
               key={listing.id}
-              style={{ cursor: 'pointer' }}
+              className="vb-card-hover group cursor-pointer rounded-2xl bg-white shadow-sm"
+              style={{ animationDelay: `${index * 50}ms` }}
               onClick={() => handleOpenQuickView(listing)}
             >
-              <div style={{
-                position: 'relative',
-                borderRadius: '12px',
-                overflow: 'hidden',
-                marginBottom: '12px',
-                aspectRatio: '20/19'
-              }}>
+              {/* Image container */}
+              <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl">
                 <img
                   src={listing.image}
                   alt={listing.title}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    transition: 'transform 0.3s'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                  onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  className="vb-image-zoom h-full w-full object-cover"
                 />
+                {/* Gradient overlay on hover */}
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                {/* Badges */}
                 {listing.deliveryAvailable && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '12px',
-                    right: '12px',
-                    background: 'rgba(0,0,0,0.7)',
-                    color: 'white',
-                    padding: '6px 12px',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: '600'
-                  }}>
-                    Delivery Available
+                  <div className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-slate-800 shadow-md backdrop-blur-sm">
+                    Delivery
                   </div>
                 )}
+                {listing.isVerified && (
+                  <div className="absolute right-3 top-3 rounded-full bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white shadow-md">
+                    ✓ Verified
+                  </div>
+                )}
+                {/* Wishlist button */}
+                <button
+                  type="button"
+                  className="absolute right-3 bottom-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-600 opacity-0 shadow-md backdrop-blur-sm transition-all group-hover:opacity-100 hover:scale-110 hover:bg-white hover:text-[#FF5124]"
+                  onClick={(e) => { e.stopPropagation(); }}
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                </button>
               </div>
 
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '4px' }}>
-                  <h3 style={{
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    color: '#343434',
-                    lineHeight: '1.3',
-                    flex: 1
-                  }}>
+              {/* Card content */}
+              <div className="p-4">
+                {/* Title + Rating row */}
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <h3 className="line-clamp-1 text-base font-semibold text-slate-900">
                     {listing.title}
                   </h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px' }}>
-                    <span style={{ fontSize: '14px' }}>★</span>
-                    <span style={{ fontSize: '14px', fontWeight: '600' }}>{listing.rating}</span>
-                    <span style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)' }}>({listing.reviews})</span>
+                  <div className="flex shrink-0 items-center gap-1 text-sm">
+                    <Star className="h-4 w-4 fill-[#FF5124] text-[#FF5124]" />
+                    <span className="font-semibold text-slate-900">{listing.rating}</span>
+                    <span className="text-slate-400">({listing.reviews})</span>
                   </div>
                 </div>
 
-                <p style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '4px' }}>
+                {/* Location */}
+                <p className="mb-1 flex items-center gap-1.5 text-sm text-slate-500">
+                  <MapPin className="h-3.5 w-3.5" />
                   {listing.location}
                 </p>
-                <p style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '8px' }}>
-                  {listing.host}
+
+                {/* Host */}
+                <p className="mb-3 text-sm text-slate-500">
+                  Hosted by {listing.host}
                 </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+
+                {/* Tags */}
+                <div className="mb-3 flex flex-wrap gap-1.5">
                   {(listing.highlights || listing.tags || []).slice(0, 3).map((feature, idx) => (
                     <span
                       key={idx}
-                      style={{
-                        fontSize: '11px',
-                        color: 'rgba(52, 52, 52, 0.65)',
-                        padding: '3px 8px',
-                        background: '#F8F8F8',
-                        borderRadius: '4px',
-                        fontWeight: '500'
-                      }}
+                      className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600"
                     >
                       {feature}
                     </span>
                   ))}
                 </div>
 
-                <p style={{ fontSize: '15px', color: '#343434', marginTop: '8px' }}>
-                  <span style={{ fontWeight: '600' }}>
+                {/* Price */}
+                <div className="flex items-baseline gap-1 border-t border-slate-100 pt-3">
+                  <span className="text-lg font-bold text-slate-900">
                     ${listing.price?.toLocaleString()}
                   </span>
-                  <span style={{ fontWeight: '400', color: 'rgba(52, 52, 52, 0.65)' }}>
-                    {listing.priceUnit ? ` / ${listing.priceUnit}` : ''}
-                  </span>
-                </p>
+                  {listing.priceUnit && (
+                    <span className="text-sm text-slate-500">/ {listing.priceUnit}</span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
 
+        {/* Empty state */}
         {filteredListings.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'rgba(52, 52, 52, 0.65)' }}>
-            <Store style={{ width: '48px', height: '48px', margin: '0 auto 16px', opacity: 0.5 }} />
-            <p style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>No results found</p>
-            <p style={{ fontSize: '15px' }}>Try adjusting your filters or search criteria</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+              <Store className="h-8 w-8 text-slate-400" />
+            </div>
+            <h3 className="mb-2 text-lg font-semibold text-slate-900">No results found</h3>
+            <p className="max-w-md text-slate-500">Try adjusting your filters or search criteria to find what you're looking for.</p>
           </div>
         )}
       </section>
 
-      {/* Quick View Overlay */}
+      {/* Quick View Overlay – modern modal */}
       {quickViewListing && (
-        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 px-4 py-8">
-          <div className="relative w-full max-w-3xl rounded-3xl bg-white shadow-2xl">
+        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/60 px-4 py-8 backdrop-blur-sm">
+          <div className="vb-scale-in relative w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-[0_25px_80px_-12px_rgba(0,0,0,0.4)]" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
             <button
               type="button"
               onClick={handleCloseQuickView}
