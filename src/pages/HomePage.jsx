@@ -2275,68 +2275,129 @@ function HomePage() {
         </div>
       )}
 
-      {/* How Vendibook Works Section */}
-      <section style={{ background: '#F8F8F8', padding: '80px 40px' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '36px', fontWeight: '700', textAlign: 'center', marginBottom: '16px', color: '#343434' }}>
-            How Vendibook Works
-          </h2>
-          <p style={{ fontSize: '18px', textAlign: 'center', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '60px' }}>
-            Start your mobile business in three simple steps
-          </p>
+      {/* How Vendibook Works Section — YC-Quality Redesign */}
+      <section className="relative overflow-hidden bg-white py-20 sm:py-28">
+        {/* Subtle background accent */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-slate-50/50 via-white to-white" />
+        
+        <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
+          {/* Header */}
+          <div className="mx-auto mb-16 max-w-2xl text-center">
+            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-[#FF5124]">
+              The Marketplace for Mobile Food Entrepreneurs
+            </p>
+            <h2 className="mb-5 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-[42px]">
+              From Idea to Open for Business
+            </h2>
+            <p className="text-lg text-slate-600">
+              Vendibook is the fastest way to find verified food trucks, trailers, and commercial kitchens—then book them securely and start serving.
+            </p>
+          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '40px' }}>
-            {[
-              {
-                step: '1',
-                icon: '🔍',
-                title: 'Browse verified vehicles and kitchens',
-                description: 'Search our marketplace of food trucks, trailers, ghost kitchens, and event pros. All equipment is inspected and hosts are verified.'
-              },
-              {
-                step: '2',
-                icon: '✅',
-                title: 'Book secure rentals or event pros',
-                description: 'Select your dates, choose your location, and book instantly. Flexible payment options and insurance included for peace of mind.'
-              },
-              {
-                step: '3',
-                icon: '🚀',
-                title: 'Launch or grow your mobile business',
-                description: 'Get your equipment delivered or pick it up. Start serving customers and growing your business with our ongoing support.'
-              }
-            ].map((item, idx) => (
-              <div key={idx} style={{ textAlign: 'center' }}>
-                <div style={{
-                  width: '80px',
-                  height: '80px',
-                  borderRadius: '50%',
-                  background: '#FF5124',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 24px',
-                  fontSize: '36px'
-                }}>
-                  {item.icon}
+          {/* Steps Grid */}
+          <div className="relative">
+            {/* Connecting line (desktop only) */}
+            <div className="pointer-events-none absolute left-0 right-0 top-[72px] hidden h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent lg:block" />
+            
+            <div className="grid gap-8 md:grid-cols-3 md:gap-6 lg:gap-10">
+              {/* Step 1: Discover */}
+              <div className="group relative rounded-[20px] bg-white p-8 shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)]">
+                {/* Icon */}
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFF5F2]">
+                  <Search className="h-7 w-7 text-[#FF5124]" />
                 </div>
-                <div style={{
-                  fontSize: '14px',
-                  fontWeight: '700',
-                  color: '#FF5124',
-                  marginBottom: '12px',
-                  letterSpacing: '1px'
-                }}>
-                  STEP {item.step}
+                {/* Step Label */}
+                <div className="mb-4 inline-flex items-center rounded-full bg-[#FF5124] px-3 py-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-white">Step 1</span>
                 </div>
-                <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px', color: '#343434' }}>
-                  {item.title}
-                </h3>
-                <p style={{ fontSize: '15px', color: 'rgba(52, 52, 52, 0.65)', lineHeight: '1.6' }}>
-                  {item.description}
+                {/* Content */}
+                <h3 className="mb-3 text-xl font-bold text-slate-900">Find Your Perfect Setup</h3>
+                <p className="mb-5 text-[15px] leading-relaxed text-slate-600">
+                  Browse hundreds of verified food trucks, trailers, ghost kitchens, and commissary spaces. Filter by location, price, cuisine type, and availability—all in one place.
                 </p>
+                {/* Micro-bullets */}
+                <ul className="space-y-2">
+                  {['Every host is ID-verified', 'Equipment photos & condition reports', 'Real reviews from renters'].map((item, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
+                      <svg className="h-4 w-4 shrink-0 text-[#FF5124]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            ))}
+
+              {/* Step 2: Book */}
+              <div className="group relative rounded-[20px] bg-white p-8 shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)]">
+                {/* Icon */}
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFF5F2]">
+                  <Calendar className="h-7 w-7 text-[#FF5124]" />
+                </div>
+                {/* Step Label */}
+                <div className="mb-4 inline-flex items-center rounded-full bg-[#FF5124] px-3 py-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-white">Step 2</span>
+                </div>
+                {/* Content */}
+                <h3 className="mb-3 text-xl font-bold text-slate-900">Book Securely, Instantly</h3>
+                <p className="mb-5 text-[15px] leading-relaxed text-slate-600">
+                  Reserve your equipment or kitchen with a few clicks. Vendibook handles contracts, secure payments, and protects your booking—so you can focus on your menu.
+                </p>
+                {/* Micro-bullets */}
+                <ul className="space-y-2">
+                  {['Instant confirmation', 'Secure payments via Stripe', 'Location privacy protected'].map((item, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
+                      <svg className="h-4 w-4 shrink-0 text-[#FF5124]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Step 3: Launch */}
+              <div className="group relative rounded-[20px] bg-white p-8 shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(0,0,0,0.1)]">
+                {/* Icon */}
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FFF5F2]">
+                  <Zap className="h-7 w-7 text-[#FF5124]" />
+                </div>
+                {/* Step Label */}
+                <div className="mb-4 inline-flex items-center rounded-full bg-[#FF5124] px-3 py-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-white">Step 3</span>
+                </div>
+                {/* Content */}
+                <h3 className="mb-3 text-xl font-bold text-slate-900">Start Serving Customers</h3>
+                <p className="mb-5 text-[15px] leading-relaxed text-slate-600">
+                  Pick up your equipment or have it delivered. Get support from Vendibook as you grow—from your first taco to your hundredth event.
+                </p>
+                {/* Micro-bullets */}
+                <ul className="space-y-2">
+                  {['Delivery or pickup options', 'Ongoing host support', "Scale when you're ready"].map((item, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
+                      <svg className="h-4 w-4 shrink-0 text-[#FF5124]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="mt-14 text-center">
+            <button
+              type="button"
+              onClick={() => setSearchModalOpen(true)}
+              className="group inline-flex items-center gap-2 rounded-full bg-[#FF5124] px-8 py-4 text-[15px] font-semibold text-white shadow-lg shadow-[#FF5124]/25 transition-all hover:bg-[#E5481F] hover:shadow-xl hover:shadow-[#FF5124]/30"
+            >
+              Browse Rentals
+              <svg className="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </button>
           </div>
         </div>
       </section>
