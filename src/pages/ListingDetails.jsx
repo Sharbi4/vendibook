@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin, Star, Check, Shield, Truck, Calendar, UserCircle } f
 import { getListingById as getMockListingById } from '../data/listings';
 import { AvailabilityCalendar } from '../components/AvailabilityCalendar';
 import { ListingMapPlaceholder } from '../components/ListingMapPlaceholder';
+import { BookingCheckoutModal } from '../components/BookingCheckoutModal';
 import { useEventProPackages } from '../hooks/useEventProPackages';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStatus } from '../hooks/useAppStatus';
@@ -129,6 +130,7 @@ function ListingDetails() {
   const [calendarNotice, setCalendarNotice] = useState(null);
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [hostProfile, setHostProfile] = useState({ status: 'idle', data: null, error: '' });
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -272,7 +274,6 @@ function ListingDetails() {
     }
 
     const renterUserId = user?.id || user?._id || user?.userId;
-    const renterClerkId = user?.clerkId || user?.clerk_id || user?.clerkID || null;
 
     if (!isAuthenticated || !renterUserId) {
       setBookingFeedback({ type: 'error', message: 'Please sign in to request a booking.' });
@@ -299,100 +300,9 @@ function ListingDetails() {
       return;
     }
 
-    setIsSubmitting(true);
+    // Open the Stripe checkout modal
     setBookingFeedback(null);
-    setCalendarNotice(null);
-    setGlobalLoading(true);
-
-    const nightlyRate = Number(listing?.price) || 0;
-    const fallbackPrice = nightlyRate > 0 ? nightlyRate : 1;
-    const totalPriceValue = estimatedTotalValue && estimatedTotalValue > 0 ? estimatedTotalValue : fallbackPrice;
-
-    const payload = {
-      listingId: listing.id,
-      renterUserId,
-      hostUserId,
-      bookingMode,
-      totalPrice: totalPriceValue,
-      currency: listing?.currency || 'USD',
-      eventCity: null,
-      eventState: null,
-      eventPostalCode: null,
-      eventFullAddress: null,
-    };
-    // TODO: Collect renter-supplied event address details and populate the fields above before validating service radius.
-
-    const hostClerkId = listing?.host_clerk_id || listing?.hostClerkId || null;
-    if (renterClerkId) {
-      payload.renterClerkId = renterClerkId;
-    }
-    if (hostClerkId) {
-      payload.hostClerkId = hostClerkId;
-    }
-
-    if (isHourlyMode) {
-      payload.eventDate = startDate;
-      payload.eventStartTime = eventStartTime;
-      payload.eventEndTime = eventEndTime;
-      payload.startDate = startDate;
-      payload.endDate = startDate;
-    } else {
-      payload.startDate = startDate;
-      payload.endDate = selectedEndDate;
-      if (bookingMode === 'daily-with-time') {
-        payload.pickupTime = pickupTime || null;
-        payload.returnTime = returnTime || null;
-      }
-    }
-
-    // Attach selected Event Pro package metadata if the renter chose a package
-    if (selectedPackage) {
-      payload.packageId = selectedPackage.id;
-      payload.packageName = selectedPackage.name;
-      payload.packageBasePrice = Number(selectedPackage.base_price ?? selectedPackage.basePrice ?? selectedPackage.price ?? 0);
-      // TODO: Consider storing package_id and package_pricing on bookings table for accounting
-    }
-
-    try {
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-      if (renterClerkId) {
-        headers['x-clerk-id'] = renterClerkId;
-      }
-
-      const response = await fetch('/api/bookings', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 409 && (data?.error === 'DATE_RANGE_UNAVAILABLE' || data?.message)) {
-          setCalendarNotice(data.message || 'The selected dates are not available. Please adjust your selection.');
-          return;
-        }
-
-        if (response.status === 401) {
-          setBookingFeedback({ type: 'error', message: 'Your session expired. Please sign in again.' });
-          return;
-        }
-
-        throw new Error(data.message || data.error || 'Unable to submit booking right now.');
-      }
-
-      setBookingFeedback({ type: 'success', message: 'Booking request submitted! Redirecting to My Bookings...' });
-      setTimeout(() => navigate('/bookings'), 1000);
-    } catch (submitError) {
-      setBookingFeedback({ type: 'error', message: submitError.message || 'Unable to submit booking right now.' });
-      setGlobalError(submitError.message || 'Unable to submit booking right now.');
-    } finally {
-      setIsSubmitting(false);
-      setGlobalLoading(false);
-    }
+    setShowCheckoutModal(true);
   };
 
   const handleMessageHost = () => {
@@ -1202,6 +1112,20 @@ function ListingDetails() {
           </aside>
         </section>
       </main>
+
+      {/* Booking Checkout Modal */}
+      <BookingCheckoutModal
+        isOpen={showCheckoutModal}
+        onClose={() => setShowCheckoutModal(false)}
+        listing={listing}
+        initialStartDate={startDate}
+        initialEndDate={selectedEndDate}
+        initialBookingMode={bookingMode}
+        initialPickupTime={pickupTime}
+        initialReturnTime={returnTime}
+        initialEventStartTime={eventStartTime}
+        initialEventEndTime={eventEndTime}
+      />
     </div>
   );
 }

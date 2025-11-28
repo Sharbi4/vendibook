@@ -522,6 +522,54 @@ export function bootstrapBookingsTable() {
         ALTER TABLE bookings
         ADD COLUMN IF NOT EXISTS event_full_address TEXT NULL;
       `;
+
+      // Stripe payment columns
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS stripe_session_id TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS stripe_payment_intent_id TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT NULL;
+      `;
+
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ NULL;
+      `;
+
+      // Fee breakdown columns
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC DEFAULT 0;
+      `;
+
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS service_fee NUMERIC DEFAULT 0;
+      `;
+
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS is_pickup BOOLEAN DEFAULT TRUE;
+      `;
+
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS delivery_address TEXT NULL;
+      `;
+
+      // Upsells JSON storage
+      await sql`
+        ALTER TABLE bookings
+        ADD COLUMN IF NOT EXISTS upsells JSONB DEFAULT '[]'::jsonb;
+      `;
     })().catch(error => {
       bookingsBootstrapPromise = undefined;
       console.error('Failed to bootstrap bookings table:', error);
