@@ -1983,7 +1983,7 @@ function HomePage() {
         </div>
 
         {/* Mobile layout: heading → map → results (stacked) */}
-        {/* Desktop layout: results (left 2/3) → map (right 1/3) */}
+        {/* Desktop layout: scrollable 2-column results (left) + sticky map (right) */}
         <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
           {/* Mobile map - fixed height, shown first on mobile */}
           <div className="block h-[280px] overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50 shadow-sm lg:hidden">
@@ -1999,10 +1999,10 @@ function HomePage() {
                     lng: appliedFilters.longitude || -111.9431
                   }}
                   zoom={appliedFilters.latitude ? 11 : 9}
-                  markers={filteredListings.map(listing => ({
+                  markers={filteredListings.filter(l => l.latitude && l.longitude).map(listing => ({
                     id: listing.id,
-                    lat: listing.latitude,
-                    lng: listing.longitude,
+                    lat: listing.latitude || listing.lat,
+                    lng: listing.longitude || listing.lng,
                     title: listing.title,
                     price: listing.price
                   }))}
@@ -2021,10 +2021,10 @@ function HomePage() {
             </div>
           </div>
 
-          {/* Results column - scrollable with pagination */}
-          <div className="flex-1 lg:max-h-[800px] lg:overflow-y-auto lg:pr-2" style={{ scrollbarWidth: 'thin' }}>
-            {/* Cards grid */}
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {/* Results column - scrollable 2-column grid */}
+          <div className="flex-1 lg:max-h-[calc(100vh-200px)] lg:overflow-y-auto lg:pr-4" style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}>
+            {/* Cards grid - always 2 columns on desktop */}
+            <div className="grid gap-5 sm:grid-cols-2">
               {filteredListings.map((listing, index) => (
               <div
                 key={listing.id}
@@ -2122,7 +2122,7 @@ function HomePage() {
 
             {/* Pagination placeholder */}
             {filteredListings.length > 0 && (
-              <div className="mt-8 flex items-center justify-center gap-2">
+              <div className="mt-8 flex items-center justify-center gap-2 pb-4">
                 <button className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
                   Previous
                 </button>
@@ -2134,13 +2134,13 @@ function HomePage() {
             )}
           </div>
 
-          {/* Desktop map column - sticky, 1/3 width */}
-          <aside className="sticky top-[96px] hidden h-[600px] w-[400px] shrink-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50 shadow-sm lg:block xl:w-[480px]">
+          {/* Desktop map column - sticky, matches results height */}
+          <aside className="sticky top-[96px] hidden h-[calc(100vh-200px)] w-[400px] shrink-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50 shadow-sm lg:block xl:w-[480px]">
             <div className="flex h-full flex-col">
               <div className="border-b border-slate-200 bg-white/90 px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Map</p>
                 <p className="text-sm text-slate-700">
-                  {appliedLocationLabel ? `Near ${appliedLocationLabel}` : 'Your area'}
+                  {appliedLocationLabel ? `Near ${appliedLocationLabel}` : 'Your area'} • {filteredListings.length} results
                 </p>
               </div>
               <div className="relative flex-1 bg-slate-200">
@@ -2151,10 +2151,10 @@ function HomePage() {
                     lng: appliedFilters.longitude || -111.9431
                   }}
                   zoom={appliedFilters.latitude ? 11 : 9}
-                  markers={filteredListings.map(listing => ({
+                  markers={filteredListings.filter(l => (l.latitude || l.lat) && (l.longitude || l.lng)).map(listing => ({
                     id: listing.id,
-                    lat: listing.latitude,
-                    lng: listing.longitude,
+                    lat: listing.latitude || listing.lat,
+                    lng: listing.longitude || listing.lng,
                     title: listing.title,
                     price: listing.price
                   }))}
