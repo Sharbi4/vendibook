@@ -20,6 +20,9 @@ import AppLayout from '../layouts/AppLayout.jsx';
 import LocationAutocomplete from '../components/LocationAutocomplete.jsx';
 import {
   ADVANCED_FILTER_PLACEHOLDERS,
+  EVENT_PRO_SECONDARY_FILTERS,
+  EVENT_TYPES,
+  SERVICE_CATEGORIES,
   SEARCH_MODE,
   buildSearchParamsFromFilters,
   deriveCityState,
@@ -34,6 +37,25 @@ import {
 // TODO: Replace with curated Vendibook brand photography once the production asset is finalized.
 const HERO_IMAGE_URL = '/images/hero-food-truck.jpg';
 const CATEGORY_COLOR_PALETTE = ['#FF5124', '#FFB42C', '#343434', '#F8F8F8'];
+
+// Sparkle Particle Component for Event Pro Mode
+const SparkleParticle = ({ delay, left, size }) => (
+  <div
+    style={{
+      position: 'absolute',
+      left: `${left}%`,
+      bottom: '0',
+      width: `${size}px`,
+      height: `${size}px`,
+      background: '#FFB42C',
+      borderRadius: '50%',
+      opacity: 0,
+      animation: `sparkleFloat 4s ${delay}s ease-in-out infinite`,
+      boxShadow: `0 0 ${size * 2}px rgba(255, 180, 44, 0.6)`,
+      pointerEvents: 'none'
+    }}
+  />
+);
 
 const VendibookGridIcon = ({ className = 'h-5 w-5 text-charcoal', strokeWidth = 1.75 }) => (
   <svg
