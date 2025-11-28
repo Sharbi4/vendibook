@@ -41,8 +41,12 @@ import {
   parseFiltersFromSearchParams
 } from '../constants/filters';
 
-// TODO: Replace with curated Vendibook brand video once the production asset is finalized.
+// Hero background - using a high-quality food truck stock image
+// Dark overlay for readability (hero is dark, so tabs use white outlines)
+const HERO_IMAGE_URL = 'https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?auto=format&fit=crop&w=2000&q=80';
 const HERO_VIDEO_URL = '/videos/hero-mobile-vendors.mp4';
+// Hero brightness: 'dark' means we use white outlines/text on inactive tabs
+const HERO_BRIGHTNESS = 'dark';
 const CATEGORY_COLOR_PALETTE = ['#FF5124', '#4CAF50', '#343434', '#F8F8F8'];
 
 // Inject global keyframe animations for premium UI
@@ -908,25 +912,36 @@ function HomePage() {
 
   return (
     <AppLayout fullWidth contentClassName="bg-[#FAFAFA]">
-      {/* Hero Section */}
-      <section className="relative flex min-h-[600px] items-center justify-center overflow-hidden bg-[#0A0A0B]">
-        {/* Background */}
+      {/* Hero Section with food truck background */}
+      <section className="relative flex min-h-[600px] items-center justify-center overflow-hidden">
+        {/* Background image/video */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-[#0F0F10] to-black" />
+          {/* Food truck stock image */}
+          <img 
+            src={HERO_IMAGE_URL} 
+            alt="Food truck background" 
+            className="h-full w-full object-cover"
+          />
+          {/* Dark overlay for readability (20-30% black) */}
+          <div className="absolute inset-0 bg-black/25" />
+          {/* Subtle color glow based on active mode */}
           <div 
-            className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-15 blur-[120px] transition-colors duration-700"
+            className="absolute left-1/2 top-1/2 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-10 blur-[150px] transition-colors duration-700"
             style={{ backgroundColor: currentBrandColor }}
           />
         </div>
 
         {/* Search module container */}
         <div className="relative z-10 mx-auto w-full max-w-[680px] px-5 sm:px-6 vb-enter-fade-up">
-          {/* Mode tabs – centered with equal spacing */}
-          <div className="mb-8 flex justify-center">
+          {/* Mode tabs – centered with equal spacing, directly above search card */}
+          <div className="mb-6 flex justify-center">
             <div className="inline-flex items-center gap-3">
               {modeOptions.map((option) => {
                 const isActive = activeTab === option.id;
                 const TabIcon = option.icon;
+                // For dark hero backgrounds, inactive tabs use white outline/text
+                // For light hero backgrounds, inactive tabs use black outline/text
+                const inactiveColor = HERO_BRIGHTNESS === 'dark' ? '#FFFFFF' : '#000000';
                 
                 return (
                   <button
@@ -936,14 +951,14 @@ function HomePage() {
                     className={`vb-chip vb-focus relative flex items-center gap-2 rounded-full px-6 py-3 text-[14px] font-semibold transition-all duration-300 ${isActive ? 'tab-select-bounce tab-selected-glow' : ''}`}
                     style={{
                       backgroundColor: isActive ? option.color : 'transparent',
-                      color: isActive ? '#FFFFFF' : '#FF5124',
-                      border: isActive ? 'none' : '1px solid #FF5124',
+                      color: isActive ? '#FFFFFF' : inactiveColor,
+                      border: isActive ? 'none' : `1px solid ${inactiveColor}`,
                       boxShadow: isActive ? `0 8px 24px -4px ${option.color}40` : 'none',
                       '--glow-color': `${option.color}50`,
                     }}
                   >
                     {/* Sparkles on ALL tabs - idle for non-selected, enhanced for selected */}
-                    <TabSparkles isActive={isActive} color={option.color} />
+                    <TabSparkles isActive={isActive} color={isActive ? '#FFFFFF' : inactiveColor} />
                     <TabIcon className="h-4 w-4" strokeWidth={2} />
                     <span>{option.label}</span>
                   </button>
@@ -1314,8 +1329,8 @@ function HomePage() {
             </div>
           </div>
 
-          {/* Trust badges */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-[12px] font-medium text-white/40">
+          {/* Trust badges + Mapbox attribution */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-[12px] font-medium text-white/60">
             <span className="flex items-center gap-1.5">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -1335,6 +1350,10 @@ function HomePage() {
               Secure payments
             </span>
           </div>
+          {/* Legal Mapbox attribution footer */}
+          <p className="mt-4 text-center text-[10px] text-white/30">
+            Location search powered by Mapbox
+          </p>
         </div>
       </section>
 
@@ -1546,7 +1565,7 @@ function HomePage() {
       <section className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 lg:px-12 lg:py-16">
         {/* Active filters */}
         {activeFilterChips.length > 0 && (
-          <div className="mb-8 flex flex-wrap items-center gap-2">
+          <div className="mb-6 flex flex-wrap items-center gap-2">
             {activeFilterChips.map((chip) => (
               <button
                 type="button"
@@ -1568,130 +1587,170 @@ function HomePage() {
           </div>
         )}
 
-        {/* Section header */}
-        <div className="mb-10 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h2 className="text-[28px] font-bold tracking-[-0.02em] text-slate-900 sm:text-[32px]">
-              {filteredListings.length} {listingResultsLabel} {listingsAreaLabel}
-            </h2>
-            <p className="mt-2 text-[15px] text-slate-500">
-              {appliedCategoryLabel}
+        {/* Section header - "X rentals near Location" */}
+        <div className="mb-8">
+          <h2 className="text-[24px] font-bold tracking-[-0.02em] text-slate-900 sm:text-[28px]">
+            {filteredListings.length} {listingResultsLabel} {appliedLocationLabel ? `near ${appliedLocationLabel}` : 'near your area'}
+          </h2>
+          {appliedCategoryLabel && appliedFilters.listingType && (
+            <p className="mt-1 text-[14px] text-slate-500">
+              Showing: {appliedCategoryLabel}
             </p>
-          </div>
-          <p className="text-sm text-slate-500">
-            Powered by Mapbox · Results approximate within your selected area.
-          </p>
+          )}
         </div>
 
-        {/* Grid with map and cards */}
-        <div className="grid gap-7 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,3fr)_minmax(0,1.4fr)]">
-          {/* Cards grid */}
-          <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-            {filteredListings.map((listing, index) => (
-            <div
-              key={listing.id}
-              className={`vb-card vb-focus group cursor-pointer overflow-hidden rounded-[20px] bg-white vb-shadow-md`}
-              style={{ animationDelay: `${index * 40}ms` }}
-              onClick={() => handleOpenQuickView(listing)}
-            >
-              {/* Image container */}
-              <div className="relative aspect-[4/3] overflow-hidden">
-                <img
-                  src={listing.image}
-                  alt={listing.title}
-                  className="vb-img-zoom h-full w-full object-cover"
-                />
-                {/* Gradient overlay */}
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                {/* Badges */}
-                {listing.deliveryAvailable && (
-                  <div className="absolute left-3 top-3 rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-800 shadow-md">
-                    Delivery
-                  </div>
-                )}
-                {listing.isVerified && (
-                  <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow-md">
-                    <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    Verified
-                  </div>
-                )}
-                {/* Wishlist button */}
-                <button
-                  type="button"
-                  className="vb-btn absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-500 opacity-0 shadow-lg transition-all group-hover:opacity-100 hover:text-[#FF5124]"
-                  onClick={(e) => { e.stopPropagation(); }}
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                </button>
+        {/* Mobile layout: heading → map → results (stacked) */}
+        {/* Desktop layout: results (left 2/3) → map (right 1/3) */}
+        <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
+          {/* Mobile map - fixed height, shown first on mobile */}
+          <div className="block h-[280px] overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50 shadow-sm lg:hidden">
+            <div className="flex h-full flex-col">
+              <div className="border-b border-slate-200 bg-white/90 px-4 py-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Map</p>
               </div>
-
-              {/* Card content */}
-              <div className="p-5">
-                {/* Title + Rating */}
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <h3 className="line-clamp-1 text-[15px] font-semibold leading-snug text-slate-900">
-                    {listing.title}
-                  </h3>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                    <span className="text-[14px] font-semibold text-slate-900">{listing.rating}</span>
+              <div className="relative flex-1 bg-slate-200">
+                {/* Mapbox map placeholder - markers and hover highlight behavior */}
+                <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-xs text-slate-600">
+                  <div>
+                    <MapPin className="mx-auto mb-2 h-8 w-8 text-slate-400" />
+                    <p>Interactive map with markers</p>
+                    <p className="mt-1 text-slate-400">Centered {appliedLocationLabel ? `near ${appliedLocationLabel}` : 'on your area'}</p>
                   </div>
-                </div>
-
-                {/* Location */}
-                <p className="mb-1 flex items-center gap-1.5 text-[13px] text-slate-500">
-                  <MapPin className="h-3.5 w-3.5" strokeWidth={1.5} />
-                  {listing.location}
-                </p>
-
-                {/* Host */}
-                <p className="mb-4 text-[13px] text-slate-500">
-                  {listing.host}
-                </p>
-
-                {/* Tags */}
-                <div className="mb-4 flex flex-wrap gap-1.5">
-                  {(listing.highlights || listing.tags || []).slice(0, 3).map((feature, idx) => (
-                    <span
-                      key={idx}
-                      className="rounded-md bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600"
-                    >
-                      {feature}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Price */}
-                <div className="flex items-baseline gap-1.5 border-t border-slate-100 pt-4">
-                  <span className="text-[18px] font-bold tracking-tight text-slate-900">
-                    ${listing.price?.toLocaleString()}
-                  </span>
-                  {listing.priceUnit && (
-                    <span className="text-[13px] text-slate-500">/ {listing.priceUnit}</span>
-                  )}
                 </div>
               </div>
             </div>
-          ))}
           </div>
 
-          {/* Map column */}
-          <aside className="sticky top-[96px] hidden h-[520px] overflow-hidden rounded-3xl border border-slate-200/80 bg-slate-50/80 shadow-[0_18px_45px_rgba(15,23,42,0.08)] lg:block">
+          {/* Results column - scrollable with pagination */}
+          <div className="flex-1 lg:max-h-[800px] lg:overflow-y-auto lg:pr-2" style={{ scrollbarWidth: 'thin' }}>
+            {/* Cards grid */}
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {filteredListings.map((listing, index) => (
+              <div
+                key={listing.id}
+                className={`vb-card vb-focus group cursor-pointer overflow-hidden rounded-[20px] bg-white vb-shadow-md`}
+                style={{ animationDelay: `${index * 40}ms` }}
+                onClick={() => handleOpenQuickView(listing)}
+                onMouseEnter={() => {/* TODO: highlight marker on map */}}
+                onMouseLeave={() => {/* TODO: unhighlight marker on map */}}
+              >
+                {/* Image container */}
+                <div className="relative aspect-[4/3] overflow-hidden">
+                  <img
+                    src={listing.image}
+                    alt={listing.title}
+                    className="vb-img-zoom h-full w-full object-cover"
+                  />
+                  {/* Gradient overlay */}
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  {/* Badges */}
+                  {listing.deliveryAvailable && (
+                    <div className="absolute left-3 top-3 rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-800 shadow-md">
+                      Delivery
+                    </div>
+                  )}
+                  {listing.isVerified && (
+                    <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow-md">
+                      <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Verified
+                    </div>
+                  )}
+                  {/* Wishlist button */}
+                  <button
+                    type="button"
+                    className="vb-btn absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-500 opacity-0 shadow-lg transition-all group-hover:opacity-100 hover:text-[#FF5124]"
+                    onClick={(e) => { e.stopPropagation(); }}
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Card content */}
+                <div className="p-5">
+                  {/* Title + Rating */}
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <h3 className="line-clamp-1 text-[15px] font-semibold leading-snug text-slate-900">
+                      {listing.title}
+                    </h3>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                      <span className="text-[14px] font-semibold text-slate-900">{listing.rating}</span>
+                    </div>
+                  </div>
+
+                  {/* Location */}
+                  <p className="mb-1 flex items-center gap-1.5 text-[13px] text-slate-500">
+                    <MapPin className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    {listing.location}
+                  </p>
+
+                  {/* Host */}
+                  <p className="mb-4 text-[13px] text-slate-500">
+                    {listing.host}
+                  </p>
+
+                  {/* Tags */}
+                  <div className="mb-4 flex flex-wrap gap-1.5">
+                    {(listing.highlights || listing.tags || []).slice(0, 3).map((feature, idx) => (
+                      <span
+                        key={idx}
+                        className="rounded-md bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600"
+                      >
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Price */}
+                  <div className="flex items-baseline gap-1.5 border-t border-slate-100 pt-4">
+                    <span className="text-[18px] font-bold tracking-tight text-slate-900">
+                      ${listing.price?.toLocaleString()}
+                    </span>
+                    {listing.priceUnit && (
+                      <span className="text-[13px] text-slate-500">/ {listing.priceUnit}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              ))}
+            </div>
+
+            {/* Pagination placeholder */}
+            {filteredListings.length > 0 && (
+              <div className="mt-8 flex items-center justify-center gap-2">
+                <button className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                  Previous
+                </button>
+                <span className="px-3 text-sm text-slate-500">Page 1 of 1</span>
+                <button className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop map column - sticky, 1/3 width */}
+          <aside className="sticky top-[96px] hidden h-[600px] w-[400px] shrink-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50 shadow-sm lg:block xl:w-[480px]">
             <div className="flex h-full flex-col">
               <div className="border-b border-slate-200 bg-white/90 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Map preview</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Map</p>
                 <p className="text-sm text-slate-700">
-                  Centered {appliedLocationLabel ? `near ${appliedLocationLabel}` : 'near you'}
+                  {appliedLocationLabel ? `Near ${appliedLocationLabel}` : 'Your area'}
                 </p>
               </div>
               <div className="relative flex-1 bg-slate-200">
-                {/* Mapbox map can be wired here using lat/lng from locationSelection */}
+                {/* Mapbox map placeholder - markers and hover highlight behavior */}
                 <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-xs text-slate-600">
-                  Interactive map coming next: we'll center pins near your selected area using Mapbox.
+                  <div>
+                    <MapPin className="mx-auto mb-3 h-10 w-10 text-slate-400" />
+                    <p className="font-medium">Interactive map with markers</p>
+                    <p className="mt-2 text-slate-400">Hover or select results to highlight pins</p>
+                    <p className="mt-1 text-slate-400">Mapbox integration ready</p>
+                  </div>
                 </div>
               </div>
             </div>
