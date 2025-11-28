@@ -23,6 +23,11 @@ import AboutPage from './pages/AboutPage';
 import RequireAuth from './auth/RequireAuth.jsx';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import CheckoutCancel from './pages/CheckoutCancel';
+import HowItWorksSellerPage from './pages/HowItWorksSellerPage';
+import HowItWorksHostPage from './pages/HowItWorksHostPage';
+import HowItWorksRenterPage from './pages/HowItWorksRenterPage';
+import HowItWorksMarketPage from './pages/HowItWorksMarketPage';
+import HowItWorksBuyerPage from './pages/HowItWorksBuyerPage';
 
 function App() {
   return (
@@ -47,6 +52,13 @@ function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/checkout/success" element={<CheckoutSuccess />} />
         <Route path="/checkout/cancel" element={<CheckoutCancel />} />
+        
+        {/* How It Works Pages */}
+        <Route path="/how-it-works/sellers" element={<HowItWorksSellerPage />} />
+        <Route path="/how-it-works/hosts" element={<HowItWorksHostPage />} />
+        <Route path="/how-it-works/renters" element={<HowItWorksRenterPage />} />
+        <Route path="/how-it-works/markets" element={<HowItWorksMarketPage />} />
+        <Route path="/how-it-works/buyers" element={<HowItWorksBuyerPage />} />
         
         {/* Host Pages */}
         <Route path="/become-host" element={<BecomeHostLanding />} />
