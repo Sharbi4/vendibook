@@ -235,6 +235,10 @@ POST   /api/host/upload/confirm - Confirm upload
 ### Local PostgreSQL
 
 ```bash
+# Install Homebrew if not already installed (macOS/Linux)
+# See PHASE_3_INSTALLATION.md Prerequisites section for detailed installation instructions
+# Quick install: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
 # macOS
 brew install postgresql@14
 brew services start postgresql@14
