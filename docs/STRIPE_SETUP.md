@@ -1,70 +1,71 @@
 # Stripe Integration Setup
 
-Use this guide to configure the Stripe CLI, VS Code extension, and Vercel environment for Vendibook. All instructions assume **TEST mode**.
+Use this guide to configure the Stripe CLI, VS Code extension, and Vercel environment for Vendibook. Everything below assumes **TEST mode**.
 
-## 1. Prerequisites
-- Install the [Stripe CLI](https://docs.stripe.com/stripe-cli) and log in with `stripe login`.
-- Install the [Stripe VS Code extension](https://marketplace.visualstudio.com/items?itemName=Stripe.vscode-stripe).
-- Ensure you have access to the Vendibook Stripe dashboard (test mode).
+---
 
-## 2. Verify Stripe CLI Login
-```bash
-stripe status
-```
-- Confirms authentication, API connectivity, and webhook forwarding status.
+## 1. Install & Authenticate
+1. Install the [Stripe CLI](https://docs.stripe.com/stripe-cli) (`brew install stripe/stripe-cli/stripe` on macOS).
+2. Run `stripe login` and open the browser link to authorize your machine.
+3. Confirm your login at any time with:
+   ```bash
+   stripe status
+   ```
+   This command verifies auth, API connectivity, and webhook forwarding state.
+4. Install the [Stripe VS Code extension](https://marketplace.visualstudio.com/items?itemName=Stripe.vscode-stripe). Open `.vscode/stripe.code-workspace` to expose the Stripe sidebar, API object explorer, and webhook quick commands already configured for this repo.
 
-## 3. Inspect Test Data
-View existing test customers:
+## 2. Inspect Test Data Quickly
+List the most recent test customers to confirm you are in the correct account:
 ```bash
 stripe customers list --limit 5
 ```
-Use this to quickly inspect profiles generated during QA flows.
+Any data you see here is safe to delete because it lives in the isolated Stripe **test** dataset.
 
-## 4. Forward Webhooks Locally
-Run the listener in a dedicated terminal:
+## 3. Forward Webhooks Locally
+Stripe CLI generates a unique signing secret each time you start a listener. Run this command in a dedicated terminal window and keep it running:
 ```bash
 stripe listen --forward-to localhost:3000/api/stripe/webhook
 ```
-- Leave this running while testing checkout flows.
-- Copy the signing secret that the CLI prints and place it in `STRIPE_WEBHOOK_SECRET`.
+Copy the printed `whsec_...` value into `STRIPE_WEBHOOK_SECRET`. The CLI will now forward events for checkout sessions, payment intents, and any custom flows.
 
-## 5. Test Card Numbers
-Use Stripe default cards when checking out:
-- Visa (standard auth): `4242 4242 4242 4242`
-- 3D Secure required: `4000 0025 0000 3155`
-- Insufficient funds: `4000 0000 0000 9995`
-Each card accepts any future expiry, any CVC, and any ZIP.
+## 4. Test Card Numbers
+Stripe provides deterministic card numbers for QA:
+- **Visa (happy path):** `4242 4242 4242 4242`
+- **3D Secure challenge:** `4000 0025 0000 3155`
+- **Insufficient funds:** `4000 0000 0000 9995`
+Use any future expiration date, any CVC, and any ZIP/Postal code.
 
-## 6. Test Mode vs Live Mode
-- **Test Mode:** All operations are simulated. Keys start with `sk_test_` and `pk_test_`. Only use these in development and staging. Data is isolated from production and can be safely cleared.
-- **Live Mode:** Real payments. Keys start with `sk_live_` and `pk_live_`. Never use live mode locally. Production deploys must set live keys via Vercel.
-Switch modes in the Stripe Dashboard using the toggle in the left sidebar. Ensure the CLI and VS Code extension match the intended mode.
+## 5. Test Mode vs Live Mode
+- **Test mode:** Keys look like `sk_test_...` and `pk_test_...`. All payments are simulated. Never ship these keys to production.
+- **Live mode:** Keys look like `sk_live_...` and `pk_live_...`. Funds move for real users. Only set these inside Vercel after QA is complete.
+Toggle between the two in the Stripe Dashboard sidebar. Make sure the CLI, VS Code extension, and dashboard are all using the same mode before running checkouts.
 
-## 7. Locating API Keys
+## 6. Locate API Keys
 1. Visit the [Stripe Dashboard](https://dashboard.stripe.com/).
-2. Toggle **Viewing test data** (upper-left) to stay in test mode.
-3. Navigate to **Developers → API keys**.
-4. Copy the **Secret key** (`STRIPE_SECRET_KEY`) and **Publishable key** (`VITE_STRIPE_PUBLISHABLE_KEY`).
-5. Under **Developers → Webhooks**, you can regenerate live signing secrets. For local work, prefer the CLI-generated secret noted above.
+2. Toggle **Viewing test data** in the upper-left to ensure you stay in test mode.
+3. Go to **Developers → API keys** and copy:
+   - Secret key → `STRIPE_SECRET_KEY`
+   - Publishable key → `VITE_STRIPE_PUBLISHABLE_KEY`
+4. Webhook secrets live under **Developers → Webhooks**. For local work, prefer the key printed by `stripe listen` because it rotates automatically.
 
-## 8. Required Environment Variables (Vercel)
-Set the following in Vercel:
+## 7. Required Environment Variables
+Add the following in **Vercel → Settings → Environment Variables**. Do **not** commit any secrets.
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `VITE_STRIPE_PUBLISHABLE_KEY`
 
-Add these under **Vercel → Settings → Environment Variables**. Do not commit these keys.
-For local development, mirror the same variables in your `.env.local` file (never push secrets to Git).
+Mirror the same values in `.env.local` for local development. Restart `npm run dev` after editing env files so Vite reloads the variables.
 
-## 9. Glossary
-- **Checkout Session:** Server-created object that powers Stripe Checkout. It ties together the customer, line items, success/cancel URLs, and post-payment state.
-- **PaymentIntent:** Tracks the lifecycle of a payment attempt, including authentication and settlement. Checkout Sessions create a PaymentIntent under the hood when `mode = "payment"`.
-- **Webhook:** Server endpoint that receives signed JSON payloads from Stripe. Webhooks confirm payment status and trigger post-payment workflows. Always validate the signature before trusting the payload.
+## 8. Glossary
+- **Checkout Session:** Server-side object that drives Stripe Checkout (line items, URLs, metadata). Returns a hosted URL for redirect-based payments.
+- **PaymentIntent:** Tracks the lifecycle of a single payment attempt (authorization, capture, failure states). Checkout Sessions create one automatically when `mode: 'payment'`.
+- **Webhook:** Signed HTTPS callback from Stripe that confirms payment state. Always verify signatures (`STRIPE_WEBHOOK_SECRET`) before trusting payloads.
 
-## 10. Recommended Workflow
-1. Start your local dev server (Vite/Next).
-2. Run the Stripe webhook listener.
-3. Trigger a checkout via the frontend helper.
-4. Observe CLI logs, verify webhook receipts, and confirm PaymentIntent state in the dashboard.
+## 9. Recommended Local Workflow
+1. `npm run dev` — start the Vite frontend.
+2. `stripe status` — confirm the CLI is still logged in.
+3. `stripe listen --forward-to localhost:3000/api/stripe/webhook` — capture live events locally.
+4. Use `startCheckout` (see `src/utils/stripeClient.js`) to initiate a payment from the UI.
+5. Watch the CLI terminal for webhook confirmations, then inspect the same events inside the Stripe Dashboard.
 
-Following this checklist ensures every developer shares the same Stripe testing workflow.
+Following these steps keeps every developer aligned when testing the Vendibook + Stripe integration.

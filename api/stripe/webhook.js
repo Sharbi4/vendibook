@@ -43,6 +43,8 @@ export default async function handler(req, res) {
     return res.status(400).send(`Webhook Error: ${error.message}`);
   }
 
+  // TODO: Log Stripe events to Neon once the analytics sink is finalized.
+
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -55,7 +57,8 @@ export default async function handler(req, res) {
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object;
         console.log('PaymentIntent succeeded:', paymentIntent.id);
-        // TODO: Update booking/payment status in database and log to Neon analytics.
+        // TODO: Update booking/payment status in database.
+        // TODO: Log successful payments to Neon analytics.
         break;
       }
       case 'payment_intent.payment_failed': {

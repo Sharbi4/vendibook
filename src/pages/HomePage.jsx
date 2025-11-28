@@ -34,9 +34,9 @@ import {
   parseFiltersFromSearchParams
 } from '../constants/filters';
 
-// TODO: Replace with curated Vendibook brand photography once the production asset is finalized.
-const HERO_IMAGE_URL = '/images/hero-food-truck.jpg';
-const CATEGORY_COLOR_PALETTE = ['#FF5124', '#FFB42C', '#343434', '#F8F8F8'];
+// TODO: Replace with curated Vendibook brand video once the production asset is finalized.
+const HERO_VIDEO_URL = '/videos/hero-mobile-vendors.mp4';
+const CATEGORY_COLOR_PALETTE = ['#FF5124', '#4CAF50', '#343434', '#F8F8F8'];
 
 // Sparkle Particle Component for Event Pro Mode
 const SparkleParticle = ({ delay, left, size }) => (
@@ -113,6 +113,8 @@ function HomePage() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [activeTab, setActiveTab] = useState(initialFilters.mode || SEARCH_MODE.RENT);
+  const [quickViewListing, setQuickViewListing] = useState(null);
 
   useEffect(() => {
     setFilters(initialFilters);
@@ -147,10 +149,9 @@ function HomePage() {
   }, [filters.locationLabel, filters.locationText, filters.latitude, filters.longitude, filters.city, filters.state]);
 
   const modeOptions = [
-    { id: SEARCH_MODE.RENT, label: 'Rent equipment' },
-    { id: SEARCH_MODE.BUY, label: 'Buy equipment' },
-    { id: SEARCH_MODE.EVENT_PRO, label: 'Book event pros' },
-    { id: SEARCH_MODE.VENDOR_MARKET, label: 'Vendor markets' }
+    { id: SEARCH_MODE.RENT, label: 'Rent', color: '#FF5124' },
+    { id: SEARCH_MODE.BUY, label: 'For Sale', color: '#4CAF50' },
+    { id: SEARCH_MODE.EVENT_PRO, label: 'Event Pro', color: '#FF5124' }
   ];
 
   const mapCategoryOptionsForMode = (mode) => (
@@ -226,6 +227,7 @@ function HomePage() {
   };
 
   const handleModeChange = (mode) => {
+    setActiveTab(mode);
     setFilters((prev) => ({
       ...prev,
       mode,
@@ -347,137 +349,13 @@ function HomePage() {
 
   // Fetch dynamic listings from API (Neon) and merge with legacy mock data until fully migrated
   const { listings: dynamicListings, loading: listingsLoading } = useListings(appliedFilters);
-
-  const mockListings = [
-    {
-      id: 1,
-      title: 'Fully Equipped Taco Truck - LA Style',
-      category: 'food-trucks',
-      listingType: 'rent',
-      location: 'Tucson, AZ',
-      price: 250,
-      priceType: 'day',
-      image: 'https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?w=800&auto=format&fit=crop&q=80',
-      rating: 4.9,
-      reviews: 32,
-      features: ['Power', 'Water', 'Propane', 'Full Kitchen'],
-      host: 'Verified Host',
-      deliveryAvailable: true
-    },
-    {
-      id: 2,
-      title: 'Wood-Fired Pizza Trailer - Professional Setup',
-      category: 'trailers',
-      listingType: 'rent',
-      location: 'Phoenix, AZ',
-      price: 180,
-      priceType: 'day',
-      image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&auto=format&fit=crop&q=80',
-      rating: 4.8,
-      reviews: 28,
-      features: ['Power', 'Water', 'Wood-fired oven', 'Prep station'],
-      host: 'Verified Host',
-      deliveryAvailable: true
-    },
-    {
-      id: 3,
-      title: 'Premium Ghost Kitchen - 24/7 Access',
-      category: 'ghost-kitchens',
-      listingType: 'rent',
-      location: 'Tucson, AZ',
-      price: 150,
-      priceType: 'day',
-      image: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&auto=format&fit=crop&q=80',
-      rating: 5.0,
-      reviews: 15,
-      features: ['Full kitchen', 'Storage', '24/7 access', 'Walk-in cooler'],
-      host: 'Superhost',
-      deliveryAvailable: false
-    },
-    {
-      id: 4,
-      title: 'Downtown Vending Location - High Traffic',
-      category: 'vending-lots',
-      listingType: 'rent',
-      location: 'Tempe, AZ',
-      price: 120,
-      priceType: 'day',
-      image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80',
-      rating: 4.7,
-      reviews: 45,
-      features: ['High foot traffic', 'Power hookup', 'Weekend events', 'Permits included'],
-      host: 'Verified Host',
-      deliveryAvailable: false
-    },
-    {
-      id: 5,
-      title: 'Award-Winning Chef - Mexican Cuisine',
-      category: 'event-pros',
-      listingType: 'event-pro',
-      location: 'Phoenix, AZ',
-      price: 75,
-      priceType: 'hour',
-      image: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=800&auto=format&fit=crop&q=80',
-      rating: 4.9,
-      reviews: 67,
-      features: ['Certified', 'Catering license', 'Menu planning', '10+ years exp'],
-      host: 'Superhost',
-      deliveryAvailable: false
-    },
-    {
-      id: 6,
-      title: 'Vintage Coffee Cart - Fully Restored',
-      category: 'trailers',
-      listingType: 'rent',
-      location: 'Scottsdale, AZ',
-      price: 95,
-      priceType: 'day',
-      image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&auto=format&fit=crop&q=80',
-      rating: 4.6,
-      reviews: 19,
-      features: ['Espresso machine', 'Power', 'Compact', 'Instagram-worthy'],
-      host: 'Verified Host',
-      deliveryAvailable: true
-    },
-    {
-      id: 7,
-      title: '2022 Food Truck - Like New (For Sale)',
-      category: 'for-sale',
-      listingType: 'sale',
-      location: 'Phoenix, AZ',
-      price: 45000,
-      priceType: 'sale',
-      image: 'https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?w=800&auto=format&fit=crop&q=80',
-      rating: 5.0,
-      reviews: 8,
-      features: ['Title verified', 'Low miles', 'Full inspection', 'Financing available'],
-      host: 'Verified Seller',
-      deliveryAvailable: true
-    },
-    {
-      id: 8,
-      title: 'BBQ Smoker Trailer - Competition Ready',
-      category: 'trailers',
-      listingType: 'rent',
-      location: 'Mesa, AZ',
-      price: 220,
-      priceType: 'day',
-      image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&auto=format&fit=crop&q=80',
-      rating: 4.9,
-      reviews: 52,
-      features: ['Large smoker', 'Prep station', 'Power', 'Water hookup'],
-      host: 'Superhost',
-      deliveryAvailable: true
-    }
-  ];
-
-  // Filter listings based on applied search
-  const combinedListings = [...dynamicListings, ...mockListings];
+  // Filter listings based on applied search (real backend data only)
+  const combinedListings = dynamicListings;
   const locationQuery = (appliedLocationLabel || '').toLowerCase();
   const cityQuery = (appliedFilters.city || '').toLowerCase();
   const stateQuery = (appliedFilters.state || '').toLowerCase();
   const filteredListings = combinedListings.filter((listing) => {
-    const listingMode = listing.listingType;
+    const listingMode = String(listing.listingType || '').toLowerCase();
     if (appliedFilters.mode === SEARCH_MODE.RENT && listingMode !== 'rent') {
       return false;
     }
@@ -533,12 +411,30 @@ function HomePage() {
     navigate(`/listings?${params.toString()}`);
   };
 
-  const handleBookNow = (listing) => {
-    if (listing.category === 'for-sale') {
-      alert(`Interested in purchasing: ${listing.title}\nPrice: $${listing.price.toLocaleString()}\n\nNext steps:\n- Schedule inspection\n- Get financing options\n- Contact seller`);
-    } else {
-      alert(`Book: ${listing.title}\nPrice: $${listing.price}/${listing.priceType}\nLocation: ${listing.location}\n\nNext: Select dates and confirm booking`);
-    }
+  const handleOpenQuickView = (listing) => {
+    setQuickViewListing(listing);
+  };
+
+  const handleCloseQuickView = () => {
+    setQuickViewListing(null);
+  };
+
+  const getPrimaryCtaLabel = () => {
+    if (!quickViewListing) return '';
+    const mode = appliedFilters.mode;
+    if (mode === SEARCH_MODE.BUY) return 'Buy now';
+    if (mode === SEARCH_MODE.EVENT_PRO) return 'Book event pro';
+    return 'Book now';
+  };
+
+  const handlePrimaryCta = () => {
+    if (!quickViewListing) return;
+    navigate(`/listing/${quickViewListing.id}`);
+  };
+
+  const handleViewFullListing = () => {
+    if (!quickViewListing) return;
+    navigate(`/listing/${quickViewListing.id}`);
   };
 
   // Simple calendar component (can be replaced with a library if needed)
@@ -665,91 +561,199 @@ function HomePage() {
 
   return (
     <AppLayout fullWidth contentClassName="bg-white">
-      {/* Hero Section */}
-      <section
-        className="relative overflow-hidden bg-slate-950"
-        style={{
-          backgroundImage: `linear-gradient(135deg, rgba(3,7,18,0.95), rgba(15,23,42,0.55)), url(${HERO_IMAGE_URL})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      >
-        <div className="absolute inset-0 bg-black/20" />
+      {/* Hero Section with Three Tabs */}
+      <section className="relative overflow-hidden bg-black">
+        {/* Video background */}
+        <div className="absolute inset-0">
+          <video
+            className="h-full w-full object-cover"
+            src={HERO_VIDEO_URL}
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-black via-black/70 to-slate-900/80" />
+        </div>
 
         <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-10 px-4 py-16 text-white sm:px-6 lg:px-8 lg:py-24">
           <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.45em] text-orange-200">Mobile business marketplace</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.45em] text-orange-300/80">Mobile business marketplace</p>
             <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
-              Not sure? You can now <span className="text-orange-300">try it</span>.
+              Rent, Sell, or BookVendibook, the mobile business marketplace
             </h1>
             <p className="mt-4 text-lg text-white/80 sm:text-xl">
-              From food trucks to vendor markets, Vendibook helps you test, launch, or scale every mobile concept with real inventory and real partners.
+              From food trucks to full-scale event pros, Vendibook helps mobile entrepreneurs launch, grow, and scale with confidence.
             </p>
-            <div className="mt-8 grid gap-4 text-sm sm:grid-cols-3">
-              {[{
-                label: 'Verified hosts',
-                value: '600+'
-              }, {
-                label: 'Markets & pop-ups',
-                value: '120 every week'
-              }, {
-                label: 'Avg. booking time',
-                value: '6 minutes'
-              }].map((stat) => (
-                <div key={stat.label} className="rounded-2xl border border-white/20 bg-white/5 p-4 backdrop-blur">
-                  <p className="text-2xl font-bold text-white">{stat.value}</p>
-                  <p className="text-xs uppercase tracking-[0.35em] text-white/70">{stat.label}</p>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div className="w-full max-w-4xl">
-            <div className="rounded-3xl bg-white/95 p-6 shadow-2xl backdrop-blur">
+            {/* Tabs */}
+            <div className="mb-4 inline-flex rounded-full bg-white/10 p-1 text-sm backdrop-blur">
+              {modeOptions.map((option) => {
+                const isActive = activeTab === option.id;
+                const baseColor = option.color;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => handleModeChange(option.id)}
+                    className={`flex items-center gap-1 rounded-full px-4 py-2 font-semibold transition ${
+                      isActive ? 'bg-white text-black shadow-lg' : 'text-white/80 hover:text-white'
+                    }`}
+                    style={isActive ? { boxShadow: `0 12px 30px ${baseColor}55` } : {}}
+                  >
+                    {option.label === 'Rent' && <span className="text-xs">📅</span>}
+                    {option.label === 'For Sale' && <span className="text-xs">💰</span>}
+                    {option.label === 'Event Pro' && <span className="text-xs">✨</span>}
+                    <span
+                      style={isActive ? { color: baseColor } : {}}
+                    >
+                      {option.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Event Pro sparkles overlay when Event Pro tab is active */}
+            {activeTab === SEARCH_MODE.EVENT_PRO && (
+              <div className="pointer-events-none absolute inset-0">
+                {Array.from({ length: 50 }).map((_, index) => (
+                  <SparkleParticle
+                    key={index}
+                    delay={(index % 10) * 0.35}
+                    left={5 + (index * 2)}
+                    size={6}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Tab content card */}
+            <div
+              className={`rounded-3xl p-6 shadow-2xl backdrop-blur ${
+                activeTab === SEARCH_MODE.EVENT_PRO
+                  ? 'bg-gradient-to-br from-black via-slate-900 to-black/80 border border-orange-500/40'
+                  : 'bg-white/95 text-[#343434]'
+              }`}
+            >
+              {/* Summary row + CTA */}
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Current filters</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-900">{heroSummary}</p>
+                  <p
+                    className={`text-xs font-semibold uppercase tracking-[0.35em] ${
+                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-orange-300' : 'text-slate-500'
+                    }`}
+                  >
+                    Current filters
+                  </p>
+                  <p
+                    className={`mt-1 text-lg font-semibold ${
+                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-white' : 'text-slate-900'
+                    }`}
+                  >
+                    {heroSummary}
+                  </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setSearchModalOpen(true)}
-                  className="inline-flex items-center justify-center rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-orange-600"
+                  className={`inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold shadow-lg transition ${
+                    activeTab === SEARCH_MODE.BUY
+                      ? 'bg-[#4CAF50] text-white hover:bg-[#43A047]'
+                      : 'bg-[#FF5124] text-white hover:bg-[#E04821]'
+                  }`}
                 >
                   <Search className="mr-2 h-4 w-4" />
                   {modalCtaLabel}
                 </button>
               </div>
-              <div className="mt-6 grid gap-4 text-sm text-slate-600 sm:grid-cols-3">
+
+              {/* Three-column quick summary */}
+              <div className="mt-6 grid gap-4 text-sm sm:grid-cols-3">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Location</p>
-                  <p className="mt-1 font-semibold text-slate-900">{locationChipLabel || 'Any city'}</p>
+                  <p
+                    className={`text-xs uppercase tracking-[0.35em] ${
+                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-slate-300' : 'text-slate-400'
+                    }`}
+                  >
+                    Location
+                  </p>
+                  <p
+                    className={`mt-1 font-semibold ${
+                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-white' : 'text-slate-900'
+                    }`}
+                  >
+                    {locationChipLabel || 'Any city'}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Category</p>
-                  <p className="mt-1 font-semibold text-slate-900">{appliedCategoryLabel}</p>
+                  <p
+                    className={`text-xs uppercase tracking-[0.35em] ${
+                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-slate-300' : 'text-slate-400'
+                    }`}
+                  >
+                    Category
+                  </p>
+                  <p
+                    className={`mt-1 font-semibold ${
+                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-white' : 'text-slate-900'
+                    }`}
+                  >
+                    {appliedCategoryLabel}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.35em] text-slate-400">Dates</p>
-                  <p className="mt-1 font-semibold text-slate-900">{formatDateRange(appliedFilters.startDate, appliedFilters.endDate)}</p>
+                  <p
+                    className={`text-xs uppercase tracking-[0.35em] ${
+                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-slate-300' : 'text-slate-400'
+                    }`}
+                  >
+                    Dates
+                  </p>
+                  <p
+                    className={`mt-1 font-semibold ${
+                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-white' : 'text-slate-900'
+                    }`}
+                  >
+                    {formatDateRange(appliedFilters.startDate, appliedFilters.endDate)}
+                  </p>
                 </div>
               </div>
+
+              {/* Category pills row – color shifts by tab */}
               <div className="mt-6 flex flex-wrap gap-2">
                 {appliedCategoryOptions.map((category) => {
                   const Icon = category.Icon;
                   const isActive = appliedFilters.listingType
                     ? appliedFilters.listingType === category.value
                     : category.value === '';
+
+                  let pillBg = 'bg-white/10';
+                  let pillText = 'text-white';
+                  let pillBorder = 'border-white/30';
+
+                  if (activeTab === SEARCH_MODE.RENT) {
+                    pillBg = isActive ? 'bg-[#FF5124]/10' : 'bg-white';
+                    pillText = isActive ? 'text-[#FF5124]' : 'text-[#343434]';
+                    pillBorder = isActive ? 'border-[#FF5124]' : 'border-slate-200';
+                  } else if (activeTab === SEARCH_MODE.BUY) {
+                    pillBg = isActive ? 'bg-[#4CAF50]/10' : 'bg-white';
+                    pillText = isActive ? 'text-[#4CAF50]' : 'text-[#343434]';
+                    pillBorder = isActive ? 'border-[#4CAF50]' : 'border-slate-200';
+                  } else if (activeTab === SEARCH_MODE.EVENT_PRO) {
+                    pillBg = isActive ? 'bg-orange-500/30' : 'bg-white/5';
+                    pillText = isActive ? 'text-white' : 'text-slate-200';
+                    pillBorder = isActive ? 'border-orange-400' : 'border-slate-600/60';
+                  }
+
                   return (
                     <div
                       key={category.value || 'all-categories'}
-                      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                        isActive
-                          ? 'bg-white/10 text-white'
-                          : 'border-white/30 text-white/80'
-                      }`}
+                      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${pillBg} ${pillText} ${pillBorder}`}
                       style={{
-                        borderColor: isActive ? category.color : 'rgba(255,255,255,0.3)'
+                        borderColor: isActive ? category.color : undefined
                       }}
                     >
                       <Icon className="h-4 w-4" />
@@ -1086,7 +1090,7 @@ function HomePage() {
             <div
               key={listing.id}
               style={{ cursor: 'pointer' }}
-              onClick={() => handleBookNow(listing)}
+              onClick={() => handleOpenQuickView(listing)}
             >
               <div style={{
                 position: 'relative',
@@ -1148,9 +1152,8 @@ function HomePage() {
                 <p style={{ fontSize: '14px', color: 'rgba(52, 52, 52, 0.65)', marginBottom: '8px' }}>
                   {listing.host}
                 </p>
-
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
-                  {(listing.features || []).slice(0, 3).map((feature, idx) => (
+                  {(listing.highlights || listing.tags || []).slice(0, 3).map((feature, idx) => (
                     <span
                       key={idx}
                       style={{
@@ -1169,10 +1172,10 @@ function HomePage() {
 
                 <p style={{ fontSize: '15px', color: '#343434', marginTop: '8px' }}>
                   <span style={{ fontWeight: '600' }}>
-                    ${listing.priceType === 'sale' ? listing.price.toLocaleString() : listing.price}
+                    ${listing.price?.toLocaleString()}
                   </span>
                   <span style={{ fontWeight: '400', color: 'rgba(52, 52, 52, 0.65)' }}>
-                    {listing.priceType === 'sale' ? '' : ` / ${listing.priceType}`}
+                    {listing.priceUnit ? ` / ${listing.priceUnit}` : ''}
                   </span>
                 </p>
               </div>
@@ -1188,6 +1191,112 @@ function HomePage() {
           </div>
         )}
       </section>
+
+      {/* Quick View Overlay */}
+      {quickViewListing && (
+        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 px-4 py-8">
+          <div className="relative w-full max-w-3xl rounded-3xl bg-white shadow-2xl">
+            <button
+              type="button"
+              onClick={handleCloseQuickView}
+              className="absolute right-4 top-4 rounded-full bg-black/5 p-1 text-slate-600 hover:bg-black/10"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="grid gap-6 p-6 md:grid-cols-[1.4fr_1fr]">
+              <div>
+                <div className="overflow-hidden rounded-2xl">
+                  <img
+                    src={quickViewListing.image}
+                    alt={quickViewListing.title}
+                    className="h-60 w-full object-cover"
+                  />
+                </div>
+                {/* Thumbnail gallery */}
+                {Array.isArray(quickViewListing.imageUrls) && quickViewListing.imageUrls.length > 0 && (
+                  <div className="mt-3 flex gap-2 overflow-x-auto">
+                    {quickViewListing.imageUrls.slice(0, 6).map((url) => (
+                      <button
+                        key={url}
+                        type="button"
+                        onClick={() => {
+                          // swap main image with selected thumb
+                          setQuickViewListing((prev) => (prev ? { ...prev, image: url } : prev));
+                        }}
+                        className="relative h-14 w-20 flex-shrink-0 overflow-hidden rounded-xl border border-slate-200"
+                      >
+                        <img src={url} alt="Thumbnail" className="h-full w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {!quickViewListing.imageUrls?.length && (
+                  <div className="mt-3 text-[11px] text-slate-500">
+                    Quick view shows a preview. Full gallery lives on the listing page.
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">{quickViewListing.title}</h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {quickViewListing.location || [quickViewListing.city, quickViewListing.state].filter(Boolean).join(', ')}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                    {quickViewListing.host && (
+                      <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">Verified host</span>
+                    )}
+                    {quickViewListing.deliveryAvailable && (
+                      <span className="rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-700">Delivery available</span>
+                    )}
+                    {appliedFilters.mode === SEARCH_MODE.EVENT_PRO && (
+                      <span className="rounded-full bg-orange-50 px-3 py-1 font-medium text-orange-700">Event pro</span>
+                    )}
+                    {appliedFilters.mode === SEARCH_MODE.BUY && (
+                      <span className="rounded-full bg-amber-50 px-3 py-1 font-medium text-amber-700">Financing available*</span>
+                    )}
+                  </div>
+                  <p className="mt-4 text-sm text-slate-700">
+                    {(quickViewListing.description || '').slice(0, 160) || 'Preview this listing, then open the full page for calendar, gallery, and complete details.'}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+                    {(quickViewListing.highlights || quickViewListing.tags || []).slice(0, 4).map((tag) => (
+                      <span key={tag} className="rounded-full bg-slate-100 px-3 py-1 font-medium">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-2 flex flex-col gap-3 border-t border-slate-200 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-slate-600">From</p>
+                    <p className="text-xl font-semibold text-slate-900">
+                      ${quickViewListing.price?.toLocaleString()}{' '}
+                      <span className="text-sm font-normal text-slate-500">
+                        {quickViewListing.priceUnit ? ` / ${quickViewListing.priceUnit}` : ''}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <button
+                      type="button"
+                      onClick={handlePrimaryCta}
+                      className="inline-flex flex-1 items-center justify-center rounded-full bg-[#FF5124] px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-[#E04821]"
+                    >
+                      {getPrimaryCtaLabel()}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleViewFullListing}
+                      className="inline-flex flex-1 items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                    >
+                      View full listing
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* How Vendibook Works Section */}
       <section style={{ background: '#F8F8F8', padding: '80px 40px' }}>
