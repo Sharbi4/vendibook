@@ -1310,13 +1310,13 @@ function HomePage() {
                   >
                     <TabSparkles isActive={isActive} color={isActive ? '#F97316' : '#9CA3AF'} />
                     <div className="flex items-center gap-1">
-                      <TabIcon className="h-3.5 w-3.5" />
-                      <span className="pill-label text-[0.8rem] font-semibold truncate">
+                      <TabIcon className="h-4 w-4" />
+                      <span className="pill-label text-[0.875rem] font-bold tracking-[0.01em] truncate leading-tight">
                         {option.label}
                       </span>
                     </div>
                     {subcopy && (
-                      <span className={`pill-sub mt-0.5 text-[0.7rem] ${
+                      <span className={`pill-sub mt-1 text-[0.75rem] font-medium tracking-[0.005em] leading-tight ${
                         isActive ? 'text-[#FB923C]' : 'text-slate-400'
                       }`}>
                         {subcopy}
