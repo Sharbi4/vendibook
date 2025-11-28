@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { SaveButtonOverlay } from './SaveButton';
 
-export default function ListingCard({ listing }) {
+export default function ListingCard({ listing, showSaveButton = true }) {
   const [imageError, setImageError] = useState(false);
   
   const listingId = listing?.id;
@@ -46,6 +47,9 @@ export default function ListingCard({ listing }) {
             <div className="absolute right-3 top-3 rounded-full bg-charcoal/85 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
               Delivery
             </div>
+          )}
+          {showSaveButton && listingId && (
+            <SaveButtonOverlay listingId={listingId} className={deliveryAvailable ? 'top-12' : ''} />
           )}
         </div>
 

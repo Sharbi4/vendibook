@@ -5,9 +5,12 @@ import { getListingById as getMockListingById } from '../data/listings';
 import { AvailabilityCalendar } from '../components/AvailabilityCalendar';
 import { ListingMapPlaceholder } from '../components/ListingMapPlaceholder';
 import { BookingCheckoutModal } from '../components/BookingCheckoutModal';
+import { ReviewsSection } from '../components/ReviewsSection';
+import { SaveButton } from '../components/SaveButton';
 import { useEventProPackages } from '../hooks/useEventProPackages';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStatus } from '../hooks/useAppStatus';
+import { useAnalytics, ANALYTICS_EVENTS } from '../hooks/useAnalytics';
 
 const normalizeValue = (value) => (value ? value.toString().toLowerCase() : '');
 
@@ -115,6 +118,7 @@ function ListingDetails() {
   const navigate = useNavigate();
   const { user, token, isAuthenticated } = useAuth();
   const { setGlobalLoading, setGlobalError } = useAppStatus();
+  const { track, trackBookingFunnel } = useAnalytics();
   const [listing, setListing] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -210,6 +214,13 @@ function ListingDetails() {
 
         if (isMounted) {
           setListing(record);
+          // Track listing view
+          track(ANALYTICS_EVENTS.LISTING_VIEWED, {
+            listingId: record.id,
+            title: record.title,
+            category: record.listing_type || record.category,
+            price: record.price
+          });
         }
       } catch (err) {
         if (err.name === 'AbortError') return;
@@ -303,6 +314,14 @@ function ListingDetails() {
     // Open the Stripe checkout modal
     setBookingFeedback(null);
     setShowCheckoutModal(true);
+    
+    // Track booking initiation
+    trackBookingFunnel('checkout_started', listing.id, {
+      price: listing.price,
+      days: rentalDays,
+      hours: durationHours,
+      isHourly: isHourlyMode
+    });
   };
 
   const handleMessageHost = async () => {
@@ -639,7 +658,7 @@ function ListingDetails() {
   return (
     <div className="min-h-screen bg-[#F8F8F8]">
       <header className="border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <button
             onClick={() => navigate('/listings')}
             className="flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-slate-900"
@@ -647,6 +666,13 @@ function ListingDetails() {
             <ArrowLeft className="h-5 w-5" />
             Back to listings
           </button>
+          {listing?.id && (
+            <SaveButton 
+              listingId={listing.id} 
+              showLabel 
+              onAuthRequired={() => navigate('/signin')}
+            />
+          )}
         </div>
       </header>
 
@@ -887,6 +913,14 @@ function ListingDetails() {
                     ))}
                   </ul>
                 </section>
+              </article>
+            )}
+
+            {/* Reviews Section */}
+            {listing?.id && (
+              <article className="rounded-3xl bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)] sm:p-8">
+                <h2 className="text-lg font-semibold text-slate-900 mb-6">Reviews</h2>
+                <ReviewsSection listingId={listing.id} />
               </article>
             )}
           </div>

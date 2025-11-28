@@ -21,6 +21,7 @@ import SignUpPage from './pages/SignUpPage';
 import BlogIndexPage from './pages/BlogIndexPage';
 import BlogPostPage from './pages/BlogPostPage';
 import AboutPage from './pages/AboutPage';
+import WishlistPage from './pages/WishlistPage';
 import RequireAuth from './auth/RequireAuth.jsx';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import CheckoutCancel from './pages/CheckoutCancel';
@@ -97,6 +98,14 @@ function App() {
           element={(
             <RequireAuth>
               <MyBookingsPage />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path="/wishlist"
+          element={(
+            <RequireAuth>
+              <WishlistPage />
             </RequireAuth>
           )}
         />

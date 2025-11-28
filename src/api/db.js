@@ -935,3 +935,227 @@ export function bootstrapListingDocumentsTable() {
 
   return listingDocumentsBootstrapPromise;
 }
+
+// ============================================================================
+// REVIEWS TABLE
+// ============================================================================
+let reviewsBootstrapPromise;
+
+export function bootstrapReviewsTable() {
+  if (!reviewsBootstrapPromise) {
+    reviewsBootstrapPromise = (async () => {
+      await bootstrapListingsTable();
+      await bootstrapUsersTable();
+      await bootstrapBookingsTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS reviews (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          listing_id UUID REFERENCES listings(id) ON DELETE CASCADE,
+          booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
+          reviewer_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          reviewee_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+          review_type TEXT NOT NULL DEFAULT 'listing',
+          rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+          title TEXT,
+          body TEXT,
+          is_public BOOLEAN DEFAULT TRUE,
+          host_response TEXT,
+          host_response_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS idx_reviews_listing ON reviews(listing_id);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_reviews_reviewer ON reviews(reviewer_user_id);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_reviews_rating ON reviews(rating);`;
+    })().catch(error => {
+      reviewsBootstrapPromise = undefined;
+      console.error('Failed to bootstrap reviews table:', error);
+      throw error;
+    });
+  }
+  return reviewsBootstrapPromise;
+}
+
+// ============================================================================
+// WISHLIST TABLE
+// ============================================================================
+let wishlistBootstrapPromise;
+
+export function bootstrapWishlistTable() {
+  if (!wishlistBootstrapPromise) {
+    wishlistBootstrapPromise = (async () => {
+      await bootstrapListingsTable();
+      await bootstrapUsersTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS wishlists (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE(user_id, listing_id)
+        );
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS idx_wishlist_user ON wishlists(user_id);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_wishlist_listing ON wishlists(listing_id);`;
+    })().catch(error => {
+      wishlistBootstrapPromise = undefined;
+      console.error('Failed to bootstrap wishlists table:', error);
+      throw error;
+    });
+  }
+  return wishlistBootstrapPromise;
+}
+
+// ============================================================================
+// ANALYTICS EVENTS TABLE
+// ============================================================================
+let analyticsEventsBootstrapPromise;
+
+export function bootstrapAnalyticsEventsTable() {
+  if (!analyticsEventsBootstrapPromise) {
+    analyticsEventsBootstrapPromise = (async () => {
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS analytics_events (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          event_type TEXT NOT NULL,
+          user_id UUID,
+          listing_id UUID,
+          booking_id UUID,
+          session_id TEXT,
+          properties JSONB DEFAULT '{}'::jsonb,
+          user_agent TEXT,
+          ip_address TEXT,
+          referrer TEXT,
+          url TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS idx_analytics_event_type ON analytics_events(event_type);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_analytics_user ON analytics_events(user_id);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_analytics_created ON analytics_events(created_at);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_analytics_listing ON analytics_events(listing_id);`;
+    })().catch(error => {
+      analyticsEventsBootstrapPromise = undefined;
+      console.error('Failed to bootstrap analytics_events table:', error);
+      throw error;
+    });
+  }
+  return analyticsEventsBootstrapPromise;
+}
+
+// ============================================================================
+// BOOKING STATUS CONSTANTS
+// ============================================================================
+export const BOOKING_STATUS = {
+  PENDING: 'PENDING',
+  HOST_APPROVED: 'HOST_APPROVED',
+  PAID: 'PAID',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  DECLINED: 'DECLINED',
+  CANCELED: 'CANCELED',
+  DISPUTED: 'DISPUTED',
+  EXPIRED: 'EXPIRED'
+};
+
+// Valid state transitions
+export const BOOKING_TRANSITIONS = {
+  [BOOKING_STATUS.PENDING]: [BOOKING_STATUS.HOST_APPROVED, BOOKING_STATUS.DECLINED, BOOKING_STATUS.CANCELED, BOOKING_STATUS.EXPIRED],
+  [BOOKING_STATUS.HOST_APPROVED]: [BOOKING_STATUS.PAID, BOOKING_STATUS.CANCELED, BOOKING_STATUS.EXPIRED],
+  [BOOKING_STATUS.PAID]: [BOOKING_STATUS.IN_PROGRESS, BOOKING_STATUS.CANCELED, BOOKING_STATUS.DISPUTED],
+  [BOOKING_STATUS.IN_PROGRESS]: [BOOKING_STATUS.COMPLETED, BOOKING_STATUS.DISPUTED],
+  [BOOKING_STATUS.COMPLETED]: [BOOKING_STATUS.DISPUTED],
+  [BOOKING_STATUS.DECLINED]: [],
+  [BOOKING_STATUS.CANCELED]: [],
+  [BOOKING_STATUS.DISPUTED]: [BOOKING_STATUS.COMPLETED, BOOKING_STATUS.CANCELED],
+  [BOOKING_STATUS.EXPIRED]: []
+};
+
+// Check if transition is valid
+export function canTransitionBooking(fromStatus, toStatus) {
+  const allowedTransitions = BOOKING_TRANSITIONS[fromStatus] || [];
+  return allowedTransitions.includes(toStatus);
+}
+
+// ============================================================================
+// SALE STATUS CONSTANTS
+// ============================================================================
+export const SALE_STATUS = {
+  UNDER_OFFER: 'UnderOffer',
+  OFFER_ACCEPTED: 'OfferAccepted',
+  PAYMENT_HELD: 'PaymentHeld',
+  IN_TRANSFER: 'InTransfer',
+  BUYER_CONFIRMED: 'BuyerConfirmed',
+  COMPLETED: 'Completed',
+  DECLINED: 'Declined',
+  CANCELED: 'Canceled',
+  DISPUTED: 'Disputed'
+};
+
+export const SALE_TRANSITIONS = {
+  [SALE_STATUS.UNDER_OFFER]: [SALE_STATUS.OFFER_ACCEPTED, SALE_STATUS.DECLINED, SALE_STATUS.CANCELED],
+  [SALE_STATUS.OFFER_ACCEPTED]: [SALE_STATUS.PAYMENT_HELD, SALE_STATUS.CANCELED],
+  [SALE_STATUS.PAYMENT_HELD]: [SALE_STATUS.IN_TRANSFER, SALE_STATUS.DISPUTED, SALE_STATUS.CANCELED],
+  [SALE_STATUS.IN_TRANSFER]: [SALE_STATUS.BUYER_CONFIRMED, SALE_STATUS.DISPUTED],
+  [SALE_STATUS.BUYER_CONFIRMED]: [SALE_STATUS.COMPLETED, SALE_STATUS.DISPUTED],
+  [SALE_STATUS.COMPLETED]: [],
+  [SALE_STATUS.DECLINED]: [],
+  [SALE_STATUS.CANCELED]: [],
+  [SALE_STATUS.DISPUTED]: [SALE_STATUS.COMPLETED, SALE_STATUS.CANCELED]
+};
+
+export function canTransitionSale(fromStatus, toStatus) {
+  const allowedTransitions = SALE_TRANSITIONS[fromStatus] || [];
+  return allowedTransitions.includes(toStatus);
+}
+
+// ============================================================================
+// FEE CALCULATION CONSTANTS
+// ============================================================================
+export const FEE_RATES = {
+  RENTER_SERVICE_FEE: 0.13,    // 13% charged to renter
+  HOST_COMMISSION: 0.10,       // 10% taken from host payout
+  SELLER_COMMISSION: 0.13,     // 13% for sales
+  STRIPE_PROCESSING: 0.029,    // 2.9% Stripe fee
+  STRIPE_FIXED: 0.30           // $0.30 Stripe fixed fee
+};
+
+export function calculateBookingFees({ basePrice, rentalDays = 1, deliveryFee = 0, upsells = [] }) {
+  const subtotal = basePrice * rentalDays;
+  const upsellTotal = upsells.reduce((sum, u) => sum + (u.price || 0), 0);
+  const taxableAmount = subtotal + deliveryFee;
+  const serviceFee = Math.round(taxableAmount * FEE_RATES.RENTER_SERVICE_FEE * 100) / 100;
+  const total = Math.round((subtotal + deliveryFee + upsellTotal + serviceFee) * 100) / 100;
+  const hostCommission = Math.round(subtotal * FEE_RATES.HOST_COMMISSION * 100) / 100;
+  const hostPayout = Math.round((subtotal - hostCommission) * 100) / 100;
+
+  return {
+    subtotal,
+    rentalDays,
+    deliveryFee,
+    upsellTotal,
+    serviceFee,
+    total,
+    hostCommission,
+    hostPayout,
+    platformRevenue: serviceFee + hostCommission
+  };
+}
+
+export function calculateSaleFees({ salePrice }) {
+  const sellerCommission = Math.round(salePrice * FEE_RATES.SELLER_COMMISSION * 100) / 100;
+  const sellerPayout = Math.round((salePrice - sellerCommission) * 100) / 100;
+  const stripeProcessing = Math.round((salePrice * FEE_RATES.STRIPE_PROCESSING + FEE_RATES.STRIPE_FIXED) * 100) / 100;
+
+  return {
+    salePrice,
+    sellerCommission,
+    sellerPayout,
+    stripeProcessing,
+    platformRevenue: sellerCommission
+  };
+}
