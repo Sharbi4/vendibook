@@ -1281,7 +1281,7 @@ function HomePage() {
 
         {/* Search module container */}
         <div className="relative z-10 mx-auto w-full max-w-[680px] px-5 sm:px-6 vb-enter-fade-up">
-          {/* Mode tabs – top pills with safe-area spacing */}
+          {/* Mode tabs – top pills with helper text */}
           <div className="mb-6 flex justify-center">
             <div
               className="flex w-full max-w-[720px] gap-3"
@@ -1290,21 +1290,38 @@ function HomePage() {
               {modeOptions.map((option) => {
                 const isActive = activeTab === option.id;
                 const TabIcon = option.icon;
+                const subcopyByMode = {
+                  [SEARCH_MODE.RENT]: 'Rent food trucks & kitchens to launch a food business',
+                  [SEARCH_MODE.BUY]: 'Buy trucks & trailers',
+                  [SEARCH_MODE.EVENT_PRO]: 'Hire a food truck for a party'
+                };
+                const subcopy = subcopyByMode[option.id] || '';
 
                 return (
                   <button
                     key={option.id}
                     type="button"
                     onClick={() => handleModeChange(option.id)}
-                    className={`vb-focus relative flex-1 items-center justify-center gap-2 rounded-full border bg-white px-3 py-2 text-sm font-medium text-slate-400 shadow-sm transition-all duration-200 hover:bg-slate-50 ${
+                    className={`vb-focus relative flex-1 rounded-full border bg-white px-3 py-2 text-xs font-medium text-slate-400 shadow-sm transition-all duration-200 hover:bg-slate-50 ${
                       isActive
                         ? 'border-[#F97316] text-[#F97316] shadow-md -translate-y-px'
                         : 'border-slate-200'
-                    } flex`}
+                    } flex flex-col items-center text-center leading-snug`}
                   >
                     <TabSparkles isActive={isActive} color={isActive ? '#F97316' : '#9CA3AF'} />
-                    <TabIcon className="h-4 w-4" />
-                    <span className="truncate">{option.label}</span>
+                    <div className="flex items-center gap-1">
+                      <TabIcon className="h-3.5 w-3.5" />
+                      <span className="pill-label text-[0.8rem] font-semibold truncate">
+                        {option.label}
+                      </span>
+                    </div>
+                    {subcopy && (
+                      <span className={`pill-sub mt-0.5 text-[0.7rem] ${
+                        isActive ? 'text-[#FB923C]' : 'text-slate-400'
+                      }`}>
+                        {subcopy}
+                      </span>
+                    )}
                   </button>
                 );
               })}
