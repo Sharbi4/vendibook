@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useListings } from '../hooks/useListings.js';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import AppLayout from '../layouts/AppLayout.jsx';
 import LocationAutocomplete from '../components/LocationAutocomplete.jsx';
+import VendibookMap from '../components/VendibookMap.jsx';
 import {
   ADVANCED_FILTER_PLACEHOLDERS,
   EVENT_PRO_SECONDARY_FILTERS,
@@ -48,6 +49,335 @@ const HERO_VIDEO_URL = '/videos/hero-mobile-vendors.mp4';
 // Hero brightness: 'dark' means we use white outlines/text on inactive tabs
 const HERO_BRIGHTNESS = 'dark';
 const CATEGORY_COLOR_PALETTE = ['#FF5124', '#4CAF50', '#343434', '#F8F8F8'];
+
+// ============================================================
+// SAMPLE LISTINGS DATASET - 10+ realistic listings for demo
+// Until backend is fully populated, this serves as search results
+// ============================================================
+const SAMPLE_LISTINGS = [
+  {
+    id: 'sample-1',
+    title: 'Taco Express Food Truck',
+    type: 'food-trucks',
+    category: 'food-trucks',
+    listingType: 'rent',
+    mode: 'rent',
+    lat: 33.4484,
+    lng: -112.074,
+    latitude: 33.4484,
+    longitude: -112.074,
+    city: 'Phoenix',
+    state: 'AZ',
+    location: 'Phoenix, AZ',
+    price: 350,
+    priceUnit: 'day',
+    description: 'Fully equipped taco truck with commercial kitchen, seats 2 operators. Perfect for events and festivals.',
+    image: 'https://images.unsplash.com/photo-1567129937968-cdad8f07d5f3?auto=format&fit=crop&w=800&q=80',
+    rating: 4.8,
+    host: 'Maria\'s Trucks LLC',
+    isVerified: true,
+    deliveryAvailable: true,
+    highlights: ['Commercial kitchen', 'Generator included', '2 operators']
+  },
+  {
+    id: 'sample-2',
+    title: 'Gourmet Burger Trailer',
+    type: 'trailers',
+    category: 'trailers',
+    listingType: 'rent',
+    mode: 'rent',
+    lat: 32.2226,
+    lng: -110.9747,
+    latitude: 32.2226,
+    longitude: -110.9747,
+    city: 'Tucson',
+    state: 'AZ',
+    location: 'Tucson, AZ',
+    price: 275,
+    priceUnit: 'day',
+    description: 'Premium burger trailer with flat-top grill, fryer, and refrigeration. Great for pop-up events.',
+    image: 'https://images.unsplash.com/photo-1551218808-94e220e084d2?auto=format&fit=crop&w=800&q=80',
+    rating: 4.6,
+    host: 'Arizona Mobile Eats',
+    isVerified: true,
+    deliveryAvailable: false,
+    highlights: ['Flat-top grill', 'Deep fryer', 'Refrigeration']
+  },
+  {
+    id: 'sample-3',
+    title: 'Coffee Cart - Espresso Ready',
+    type: 'other',
+    category: 'other',
+    listingType: 'rent',
+    mode: 'rent',
+    lat: 33.4942,
+    lng: -111.9261,
+    latitude: 33.4942,
+    longitude: -111.9261,
+    city: 'Scottsdale',
+    state: 'AZ',
+    location: 'Scottsdale, AZ',
+    price: 150,
+    priceUnit: 'day',
+    description: 'Compact espresso cart perfect for corporate events, weddings, and farmers markets.',
+    image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80',
+    rating: 4.9,
+    host: 'Desert Bean Co',
+    isVerified: true,
+    deliveryAvailable: true,
+    highlights: ['Espresso machine', 'Grinder', 'Portable']
+  },
+  {
+    id: 'sample-4',
+    title: 'BBQ Smoker Trailer',
+    type: 'trailers',
+    category: 'trailers',
+    listingType: 'sale',
+    mode: 'sale',
+    lat: 33.4152,
+    lng: -111.8315,
+    latitude: 33.4152,
+    longitude: -111.8315,
+    city: 'Tempe',
+    state: 'AZ',
+    location: 'Tempe, AZ',
+    price: 28500,
+    priceUnit: null,
+    description: 'Professional BBQ smoker trailer, used for 2 seasons. Includes offset smoker and warming box.',
+    image: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=800&q=80',
+    rating: 4.7,
+    host: 'Smoke Ring BBQ',
+    isVerified: false,
+    deliveryAvailable: true,
+    highlights: ['Offset smoker', 'Warming box', 'Low mileage']
+  },
+  {
+    id: 'sample-5',
+    title: 'Ice Cream Truck - Vintage Style',
+    type: 'food-trucks',
+    category: 'food-trucks',
+    listingType: 'sale',
+    mode: 'sale',
+    lat: 33.3528,
+    lng: -111.7890,
+    latitude: 33.3528,
+    longitude: -111.7890,
+    city: 'Mesa',
+    state: 'AZ',
+    location: 'Mesa, AZ',
+    price: 42000,
+    priceUnit: null,
+    description: 'Classic 1985 ice cream truck fully restored. Working soft serve machine and freezer units.',
+    image: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=800&q=80',
+    rating: 4.5,
+    host: 'Cool Treats AZ',
+    isVerified: true,
+    deliveryAvailable: false,
+    highlights: ['Soft serve', 'Freezer units', 'Restored classic']
+  },
+  {
+    id: 'sample-6',
+    title: 'Chef Marco - Italian Catering',
+    type: 'event-pro',
+    category: 'event-pro',
+    listingType: 'event-pro',
+    mode: 'event-pro',
+    lat: 33.4255,
+    lng: -111.9400,
+    latitude: 33.4255,
+    longitude: -111.9400,
+    city: 'Phoenix',
+    state: 'AZ',
+    location: 'Phoenix, AZ',
+    price: 500,
+    priceUnit: 'event',
+    description: 'Professional Italian chef available for private events, weddings, and corporate catering.',
+    image: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=800&q=80',
+    rating: 5.0,
+    host: 'Chef Marco',
+    isVerified: true,
+    deliveryAvailable: false,
+    highlights: ['Italian cuisine', '15+ years', 'Weddings']
+  },
+  {
+    id: 'sample-7',
+    title: 'DJ Beats - Mobile Entertainment',
+    type: 'event-pro',
+    category: 'event-pro',
+    listingType: 'event-pro',
+    mode: 'event-pro',
+    lat: 32.2540,
+    lng: -110.9742,
+    latitude: 32.2540,
+    longitude: -110.9742,
+    city: 'Tucson',
+    state: 'AZ',
+    location: 'Tucson, AZ',
+    price: 350,
+    priceUnit: 'event',
+    description: 'Professional DJ with full sound system and lighting. Weddings, parties, corporate events.',
+    image: 'https://images.unsplash.com/photo-1571266028243-e4733b0f0bb0?auto=format&fit=crop&w=800&q=80',
+    rating: 4.8,
+    host: 'DJ Beats Entertainment',
+    isVerified: true,
+    deliveryAvailable: false,
+    highlights: ['Sound system', 'Lighting', 'All events']
+  },
+  {
+    id: 'sample-8',
+    title: 'Pizza Oven Trailer',
+    type: 'trailers',
+    category: 'trailers',
+    listingType: 'rent',
+    mode: 'rent',
+    lat: 33.5722,
+    lng: -112.0891,
+    latitude: 33.5722,
+    longitude: -112.0891,
+    city: 'Glendale',
+    state: 'AZ',
+    location: 'Glendale, AZ',
+    price: 400,
+    priceUnit: 'day',
+    description: 'Wood-fired pizza oven trailer. Makes authentic Neapolitan pizza. Great for events!',
+    image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80',
+    rating: 4.9,
+    host: 'Fired Up Pizza Co',
+    isVerified: true,
+    deliveryAvailable: true,
+    highlights: ['Wood-fired', 'Neapolitan style', 'Event ready']
+  },
+  {
+    id: 'sample-9',
+    title: 'Mobile Bar Trailer',
+    type: 'other',
+    category: 'other',
+    listingType: 'rent',
+    mode: 'rent',
+    lat: 33.4373,
+    lng: -112.0078,
+    latitude: 33.4373,
+    longitude: -112.0078,
+    city: 'Phoenix',
+    state: 'AZ',
+    location: 'Phoenix, AZ',
+    price: 500,
+    priceUnit: 'day',
+    description: 'Fully licensed mobile bar trailer with tap system and refrigeration. Perfect for weddings.',
+    image: 'https://images.unsplash.com/photo-1470337458703-46ad1756a187?auto=format&fit=crop&w=800&q=80',
+    rating: 4.7,
+    host: 'Pour House Mobile',
+    isVerified: true,
+    deliveryAvailable: true,
+    highlights: ['Tap system', 'Refrigeration', 'Licensed']
+  },
+  {
+    id: 'sample-10',
+    title: 'Sarah\'s Sweet Treats Cart',
+    type: 'other',
+    category: 'other',
+    listingType: 'sale',
+    mode: 'sale',
+    lat: 33.3062,
+    lng: -111.8413,
+    latitude: 33.3062,
+    longitude: -111.8413,
+    city: 'Gilbert',
+    state: 'AZ',
+    location: 'Gilbert, AZ',
+    price: 8500,
+    priceUnit: null,
+    description: 'Custom dessert cart with display case and refrigeration. Perfect for farmers markets.',
+    image: 'https://images.unsplash.com/photo-1486427944299-d1955d23e34d?auto=format&fit=crop&w=800&q=80',
+    rating: 4.6,
+    host: 'Sarah\'s Sweets',
+    isVerified: false,
+    deliveryAvailable: false,
+    highlights: ['Display case', 'Refrigerated', 'Custom build']
+  },
+  {
+    id: 'sample-11',
+    title: 'Event Photographer - Premium',
+    type: 'event-pro',
+    category: 'event-pro',
+    listingType: 'event-pro',
+    mode: 'event-pro',
+    lat: 33.5091,
+    lng: -111.8986,
+    latitude: 33.5091,
+    longitude: -111.8986,
+    city: 'Scottsdale',
+    state: 'AZ',
+    location: 'Scottsdale, AZ',
+    price: 750,
+    priceUnit: 'event',
+    description: 'Professional event photographer with 10+ years experience. Weddings, corporate, parties.',
+    image: 'https://images.unsplash.com/photo-1554048612-b6a482bc67e5?auto=format&fit=crop&w=800&q=80',
+    rating: 4.9,
+    host: 'Lens Master Photography',
+    isVerified: true,
+    deliveryAvailable: false,
+    highlights: ['10+ years', 'All events', 'Same-day preview']
+  },
+  {
+    id: 'sample-12',
+    title: 'Shaved Ice Trailer',
+    type: 'trailers',
+    category: 'trailers',
+    listingType: 'rent',
+    mode: 'rent',
+    lat: 33.6189,
+    lng: -111.8978,
+    latitude: 33.6189,
+    longitude: -111.8978,
+    city: 'Fountain Hills',
+    state: 'AZ',
+    location: 'Fountain Hills, AZ',
+    price: 200,
+    priceUnit: 'day',
+    description: 'Colorful shaved ice trailer with commercial ice shaver. 20+ flavor syrups included.',
+    image: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?auto=format&fit=crop&w=800&q=80',
+    rating: 4.4,
+    host: 'Chill Zone AZ',
+    isVerified: false,
+    deliveryAvailable: true,
+    highlights: ['Ice shaver', '20+ flavors', 'Event ready']
+  }
+];
+
+// Helper function to filter sample listings based on search criteria
+const filterSampleListings = (mode, locationLabel, category, lat, lng) => {
+  return SAMPLE_LISTINGS.filter((listing) => {
+    // Filter by mode
+    const listingMode = listing.listingType || listing.mode;
+    if (mode === SEARCH_MODE.RENT && listingMode !== 'rent') return false;
+    if (mode === SEARCH_MODE.BUY && listingMode !== 'sale') return false;
+    if (mode === SEARCH_MODE.EVENT_PRO && listingMode !== 'event-pro') return false;
+    
+    // Filter by category if specified
+    if (category && listing.category !== category && listing.type !== category) return false;
+    
+    // Filter by location if specified (fuzzy match on city/state)
+    if (locationLabel) {
+      const searchTerm = locationLabel.toLowerCase();
+      const listingLocation = `${listing.city} ${listing.state}`.toLowerCase();
+      // If search doesn't match city/state, check if it's close enough
+      if (!listingLocation.includes(searchTerm.split(',')[0].trim())) {
+        // If lat/lng provided, filter by distance (within ~50 miles)
+        if (lat && lng && listing.lat && listing.lng) {
+          const distance = Math.sqrt(
+            Math.pow(listing.lat - lat, 2) + Math.pow(listing.lng - lng, 2)
+          );
+          if (distance > 0.7) return false; // ~50 miles in degree terms
+        } else {
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  });
+};
 
 // Inject global keyframe animations for premium UI
 const injectStyles = () => {
@@ -416,6 +746,11 @@ function HomePage() {
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState(initialFilters.mode || SEARCH_MODE.RENT);
   const [quickViewListing, setQuickViewListing] = useState(null);
+  
+  // State for map marker interactions
+  const [hoveredListingId, setHoveredListingId] = useState(null);
+  const [activeMarkerId, setActiveMarkerId] = useState(null);
+  const listingRefs = useRef({});
 
   useEffect(() => {
     setFilters(initialFilters);
@@ -668,12 +1003,25 @@ function HomePage() {
 
   // Fetch dynamic listings from API (Neon) and merge with legacy mock data until fully migrated
   const { listings: dynamicListings, loading: listingsLoading } = useListings(appliedFilters);
+  
+  // Use sample listings for demo when no backend data
+  const useSampleData = dynamicListings.length === 0;
+  const sampleResults = useSampleData 
+    ? filterSampleListings(
+        appliedFilters.mode, 
+        appliedLocationLabel, 
+        appliedFilters.listingType,
+        appliedFilters.latitude,
+        appliedFilters.longitude
+      )
+    : [];
+  
   // Filter listings based on applied search (real backend data only)
-  const combinedListings = dynamicListings;
+  const combinedListings = useSampleData ? sampleResults : dynamicListings;
   const locationQuery = (appliedLocationLabel || '').toLowerCase();
   const cityQuery = (appliedFilters.city || '').toLowerCase();
   const stateQuery = (appliedFilters.state || '').toLowerCase();
-  const filteredListings = combinedListings.filter((listing) => {
+  const filteredListings = useSampleData ? sampleResults : combinedListings.filter((listing) => {
     const listingMode = String(listing.listingType || '').toLowerCase();
     if (appliedFilters.mode === SEARCH_MODE.RENT && listingMode !== 'rent') {
       return false;
@@ -1609,14 +1957,31 @@ function HomePage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Map</p>
               </div>
               <div className="relative flex-1 bg-slate-200">
-                {/* Mapbox map placeholder - markers and hover highlight behavior */}
-                <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-xs text-slate-600">
-                  <div>
-                    <MapPin className="mx-auto mb-2 h-8 w-8 text-slate-400" />
-                    <p>Interactive map with markers</p>
-                    <p className="mt-1 text-slate-400">Centered {appliedLocationLabel ? `near ${appliedLocationLabel}` : 'on your area'}</p>
-                  </div>
-                </div>
+                {/* Interactive Mapbox map with markers */}
+                <VendibookMap 
+                  center={{
+                    lat: appliedFilters.latitude || 33.4152,
+                    lng: appliedFilters.longitude || -111.9431
+                  }}
+                  zoom={appliedFilters.latitude ? 11 : 9}
+                  markers={filteredListings.map(listing => ({
+                    id: listing.id,
+                    lat: listing.latitude,
+                    lng: listing.longitude,
+                    title: listing.title,
+                    price: listing.price
+                  }))}
+                  activeMarkerId={hoveredListingId || activeMarkerId}
+                  onMarkerClick={(markerId) => {
+                    setActiveMarkerId(markerId);
+                    // Scroll the listing card into view
+                    const ref = listingRefs.current[markerId];
+                    if (ref) {
+                      ref.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                  }}
+                  className="absolute inset-0 !rounded-none"
+                />
               </div>
             </div>
           </div>
@@ -1628,11 +1993,12 @@ function HomePage() {
               {filteredListings.map((listing, index) => (
               <div
                 key={listing.id}
-                className={`vb-card vb-focus group cursor-pointer overflow-hidden rounded-[20px] bg-white vb-shadow-md`}
+                ref={(el) => { listingRefs.current[listing.id] = el; }}
+                className={`vb-card vb-focus group cursor-pointer overflow-hidden rounded-[20px] bg-white vb-shadow-md transition-all duration-200 ${activeMarkerId === listing.id ? 'ring-2 ring-[#FF5124] ring-offset-2' : ''}`}
                 style={{ animationDelay: `${index * 40}ms` }}
                 onClick={() => handleOpenQuickView(listing)}
-                onMouseEnter={() => {/* TODO: highlight marker on map */}}
-                onMouseLeave={() => {/* TODO: unhighlight marker on map */}}
+                onMouseEnter={() => setHoveredListingId(listing.id)}
+                onMouseLeave={() => setHoveredListingId(null)}
               >
                 {/* Image container */}
                 <div className="relative aspect-[4/3] overflow-hidden">
@@ -1743,15 +2109,31 @@ function HomePage() {
                 </p>
               </div>
               <div className="relative flex-1 bg-slate-200">
-                {/* Mapbox map placeholder - markers and hover highlight behavior */}
-                <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-xs text-slate-600">
-                  <div>
-                    <MapPin className="mx-auto mb-3 h-10 w-10 text-slate-400" />
-                    <p className="font-medium">Interactive map with markers</p>
-                    <p className="mt-2 text-slate-400">Hover or select results to highlight pins</p>
-                    <p className="mt-1 text-slate-400">Mapbox integration ready</p>
-                  </div>
-                </div>
+                {/* Interactive Mapbox map with markers */}
+                <VendibookMap 
+                  center={{
+                    lat: appliedFilters.latitude || 33.4152,
+                    lng: appliedFilters.longitude || -111.9431
+                  }}
+                  zoom={appliedFilters.latitude ? 11 : 9}
+                  markers={filteredListings.map(listing => ({
+                    id: listing.id,
+                    lat: listing.latitude,
+                    lng: listing.longitude,
+                    title: listing.title,
+                    price: listing.price
+                  }))}
+                  activeMarkerId={hoveredListingId || activeMarkerId}
+                  onMarkerClick={(markerId) => {
+                    setActiveMarkerId(markerId);
+                    // Scroll the listing card into view
+                    const ref = listingRefs.current[markerId];
+                    if (ref) {
+                      ref.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                  }}
+                  className="absolute inset-0 !rounded-none"
+                />
               </div>
             </div>
           </aside>
