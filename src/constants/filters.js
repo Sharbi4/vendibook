@@ -110,6 +110,24 @@ export const SERVICE_CATEGORIES = [
   { value: 'lighting', label: '💡 Lighting', icon: '💡' }
 ];
 
+// Legacy filter placeholders (for backward compatibility with original HomePage)
+export const ADVANCED_FILTER_PLACEHOLDERS = [
+  { key: 'priceRange', label: 'Price range', description: 'Set min / max budget' },
+  { key: 'amenities', label: 'Amenities', description: 'Power, water, delivery, indoor/outdoor' },
+  { key: 'radius', label: 'Service radius', description: 'Filter by delivery distance' }
+];
+
+// Legacy secondary filters (for backward compatibility)
+export const EVENT_PRO_SECONDARY_FILTERS = [
+  { key: 'capacity', label: 'Capacity/Crowd Size', description: 'Expected number of guests' },
+  { key: 'travel', label: 'Travel/Delivery Included', description: 'Provider travels to your location' },
+  { key: 'availability', label: 'Availability Calendar', description: 'See real-time availability' },
+  { key: 'license', label: 'License/Permit Requirements', description: 'Certifications and permits' },
+  { key: 'instantBooking', label: 'Instant Booking', description: 'Book immediately without approval' },
+  { key: 'reviews', label: 'Reviews & Ratings', description: 'Minimum rating filter' },
+  { key: 'insurance', label: 'Insurance Provided/Required', description: 'Coverage details' }
+];
+
 // Rent-specific advanced filters
 export const RENT_ADVANCED_FILTERS = [
   { key: 'dailyRate', label: '💰 Daily Rate Range', type: 'range', description: 'Min/max daily rate' },
