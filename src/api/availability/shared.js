@@ -91,6 +91,24 @@ export async function getListingRules(listingId) {
   };
 }
 
+/**
+ * States that lock calendar dates (per Vendibook booking state machine)
+ * Dates are ONLY locked when booking reaches Paid state
+ * - Requested and HostApproved do NOT lock dates (booking not yet confirmed)
+ * - Paid, InProgress, ReturnedPendingConfirmation lock dates
+ * - Completed and Canceled release dates
+ */
+const CALENDAR_LOCK_STATES = [
+  'Paid',
+  'PAID',
+  'InProgress',
+  'INPROGRESS',
+  'IN_PROGRESS',
+  'ReturnedPendingConfirmation',
+  'RETURNED_PENDING_CONFIRMATION',
+  'RETURNEDPENDINGCONFIRMATION'
+];
+
 export async function getExistingBookingsForRange(listingId, startDate, endDate) {
   await ensureAvailabilityBootstrap();
 
@@ -101,9 +119,11 @@ export async function getExistingBookingsForRange(listingId, startDate, endDate)
       end_date,
       start_datetime,
       end_datetime,
-      booking_mode
+      booking_mode,
+      status
     FROM bookings
     WHERE listing_id = ${listingId}
+      AND status = ANY(${CALENDAR_LOCK_STATES})
       AND (
         (start_date IS NOT NULL AND end_date IS NOT NULL AND start_date <= ${endDate} AND end_date >= ${startDate})
         OR (
