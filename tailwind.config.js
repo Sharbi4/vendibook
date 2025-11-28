@@ -89,8 +89,9 @@ export default {
     colors: brandColors,
     extend: {
       fontFamily: {
-        display: ['"Space Grotesk"', 'Inter', 'system-ui', 'sans-serif'],
-        body: ['Inter', 'system-ui', 'sans-serif']
+        display: ['SofiaProSoftLight', 'SofiaProSoft', 'Inter', 'system-ui', 'sans-serif'],
+        body: ['SofiaProSoftLight', 'SofiaProSoft', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['SofiaProSoftLight', 'SofiaProSoft', 'Inter', 'system-ui', 'sans-serif']
       },
       boxShadow: {
         'brand-soft': '0 14px 28px rgba(52,52,52,0.12)',
