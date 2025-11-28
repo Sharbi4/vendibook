@@ -4,14 +4,14 @@ import { Menu, X } from 'lucide-react';
 import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
 import { clerkPublishableKey } from '../config/clerkConfig';
 
-const NAV_LINKS = [
-  { label: 'Rent Equipment', to: '/listings?mode=rent', match: { pathname: '/listings', queryKey: 'mode', queryValue: 'rent' } },
-  { label: 'Buy Equipment', to: '/listings?mode=buy', match: { pathname: '/listings', queryKey: 'mode', queryValue: 'buy' } },
-  { label: 'Book Event Pro', to: '/listings?mode=event_pro', match: { pathname: '/listings', queryKey: 'mode', queryValue: 'event_pro' } },
+// Minimal header nav – mode links removed per spec
+const NAV_LINKS_PUBLIC = [
+  { label: 'Community', to: '/community' }
+];
+
+const NAV_LINKS_AUTH = [
   { label: 'Community', to: '/community' },
-  { label: 'Dashboard', to: '/host/dashboard' },
-  { label: 'Profile', to: '/profile' },
-  { label: 'For Sale', to: '/listings?mode=buy&listingType=for-sale', match: { pathname: '/listings', queryKey: 'listingType', queryValue: 'for-sale' } }
+  { label: 'Dashboard', to: '/host/dashboard' }
 ];
 
 function AppHeader({ className = '' }) {
@@ -73,18 +73,12 @@ function AppHeader({ className = '' }) {
   );
 
   const activeLinkMap = useMemo(() => {
-    const params = new URLSearchParams(location.search);
-    return NAV_LINKS.reduce((acc, link) => {
-      if (!link.match) {
-        acc[link.label] = location.pathname === link.to;
-        return acc;
-      }
-      const matchesPath = location.pathname === link.match.pathname;
-      const matchesQuery = link.match.queryKey ? params.get(link.match.queryKey) === link.match.queryValue : true;
-      acc[link.label] = matchesPath && matchesQuery;
+    const allLinks = [...NAV_LINKS_PUBLIC, ...NAV_LINKS_AUTH];
+    return allLinks.reduce((acc, link) => {
+      acc[link.label] = location.pathname === link.to;
       return acc;
     }, {});
-  }, [location.pathname, location.search]);
+  }, [location.pathname]);
 
   const navButton = (link) => (
     <button
@@ -113,7 +107,12 @@ function AppHeader({ className = '' }) {
         </Link>
 
         <nav className="hidden items-center gap-1 xl:flex">
-          {NAV_LINKS.map(navButton)}
+          {NAV_LINKS_PUBLIC.map(navButton)}
+          {clerkEnabled && (
+            <SignedIn>
+              {NAV_LINKS_AUTH.filter(l => l.label !== 'Community').map(navButton)}
+            </SignedIn>
+          )}
         </nav>
 
         <div className="hidden xl:flex">
@@ -158,7 +157,7 @@ function AppHeader({ className = '' }) {
               </button>
             </div>
             <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-5 py-6">
-              {NAV_LINKS.map((link) => (
+              {NAV_LINKS_PUBLIC.map((link) => (
                 <button
                   key={link.label}
                   type="button"
@@ -172,6 +171,24 @@ function AppHeader({ className = '' }) {
                   {link.label}
                 </button>
               ))}
+              {clerkEnabled && (
+                <SignedIn>
+                  {NAV_LINKS_AUTH.filter(l => l.label !== 'Community').map((link) => (
+                    <button
+                      key={link.label}
+                      type="button"
+                      onClick={() => handleNavigate(link.to)}
+                      className={`rounded-2xl px-4 py-3 text-left text-base font-semibold ${
+                        activeLinkMap[link.label]
+                          ? 'bg-orange-50 text-orange-600'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      {link.label}
+                    </button>
+                  ))}
+                </SignedIn>
+              )}
             </nav>
             <div className="border-t border-slate-200 px-5 py-4">
               {clerkEnabled ? (

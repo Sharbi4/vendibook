@@ -14,7 +14,14 @@ import {
   Truck,
   Users,
   ShoppingCart,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Mic2,
+  ChefHat,
+  Music,
+  Camera,
+  Sparkles,
+  SlidersHorizontal,
+  DollarSign
 } from 'lucide-react';
 import AppLayout from '../layouts/AppLayout.jsx';
 import LocationAutocomplete from '../components/LocationAutocomplete.jsx';
@@ -148,11 +155,42 @@ function HomePage() {
     };
   }, [filters.locationLabel, filters.locationText, filters.latitude, filters.longitude, filters.city, filters.state]);
 
+  // Brand colors per tab
+  const TAB_COLORS = {
+    [SEARCH_MODE.RENT]: { bg: '#FF5124', text: '#FFFFFF', accent: '#FF5124' },
+    [SEARCH_MODE.BUY]: { bg: '#4CAF50', text: '#FFFFFF', accent: '#4CAF50' },
+    [SEARCH_MODE.EVENT_PRO]: { bg: '#1A1A2E', text: '#FFFFFF', accent: '#FF5124' }
+  };
+
   const modeOptions = [
-    { id: SEARCH_MODE.RENT, label: 'Rent', color: '#FF5124' },
-    { id: SEARCH_MODE.BUY, label: 'For Sale', color: '#4CAF50' },
-    { id: SEARCH_MODE.EVENT_PRO, label: 'Event Pro', color: '#FF5124' }
+    { id: SEARCH_MODE.RENT, label: 'For Rent', icon: Truck, color: '#FF5124' },
+    { id: SEARCH_MODE.BUY, label: 'For Sale', icon: DollarSign, color: '#4CAF50' },
+    { id: SEARCH_MODE.EVENT_PRO, label: 'Book an Event Pro', icon: Sparkles, color: '#FF5124' }
   ];
+
+  // "What" quick-pick chips per mode
+  const WHAT_OPTIONS = {
+    [SEARCH_MODE.RENT]: [
+      { value: 'food-trucks', label: 'Food Truck', icon: Truck },
+      { value: 'trailers', label: 'Food Trailer', icon: Truck },
+      { value: 'ghost-kitchens', label: 'Ghost Kitchen', icon: UtensilsCrossed },
+      { value: 'vendor-carts', label: 'Vendor Cart', icon: ShoppingCart },
+      { value: 'vending-lots', label: 'Lot / Space', icon: MapPin }
+    ],
+    [SEARCH_MODE.BUY]: [
+      { value: 'food-trucks', label: 'Food Truck', icon: Truck },
+      { value: 'trailers', label: 'Food Trailer', icon: Truck },
+      { value: 'vendor-carts', label: 'Cart', icon: ShoppingCart }
+    ],
+    [SEARCH_MODE.EVENT_PRO]: [
+      { value: 'caterer', label: 'Caterer', icon: UtensilsCrossed },
+      { value: 'mobile-bar', label: 'Mobile Bar', icon: Store },
+      { value: 'dj', label: 'DJ', icon: Music },
+      { value: 'entertainer', label: 'Entertainer', icon: Mic2 },
+      { value: 'chef', label: 'Chef', icon: ChefHat },
+      { value: 'photographer', label: 'Photographer', icon: Camera }
+    ]
+  };
 
   const mapCategoryOptionsForMode = (mode) => (
     [{ value: '', label: 'All categories', iconName: 'grid' }, ...getCategoryOptionsForMode(mode)].map((option) => {
@@ -588,29 +626,23 @@ function HomePage() {
           </div>
 
           <div className="w-full max-w-4xl">
-            {/* Tabs */}
+            {/* Tabs – icons only, no emojis */}
             <div className="mb-4 inline-flex rounded-full bg-white/10 p-1 text-sm backdrop-blur">
               {modeOptions.map((option) => {
                 const isActive = activeTab === option.id;
-                const baseColor = option.color;
+                const TabIcon = option.icon;
                 return (
                   <button
                     key={option.id}
                     type="button"
                     onClick={() => handleModeChange(option.id)}
-                    className={`flex items-center gap-1 rounded-full px-4 py-2 font-semibold transition ${
+                    className={`flex items-center gap-2 rounded-full px-4 py-2 font-semibold transition ${
                       isActive ? 'bg-white text-black shadow-lg' : 'text-white/80 hover:text-white'
                     }`}
-                    style={isActive ? { boxShadow: `0 12px 30px ${baseColor}55` } : {}}
+                    style={isActive ? { boxShadow: `0 12px 30px ${option.color}55` } : {}}
                   >
-                    {option.label === 'Rent' && <span className="text-xs">📅</span>}
-                    {option.label === 'For Sale' && <span className="text-xs">💰</span>}
-                    {option.label === 'Event Pro' && <span className="text-xs">✨</span>}
-                    <span
-                      style={isActive ? { color: baseColor } : {}}
-                    >
-                      {option.label}
-                    </span>
+                    <TabIcon className="h-4 w-4" style={isActive ? { color: option.color } : {}} />
+                    <span style={isActive ? { color: option.color } : {}}>{option.label}</span>
                   </button>
                 );
               })}
@@ -630,138 +662,105 @@ function HomePage() {
               </div>
             )}
 
-            {/* Tab content card */}
+            {/* Search Module – category-driven background & fields */}
             <div
-              className={`rounded-3xl p-6 shadow-2xl backdrop-blur ${
-                activeTab === SEARCH_MODE.EVENT_PRO
-                  ? 'bg-gradient-to-br from-black via-slate-900 to-black/80 border border-orange-500/40'
-                  : 'bg-white/95 text-[#343434]'
-              }`}
+              className="rounded-3xl p-6 shadow-2xl backdrop-blur transition-colors duration-300"
+              style={{
+                background: TAB_COLORS[activeTab]?.bg || '#FF5124',
+                color: TAB_COLORS[activeTab]?.text || '#FFFFFF'
+              }}
             >
-              {/* Summary row + CTA */}
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <p
-                    className={`text-xs font-semibold uppercase tracking-[0.35em] ${
-                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-orange-300' : 'text-slate-500'
-                    }`}
-                  >
-                    Current filters
-                  </p>
-                  <p
-                    className={`mt-1 text-lg font-semibold ${
-                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-white' : 'text-slate-900'
-                    }`}
-                  >
-                    {heroSummary}
-                  </p>
+              {/* Where + What fields */}
+              <div className="grid gap-4 md:grid-cols-2">
+                {/* Location – Mapbox autocomplete */}
+                <div className="[&_label]:text-white/90 [&_label]:text-xs [&_label]:uppercase [&_label]:tracking-widest [&_input]:bg-white/20 [&_input]:text-white [&_input]:placeholder:text-white/60 [&>div>label>div]:border-white/30 [&>div>label>div]:bg-white/10">
+                  <LocationAutocomplete
+                    value={locationSelection}
+                    onChange={handleLocationSelect}
+                    onQueryChange={handleLocationQueryChange}
+                    label="Where"
+                    placeholder="City, region, or address"
+                    className="w-full"
+                  />
                 </div>
+
+                {/* What – visual chips or text */}
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-widest opacity-80">What are you looking for?</label>
+                  <div className="flex flex-wrap gap-2">
+                    {(WHAT_OPTIONS[activeTab] || []).map((opt) => {
+                      const OptIcon = opt.icon;
+                      const isSelected = filters.listingType === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => handleCategoryChange(opt.value)}
+                          className={`flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                            isSelected
+                              ? 'border-white bg-white text-black'
+                              : 'border-white/40 bg-white/10 text-white hover:bg-white/20'
+                          }`}
+                        >
+                          <OptIcon className="h-4 w-4" />
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions row: Search + Filters */}
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <button
                   type="button"
-                  onClick={() => setSearchModalOpen(true)}
-                  className={`inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold shadow-lg transition ${
-                    activeTab === SEARCH_MODE.BUY
-                      ? 'bg-[#4CAF50] text-white hover:bg-[#43A047]'
-                      : 'bg-[#FF5124] text-white hover:bg-[#E04821]'
-                  }`}
+                  onClick={handleSearch}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold shadow-lg transition hover:shadow-xl"
+                  style={{ color: TAB_COLORS[activeTab]?.bg || '#FF5124' }}
                 >
-                  <Search className="mr-2 h-4 w-4" />
-                  {modalCtaLabel}
+                  <Search className="h-4 w-4" />
+                  Search
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowFilters((p) => !p)}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-white/40 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/20"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filters
                 </button>
               </div>
 
-              {/* Three-column quick summary */}
-              <div className="mt-6 grid gap-4 text-sm sm:grid-cols-3">
-                <div>
-                  <p
-                    className={`text-xs uppercase tracking-[0.35em] ${
-                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-slate-300' : 'text-slate-400'
-                    }`}
-                  >
-                    Location
-                  </p>
-                  <p
-                    className={`mt-1 font-semibold ${
-                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-white' : 'text-slate-900'
-                    }`}
-                  >
-                    {locationChipLabel || 'Any city'}
-                  </p>
-                </div>
-                <div>
-                  <p
-                    className={`text-xs uppercase tracking-[0.35em] ${
-                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-slate-300' : 'text-slate-400'
-                    }`}
-                  >
-                    Category
-                  </p>
-                  <p
-                    className={`mt-1 font-semibold ${
-                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-white' : 'text-slate-900'
-                    }`}
-                  >
-                    {appliedCategoryLabel}
-                  </p>
-                </div>
-                <div>
-                  <p
-                    className={`text-xs uppercase tracking-[0.35em] ${
-                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-slate-300' : 'text-slate-400'
-                    }`}
-                  >
-                    Dates
-                  </p>
-                  <p
-                    className={`mt-1 font-semibold ${
-                      activeTab === SEARCH_MODE.EVENT_PRO ? 'text-white' : 'text-slate-900'
-                    }`}
-                  >
-                    {formatDateRange(appliedFilters.startDate, appliedFilters.endDate)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Category pills row – color shifts by tab */}
-              <div className="mt-6 flex flex-wrap gap-2">
-                {appliedCategoryOptions.map((category) => {
-                  const Icon = category.Icon;
-                  const isActive = appliedFilters.listingType
-                    ? appliedFilters.listingType === category.value
-                    : category.value === '';
-
-                  let pillBg = 'bg-white/10';
-                  let pillText = 'text-white';
-                  let pillBorder = 'border-white/30';
-
-                  if (activeTab === SEARCH_MODE.RENT) {
-                    pillBg = isActive ? 'bg-[#FF5124]/10' : 'bg-white';
-                    pillText = isActive ? 'text-[#FF5124]' : 'text-[#343434]';
-                    pillBorder = isActive ? 'border-[#FF5124]' : 'border-slate-200';
-                  } else if (activeTab === SEARCH_MODE.BUY) {
-                    pillBg = isActive ? 'bg-[#4CAF50]/10' : 'bg-white';
-                    pillText = isActive ? 'text-[#4CAF50]' : 'text-[#343434]';
-                    pillBorder = isActive ? 'border-[#4CAF50]' : 'border-slate-200';
-                  } else if (activeTab === SEARCH_MODE.EVENT_PRO) {
-                    pillBg = isActive ? 'bg-orange-500/30' : 'bg-white/5';
-                    pillText = isActive ? 'text-white' : 'text-slate-200';
-                    pillBorder = isActive ? 'border-orange-400' : 'border-slate-600/60';
-                  }
-
-                  return (
-                    <div
-                      key={category.value || 'all-categories'}
-                      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${pillBg} ${pillText} ${pillBorder}`}
-                      style={{
-                        borderColor: isActive ? category.color : undefined
-                      }}
+              {/* Advanced filters panel (collapsed by default) */}
+              {showFilters && (
+                <div className="mt-4 grid gap-4 rounded-2xl bg-white/10 p-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div>
+                    <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest opacity-70">Price range</label>
+                    <input type="text" placeholder="e.g. $50 – $200" className="w-full rounded-xl bg-white/20 px-3 py-2 text-sm text-white placeholder:text-white/50" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest opacity-70">Dates</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowCalendar((p) => !p)}
+                      className="flex w-full items-center justify-between rounded-xl bg-white/20 px-3 py-2 text-sm text-white"
                     >
-                      <Icon className="h-4 w-4" />
-                      {category.label}
-                    </div>
-                  );
-                })}
-              </div>
+                      <span>{filters.startDate && filters.endDate ? `${filters.startDate} → ${filters.endDate}` : 'Select dates'}</span>
+                      <Calendar className="h-4 w-4 opacity-70" />
+                    </button>
+                    {showCalendar && <SimpleDatePicker />}
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest opacity-70">Delivery</label>
+                    <select className="w-full rounded-xl bg-white/20 px-3 py-2 text-sm text-white">
+                      <option value="">Any</option>
+                      <option value="delivery">Delivery included</option>
+                      <option value="pickup">Self pick-up</option>
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
