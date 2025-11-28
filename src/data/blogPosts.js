@@ -41,9 +41,7 @@ Next, register your business, obtain necessary food permits, and sign up for del
     youtubeUrl: 'https://www.youtube.com/watch?v=kZWJXEW-nTs',
     keywords: ['food cart business', 'mobile food vendor', 'low-cost food startup', 'vendor cart ideas'],
     resources: [
-      { name: 'Cottage Food Laws by State', url: 'https://www.
-
-.gov/food-laws' },
+      { name: 'Cottage Food Laws by State', url: 'https://www.cottagefoodlaws.com/state-laws' },
       { name: 'Used Food Cart Marketplace', url: 'https://www.usedvending.com' }
     ],
     body: `You don't need $50,000 and six months to start a food business. Mobile vendor carts and small trailers offer an accessible entry point into food entrepreneurship, with total startup costs ranging from $1,500-$10,000. The key is choosing a concept that requires minimal equipment, leverages pre-made or simple-prep ingredients, and targets high-traffic locations with proven demand.

@@ -178,13 +178,13 @@ function HostDashboardPage() {
 
   const activeRoleCopy = roleCopy[currentRole] || roleCopy[USER_ROLES.HOST];
 
-  const handleViewListing = (listingId) => navigate(\`/listing/\${listingId}\`);
+  const handleViewListing = (listingId) => navigate(`/listing/${listingId}`);
 
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (searchQuery) params.set('q', searchQuery);
     if (searchLocation.label) params.set('location', searchLocation.label);
-    navigate(\`/listings?\${params.toString()}\`);
+    navigate(`/listings?${params.toString()}`);
   };
 
   const safeBookings = bookings.slice(0, 6);
@@ -199,11 +199,11 @@ function HostDashboardPage() {
             key={role}
             type="button"
             onClick={() => setCurrentRole(role)}
-            className={\`rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 \${
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ${
               isActive
                 ? 'bg-[#FF5124] text-white shadow-lg shadow-[#FF5124]/25'
                 : 'border border-slate-200 bg-white text-slate-700 hover:border-[#FF5124]/40 hover:bg-slate-50'
-            }\`}
+            }`}
           >
             {USER_ROLE_LABELS[role]}
           </button>
@@ -326,7 +326,7 @@ function HostDashboardPage() {
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {kpis.map((kpi) => (
               <div key={kpi.label} className="group rounded-2xl bg-white p-5 shadow-sm border border-slate-100 transition-all hover:shadow-md hover:border-slate-200">
-                <div className={\`inline-flex items-center justify-center rounded-xl \${kpi.accent} p-3\`}>
+                <div className={`inline-flex items-center justify-center rounded-xl ${kpi.accent} p-3`}>
                   {kpi.icon}
                 </div>
                 <p className="mt-4 text-sm font-medium text-slate-500">{kpi.label}</p>
@@ -354,8 +354,8 @@ function HostDashboardPage() {
                   onClick={() => navigate(option.href)}
                   className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-all hover:shadow-lg hover:border-slate-300 hover:-translate-y-1"
                 >
-                  <div className={\`mb-4 inline-flex items-center justify-center rounded-xl \${option.bgColor} p-3\`}>
-                    <Icon className={\`h-6 w-6 \${option.iconColor}\`} />
+                  <div className={`mb-4 inline-flex items-center justify-center rounded-xl ${option.bgColor} p-3`}>
+                    <Icon className={`h-6 w-6 ${option.iconColor}`} />
                   </div>
                   <h3 className="text-base font-semibold text-slate-900">{option.title}</h3>
                   <p className="mt-1 text-sm text-slate-500 line-clamp-2">{option.subtitle}</p>
@@ -426,7 +426,7 @@ function HostDashboardPage() {
                             {listing.city && (
                               <span className="flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
-                                {listing.city}{listing.state ? \`, \${listing.state}\` : ''}
+                                {listing.city}{listing.state ? `, ${listing.state}` : ''}
                               </span>
                             )}
                           </div>
@@ -482,7 +482,7 @@ function HostDashboardPage() {
                       const statusKey = (booking.status || '').toLowerCase();
                       const badgeColor = STATUS_COLORS[statusKey] || 'bg-slate-100 text-slate-700 border-slate-200';
                       const dateDisplay = booking.startDate && booking.endDate
-                        ? \`\${booking.startDate} → \${booking.endDate}\`
+                        ? `${booking.startDate} → ${booking.endDate}`
                         : booking.startDate || 'Date TBD';
                       return (
                         <div key={booking.id} className="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3 transition-all hover:bg-white hover:border-slate-200">
@@ -491,13 +491,13 @@ function HostDashboardPage() {
                               <p className="text-sm font-semibold text-slate-900">{booking.listingTitle || 'Booking'}</p>
                               <p className="text-xs text-slate-500">{dateDisplay}</p>
                             </div>
-                            <span className={\`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold \${badgeColor}\`}>
+                            <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${badgeColor}`}>
                               {booking.status || 'Pending'}
                             </span>
                           </div>
                           <div className="mt-2 flex items-center justify-between text-sm">
                             <p className="text-slate-500">
-                              {booking.city && \`\${booking.city}\${booking.state ? \`, \${booking.state}\` : ''}\`}
+                                {booking.city && `${booking.city}${booking.state ? `, ${booking.state}` : ''}`}
                             </p>
                             <p className="font-semibold text-slate-900">
                               {booking.totalPrice != null ? formatPrice(Number(booking.totalPrice)) : '—'}
@@ -613,8 +613,8 @@ function HostDashboardPage() {
                     }}
                     className="group flex items-start gap-4 rounded-2xl border border-slate-200 p-4 text-left transition-all hover:border-[#FF5124]/40 hover:bg-slate-50"
                   >
-                    <div className={\`flex-shrink-0 rounded-xl \${option.bgColor} p-3\`}>
-                      <Icon className={\`h-5 w-5 \${option.iconColor}\`} />
+                    <div className={`flex-shrink-0 rounded-xl ${option.bgColor} p-3`}>
+                      <Icon className={`h-5 w-5 ${option.iconColor}`} />
                     </div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-slate-900 group-hover:text-[#FF5124]">{option.title}</h3>
