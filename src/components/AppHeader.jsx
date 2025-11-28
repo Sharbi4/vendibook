@@ -17,15 +17,13 @@ function AppHeader({ className = '' }) {
   return (
     <header className={`sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-xl ${className}`}>
       <div className="mx-auto flex h-[72px] w-full max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-12">
-        {/* Left: Logo + Marketplace label */}
-        <Link to="/" className="group flex items-center gap-3" aria-label="Vendibook home">
-          <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#FF5124] to-[#FF6D3A] text-white shadow-[0_4px_12px_rgba(255,81,36,0.3)] transition-transform group-hover:scale-[1.02]">
-            <span className="text-lg font-bold tracking-tight">vb</span>
-          </div>
-          <div className="leading-tight">
-            <p className="text-[16px] font-bold tracking-[-0.02em] text-slate-900">vendibook</p>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#FF5124]">marketplace</p>
-          </div>
+        {/* Left: Logo */}
+        <Link to="/" className="group flex items-center" aria-label="Vendibook home">
+          <img 
+            src="https://k6dbqk6vsjuxeqeq.public.blob.vercel-storage.com/vendibook%20%20logo%20transparent.png" 
+            alt="Vendibook" 
+            className="h-10 w-auto transition-transform group-hover:scale-[1.02] sm:h-11"
+          />
         </Link>
 
         {/* Right: Community + Sign in + Sign up (far right) */}
@@ -118,15 +116,13 @@ function AppHeader({ className = '' }) {
           <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
           <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-xs flex-col border-l border-slate-200 bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#FF5124] to-[#FF6D3A] text-white shadow-md">
-                  <span className="text-lg font-bold">vb</span>
-                </div>
-                <div className="leading-tight">
-                  <p className="text-base font-bold tracking-tight text-slate-900">vendibook</p>
-                  <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#FF5124]">marketplace</p>
-                </div>
-              </div>
+              <Link to="/" onClick={() => setMobileOpen(false)} className="flex items-center">
+                <img 
+                  src="https://k6dbqk6vsjuxeqeq.public.blob.vercel-storage.com/vendibook%20%20logo%20transparent.png" 
+                  alt="Vendibook" 
+                  className="h-9 w-auto"
+                />
+              </Link>
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
