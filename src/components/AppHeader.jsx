@@ -102,11 +102,11 @@ function AppHeader({ className = '' }) {
         {/* Mobile menu button */}
         <button
           type="button"
-          className="inline-flex items-center rounded-full border border-slate-200 p-2 text-slate-700 xl:hidden"
+          className="inline-flex items-center rounded-full border border-slate-200 bg-white p-2.5 text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 active:scale-95 xl:hidden"
           onClick={() => setMobileOpen(true)}
           aria-label="Open navigation menu"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-6 w-6" />
         </button>
       </div>
 
