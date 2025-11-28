@@ -30,6 +30,7 @@ import HowItWorksHostPage from './pages/HowItWorksHostPage';
 import HowItWorksRenterPage from './pages/HowItWorksRenterPage';
 import HowItWorksMarketPage from './pages/HowItWorksMarketPage';
 import HowItWorksBuyerPage from './pages/HowItWorksBuyerPage';
+import CreateListingPage from './pages/CreateListingPage';
 
 function App() {
   return (
@@ -66,6 +67,14 @@ function App() {
         <Route path="/become-host" element={<BecomeHostLanding />} />
         <Route path="/host/onboarding" element={<HostOnboardingWizard />} />
         <Route path="/host/listings" element={<HostListings />} />
+        <Route
+          path="/host/listings/create"
+          element={(
+            <RequireAuth>
+              <CreateListingPage />
+            </RequireAuth>
+          )}
+        />
         <Route
           path="/host/listings/:id/edit"
           element={(

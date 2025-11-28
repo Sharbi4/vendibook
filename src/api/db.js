@@ -34,6 +34,14 @@ let eventProPackagesBootstrapPromise;
 let saleTransactionsBootstrapPromise;
 let saleUpsellsBootstrapPromise;
 let listingDocumentsBootstrapPromise;
+let listingSpecificationsBootstrapPromise;
+let listingAvailabilityBootstrapPromise;
+let listingPricingBootstrapPromise;
+let listingLocationBootstrapPromise;
+let listingMediaBootstrapPromise;
+let listingComplianceBootstrapPromise;
+let listingAttributesBootstrapPromise;
+let userListingsBootstrapPromise;
 
 export function bootstrapListingsTable() {
   if (!listingsBootstrapPromise) {
@@ -941,6 +949,274 @@ export function bootstrapListingDocumentsTable() {
 // ============================================================================
 let reviewsBootstrapPromise;
 
+// ============================================================================
+// LISTING SPECIFICATIONS TABLE - Vehicle/Equipment details
+// ============================================================================
+export function bootstrapListingSpecificationsTable() {
+  if (!listingSpecificationsBootstrapPromise) {
+    listingSpecificationsBootstrapPromise = (async () => {
+      await bootstrapListingsTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS listing_specifications (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+          length_feet NUMERIC,
+          width_feet NUMERIC,
+          height_feet NUMERIC,
+          weight_lbs NUMERIC,
+          power_type TEXT,
+          electrical_requirements TEXT,
+          water_system TEXT,
+          fresh_water_capacity_gallons NUMERIC,
+          grey_water_capacity_gallons NUMERIC,
+          ventilation_info TEXT,
+          capacity_served INTEGER,
+          equipment_classification TEXT,
+          vending_window_count INTEGER,
+          generator_included BOOLEAN DEFAULT FALSE,
+          pos_system_included BOOLEAN DEFAULT FALSE,
+          hand_wash_sink_included BOOLEAN DEFAULT FALSE,
+          wheelchair_accessible BOOLEAN DEFAULT FALSE,
+          commercial_grade_electrical BOOLEAN DEFAULT FALSE,
+          certified_kitchen_rating TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE(listing_id)
+        );
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS idx_listing_specs_listing ON listing_specifications(listing_id);`;
+    })().catch(error => {
+      listingSpecificationsBootstrapPromise = undefined;
+      console.error('Failed to bootstrap listing_specifications table:', error);
+      throw error;
+    });
+  }
+  return listingSpecificationsBootstrapPromise;
+}
+
+// ============================================================================
+// LISTING AVAILABILITY TABLE - Calendar and booking windows
+// ============================================================================
+export function bootstrapListingAvailabilityTable() {
+  if (!listingAvailabilityBootstrapPromise) {
+    listingAvailabilityBootstrapPromise = (async () => {
+      await bootstrapListingsTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS listing_availability (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+          blackout_dates JSONB DEFAULT '[]'::jsonb,
+          blackout_ranges JSONB DEFAULT '[]'::jsonb,
+          weekday_availability JSONB DEFAULT '{"mon":true,"tue":true,"wed":true,"thu":true,"fri":true,"sat":true,"sun":true}'::jsonb,
+          event_hours JSONB DEFAULT '{"start":"09:00","end":"22:00"}'::jsonb,
+          minimum_rental_hours NUMERIC DEFAULT 1,
+          maximum_rental_hours NUMERIC,
+          minimum_rental_days INTEGER DEFAULT 1,
+          maximum_rental_days INTEGER,
+          lead_time_days INTEGER DEFAULT 1,
+          instant_book_enabled BOOLEAN DEFAULT FALSE,
+          always_available BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE(listing_id)
+        );
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS idx_listing_avail_listing ON listing_availability(listing_id);`;
+    })().catch(error => {
+      listingAvailabilityBootstrapPromise = undefined;
+      console.error('Failed to bootstrap listing_availability table:', error);
+      throw error;
+    });
+  }
+  return listingAvailabilityBootstrapPromise;
+}
+
+// ============================================================================
+// LISTING PRICING TABLE - Rates, fees, deposits, add-ons
+// ============================================================================
+export function bootstrapListingPricingTable() {
+  if (!listingPricingBootstrapPromise) {
+    listingPricingBootstrapPromise = (async () => {
+      await bootstrapListingsTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS listing_pricing (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+          base_hourly_price NUMERIC,
+          base_daily_price NUMERIC,
+          flat_event_price NUMERIC,
+          tier_pricing JSONB DEFAULT '[]'::jsonb,
+          addon_items JSONB DEFAULT '[]'::jsonb,
+          deposit_required BOOLEAN DEFAULT FALSE,
+          deposit_amount NUMERIC DEFAULT 0,
+          cleaning_fee NUMERIC DEFAULT 0,
+          damage_waiver NUMERIC DEFAULT 0,
+          multi_day_discount_percent NUMERIC DEFAULT 0,
+          sale_price NUMERIC,
+          delivery_flat_fee NUMERIC DEFAULT 0,
+          delivery_rate_per_mile NUMERIC DEFAULT 0,
+          delivery_included_miles NUMERIC DEFAULT 0,
+          delivery_minimum_fee NUMERIC DEFAULT 0,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE(listing_id)
+        );
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS idx_listing_pricing_listing ON listing_pricing(listing_id);`;
+    })().catch(error => {
+      listingPricingBootstrapPromise = undefined;
+      console.error('Failed to bootstrap listing_pricing table:', error);
+      throw error;
+    });
+  }
+  return listingPricingBootstrapPromise;
+}
+
+// ============================================================================
+// LISTING LOCATION TABLE - Coordinates and service area
+// ============================================================================
+export function bootstrapListingLocationTable() {
+  if (!listingLocationBootstrapPromise) {
+    listingLocationBootstrapPromise = (async () => {
+      await bootstrapListingsTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS listing_location (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+          latitude NUMERIC,
+          longitude NUMERIC,
+          masked_address TEXT,
+          full_address TEXT,
+          zip_code TEXT,
+          city TEXT,
+          state TEXT,
+          country TEXT DEFAULT 'US',
+          service_radius_miles NUMERIC DEFAULT 25,
+          delivery_enabled BOOLEAN DEFAULT FALSE,
+          delivery_range_miles NUMERIC,
+          delivery_model TEXT DEFAULT 'pickup_only',
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE(listing_id)
+        );
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS idx_listing_location_listing ON listing_location(listing_id);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_listing_location_coords ON listing_location(latitude, longitude);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_listing_location_city ON listing_location(city, state);`;
+    })().catch(error => {
+      listingLocationBootstrapPromise = undefined;
+      console.error('Failed to bootstrap listing_location table:', error);
+      throw error;
+    });
+  }
+  return listingLocationBootstrapPromise;
+}
+
+// ============================================================================
+// LISTING MEDIA TABLE - Images, videos, gallery
+// ============================================================================
+export function bootstrapListingMediaTable() {
+  if (!listingMediaBootstrapPromise) {
+    listingMediaBootstrapPromise = (async () => {
+      await bootstrapListingsTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS listing_media (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+          media_type TEXT NOT NULL DEFAULT 'image',
+          url TEXT NOT NULL,
+          file_key TEXT,
+          is_hero BOOLEAN DEFAULT FALSE,
+          sort_order INTEGER DEFAULT 0,
+          alt_text TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS idx_listing_media_listing ON listing_media(listing_id);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_listing_media_hero ON listing_media(listing_id, is_hero);`;
+    })().catch(error => {
+      listingMediaBootstrapPromise = undefined;
+      console.error('Failed to bootstrap listing_media table:', error);
+      throw error;
+    });
+  }
+  return listingMediaBootstrapPromise;
+}
+
+// ============================================================================
+// LISTING COMPLIANCE TABLE - Documents and verification
+// ============================================================================
+export function bootstrapListingComplianceTable() {
+  if (!listingComplianceBootstrapPromise) {
+    listingComplianceBootstrapPromise = (async () => {
+      await bootstrapListingsTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS listing_compliance (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+          document_uploads JSONB DEFAULT '[]'::jsonb,
+          document_category_group TEXT,
+          permit_required BOOLEAN DEFAULT FALSE,
+          insurance_required BOOLEAN DEFAULT FALSE,
+          title_document_url TEXT,
+          vin_or_serial_number TEXT,
+          inspection_report_url TEXT,
+          notary_service_available BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE(listing_id)
+        );
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS idx_listing_compliance_listing ON listing_compliance(listing_id);`;
+    })().catch(error => {
+      listingComplianceBootstrapPromise = undefined;
+      console.error('Failed to bootstrap listing_compliance table:', error);
+      throw error;
+    });
+  }
+  return listingComplianceBootstrapPromise;
+}
+
+// ============================================================================
+// USER LISTINGS TABLE - Links users to their listings
+// ============================================================================
+export function bootstrapUserListingsTable() {
+  if (!userListingsBootstrapPromise) {
+    userListingsBootstrapPromise = (async () => {
+      await bootstrapUsersTable();
+      await bootstrapListingsTable();
+      await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto";`;
+      await sql`
+        CREATE TABLE IF NOT EXISTS user_listings (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+          listing_status TEXT NOT NULL DEFAULT 'draft',
+          is_primary_owner BOOLEAN DEFAULT TRUE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE(user_id, listing_id)
+        );
+      `;
+      await sql`CREATE INDEX IF NOT EXISTS idx_user_listings_user ON user_listings(user_id);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_user_listings_listing ON user_listings(listing_id);`;
+      await sql`CREATE INDEX IF NOT EXISTS idx_user_listings_status ON user_listings(listing_status);`;
+    })().catch(error => {
+      userListingsBootstrapPromise = undefined;
+      console.error('Failed to bootstrap user_listings table:', error);
+      throw error;
+    });
+  }
+  return userListingsBootstrapPromise;
+}
+
 export function bootstrapReviewsTable() {
   if (!reviewsBootstrapPromise) {
     reviewsBootstrapPromise = (async () => {
@@ -1158,4 +1434,100 @@ export function calculateSaleFees({ salePrice }) {
     stripeProcessing,
     platformRevenue: sellerCommission
   };
+}
+
+// ============================================================================
+// LISTING CATEGORY AND TYPE CONSTANTS
+// ============================================================================
+export const LISTING_MODES = {
+  RENTAL: 'rental',
+  EVENT_PRO: 'event_pro',
+  EQUIPMENT: 'equipment',
+  FOR_SALE: 'for_sale'
+};
+
+export const LISTING_CATEGORIES = {
+  FOOD_TRUCK: 'food_truck',
+  FOOD_TRAILER: 'food_trailer',
+  GHOST_KITCHEN: 'ghost_kitchen',
+  EQUIPMENT_RENTAL: 'equipment_rental',
+  VENDOR_EVENT_SPACE: 'vendor_event_space',
+  EVENT_PRO_SERVICE: 'event_pro_service',
+  FOR_SALE_INVENTORY: 'for_sale_inventory'
+};
+
+export const EQUIPMENT_TYPES = {
+  GENERATOR: 'generator',
+  SMOKER: 'smoker',
+  POS_TERMINAL: 'pos_terminal',
+  TENT_CANOPY: 'tent_canopy',
+  LIGHTING: 'lighting',
+  WATER_TANK: 'water_tank',
+  COOKWARE: 'cookware',
+  OTHER: 'other_equipment'
+};
+
+export const EVENT_PRO_TYPES = {
+  CATERING: 'catering',
+  BARTENDING: 'bartending',
+  COFFEE_BEVERAGE: 'coffee_beverage',
+  DESSERT_SWEETS: 'dessert_sweets',
+  DJ_ENTERTAINMENT: 'dj_entertainment',
+  OTHER: 'other_services'
+};
+
+export const VENDOR_SPACE_TYPES = {
+  STANDARD_BOOTH: 'standard_booth',
+  CORNER_BOOTH: 'corner_booth',
+  FOOD_VENDOR_ZONE: 'food_vendor_zone',
+  TRUCK_PARKING: 'truck_parking',
+  ARTISAN_MARKET: 'artisan_market'
+};
+
+export const DOCUMENT_CATEGORIES = {
+  COMPLIANCE: 'compliance',
+  LEGAL: 'legal',
+  MARKETING: 'marketing'
+};
+
+export const PRICING_MODELS = {
+  HOURLY: 'hourly',
+  DAILY: 'daily',
+  FLAT_RATE: 'flat_rate',
+  PACKAGE_TIER: 'package_tier'
+};
+
+export const DELIVERY_MODELS = {
+  PICKUP_ONLY: 'pickup_only',
+  FLAT_FEE: 'flat_fee',
+  MILEAGE_BASED: 'mileage_based',
+  DELIVERY_INCLUDED: 'delivery_included'
+};
+
+export const LISTING_STATUS = {
+  DRAFT: 'draft',
+  ACTIVE: 'active',
+  PAUSED: 'paused',
+  SOLD: 'sold',
+  ARCHIVED: 'archived'
+};
+
+// ============================================================================
+// BOOTSTRAP ALL CREATIVE LISTING TABLES
+// ============================================================================
+export async function bootstrapCreativeListingTables() {
+  await Promise.all([
+    bootstrapListingsTable(),
+    bootstrapUsersTable()
+  ]);
+  
+  await Promise.all([
+    bootstrapListingSpecificationsTable(),
+    bootstrapListingAvailabilityTable(),
+    bootstrapListingPricingTable(),
+    bootstrapListingLocationTable(),
+    bootstrapListingMediaTable(),
+    bootstrapListingComplianceTable(),
+    bootstrapUserListingsTable()
+  ]);
 }
