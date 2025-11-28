@@ -155,41 +155,26 @@ function HomePage() {
     };
   }, [filters.locationLabel, filters.locationText, filters.latitude, filters.longitude, filters.city, filters.state]);
 
-  // Brand colors per tab
+  // Brand colors per tab – strict spec: Rent=red, Sale=orange, EventPro=green
   const TAB_COLORS = {
-    [SEARCH_MODE.RENT]: { bg: '#FF5124', text: '#FFFFFF', accent: '#FF5124' },
-    [SEARCH_MODE.BUY]: { bg: '#4CAF50', text: '#FFFFFF', accent: '#4CAF50' },
-    [SEARCH_MODE.EVENT_PRO]: { bg: '#1A1A2E', text: '#FFFFFF', accent: '#FF5124' }
+    [SEARCH_MODE.RENT]: { bg: '#FF5124', text: '#FFFFFF' },
+    [SEARCH_MODE.BUY]: { bg: '#FF8C00', text: '#FFFFFF' },
+    [SEARCH_MODE.EVENT_PRO]: { bg: '#4CAF50', text: '#FFFFFF' }
   };
 
   const modeOptions = [
     { id: SEARCH_MODE.RENT, label: 'For Rent', icon: Truck, color: '#FF5124' },
-    { id: SEARCH_MODE.BUY, label: 'For Sale', icon: DollarSign, color: '#4CAF50' },
-    { id: SEARCH_MODE.EVENT_PRO, label: 'Book an Event Pro', icon: Sparkles, color: '#FF5124' }
+    { id: SEARCH_MODE.BUY, label: 'For Sale', icon: DollarSign, color: '#FF8C00' },
+    { id: SEARCH_MODE.EVENT_PRO, label: 'Book an Event Pro', icon: Sparkles, color: '#4CAF50' }
   ];
 
-  // "What" quick-pick chips per mode – simplified per spec
-  const WHAT_OPTIONS = {
-    [SEARCH_MODE.RENT]: [
-      { value: 'food-trucks', label: 'Food Truck' },
-      { value: 'trailers', label: 'Food Trailer' },
-      { value: 'ghost-kitchens', label: 'Kitchen' },
-      { value: 'vending-lots', label: 'Lot' },
-      { value: '', label: 'All' }
-    ],
-    [SEARCH_MODE.BUY]: [
-      { value: 'food-trucks', label: 'Food Truck' },
-      { value: 'trailers', label: 'Food Trailer' },
-      { value: 'vendor-carts', label: 'Cart' },
-      { value: '', label: 'All' }
-    ],
-    [SEARCH_MODE.EVENT_PRO]: [
-      { value: 'food-trucks', label: 'Food Truck' },
-      { value: 'trailers', label: 'Food Trailer' },
-      { value: 'other', label: 'Other' },
-      { value: '', label: 'All' }
-    ]
-  };
+  // "What" chips – exactly 4: Food Truck, Food Trailer, Other, All (same for all modes)
+  const WHAT_OPTIONS = [
+    { value: 'food-trucks', label: 'Food Truck' },
+    { value: 'trailers', label: 'Food Trailer' },
+    { value: 'other', label: 'Other' },
+    { value: '', label: 'All' }
+  ];
 
   const mapCategoryOptionsForMode = (mode) => (
     [{ value: '', label: 'All categories', iconName: 'grid' }, ...getCategoryOptionsForMode(mode)].map((option) => {
@@ -596,10 +581,13 @@ function HomePage() {
     }
   }, [searchModalOpen]);
 
+  // Get current mode's brand color
+  const currentBrandColor = TAB_COLORS[activeTab]?.bg || '#FF5124';
+
   return (
     <AppLayout fullWidth contentClassName="bg-white">
-      {/* Hero Section – search in upper third, animation behind */}
-      <section className="relative flex min-h-[50vh] items-start justify-center overflow-hidden bg-black pt-8 sm:pt-12 lg:pt-16">
+      {/* Hero Section – search in upper third */}
+      <section className="relative flex min-h-[420px] items-start justify-center overflow-hidden bg-black pt-6 sm:pt-8">
         {/* Video background */}
         <div className="absolute inset-0">
           <video
@@ -610,10 +598,10 @@ function HomePage() {
             loop
             playsInline
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/90 via-black/70 to-black/50" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-black/40" />
         </div>
 
-        {/* Sparkle animation – positioned behind the search card */}
+        {/* Sparkle animation – behind search card */}
         {activeTab === SEARCH_MODE.EVENT_PRO && (
           <div className="pointer-events-none absolute inset-0 z-0">
             {Array.from({ length: 50 }).map((_, index) => (
@@ -627,50 +615,44 @@ function HomePage() {
           </div>
         )}
 
-        {/* Search card container – centered in upper third */}
-        <div className="relative z-10 w-full max-w-3xl px-4 sm:px-6">
-          {/* Mode tabs – attached to top of card */}
-          <div className="flex justify-center">
-            <div className="inline-flex rounded-t-2xl bg-[#1A1A2E]/90 p-1 backdrop-blur">
-              {modeOptions.map((option) => {
-                const isActive = activeTab === option.id;
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => handleModeChange(option.id)}
-                    className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
-                      isActive
-                        ? 'text-white shadow-md'
-                        : 'border border-transparent text-white/70 hover:text-white'
-                    }`}
-                    style={{
-                      backgroundColor: isActive ? option.color : 'transparent',
-                      borderColor: isActive ? 'transparent' : option.color,
-                      ...(isActive ? {} : { borderWidth: '1px' })
-                    }}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
+        {/* Search module container – unified centerline */}
+        <div className="relative z-10 mx-auto w-full max-w-2xl px-4 sm:px-6">
+          {/* Mode tabs – centered, equal spacing, above card */}
+          <div className="flex justify-center gap-3 pb-0">
+            {modeOptions.map((option) => {
+              const isActive = activeTab === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => handleModeChange(option.id)}
+                  className="rounded-lg px-5 py-2.5 text-sm font-semibold transition-all"
+                  style={{
+                    backgroundColor: isActive ? option.color : 'transparent',
+                    border: isActive ? 'none' : '1px solid #FF5124',
+                    color: isActive ? '#FFFFFF' : '#FF5124',
+                    minWidth: '120px'
+                  }}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Search card – solid dark panel */}
+          {/* Search card – directly under tabs, no gap */}
           <div
-            className="rounded-b-3xl rounded-t-none p-6 shadow-2xl transition-colors duration-300"
+            className="mt-0 rounded-2xl p-6 shadow-2xl transition-colors duration-300"
             style={{
-              background: TAB_COLORS[activeTab]?.bg || '#1A1A2E',
-              color: TAB_COLORS[activeTab]?.text || '#FFFFFF'
+              backgroundColor: currentBrandColor
             }}
           >
-            {/* Where + What fields – responsive grid */}
-            <div className="grid gap-5 md:grid-cols-2">
-              {/* Location – Mapbox autocomplete */}
+            {/* Two-column layout: WHERE left, WHAT right */}
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Left: WHERE */}
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-white/80">Where</label>
-                <div className="[&_label]:hidden [&_input]:bg-white/15 [&_input]:text-white [&_input]:placeholder:text-white/50 [&>div>label>div]:border-white/20 [&>div>label>div]:bg-white/10 [&>div>label>div]:rounded-xl">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-white">Where</label>
+                <div className="[&_label]:hidden [&_input]:rounded-lg [&_input]:border-0 [&_input]:bg-white [&_input]:px-4 [&_input]:py-3 [&_input]:text-sm [&_input]:text-slate-800 [&_input]:placeholder:text-slate-500 [&>div>label>div]:rounded-lg [&>div>label>div]:border-0 [&>div>label>div]:bg-white">
                   <LocationAutocomplete
                     value={locationSelection}
                     onChange={handleLocationSelect}
@@ -682,27 +664,22 @@ function HomePage() {
                 </div>
               </div>
 
-              {/* What – simple chips with outline/solid states */}
+              {/* Right: WHAT ARE YOU LOOKING FOR + 4 chips */}
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-white/80">What are you looking for?</label>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-white">What are you looking for?</label>
                 <div className="flex flex-wrap gap-2">
-                  {(WHAT_OPTIONS[activeTab] || []).map((opt) => {
+                  {WHAT_OPTIONS.map((opt) => {
                     const isSelected = opt.value === '' ? !filters.listingType : filters.listingType === opt.value;
-                    const brandColor = TAB_COLORS[activeTab]?.accent || '#FF5124';
                     return (
                       <button
                         key={opt.value || 'all'}
                         type="button"
                         onClick={() => handleCategoryChange(opt.value)}
-                        className={`rounded-full px-4 py-2 text-xs font-semibold transition-all ${
-                          isSelected
-                            ? 'text-white shadow-md'
-                            : 'bg-transparent text-white hover:bg-white/10'
-                        }`}
+                        className="rounded-full px-4 py-2 text-xs font-semibold transition-all"
                         style={{
-                          backgroundColor: isSelected ? brandColor : 'transparent',
-                          border: isSelected ? 'none' : `1px solid ${brandColor}`,
-                          color: isSelected ? '#FFFFFF' : brandColor
+                          backgroundColor: isSelected ? '#FFFFFF' : 'transparent',
+                          border: isSelected ? 'none' : '1px solid #FFFFFF',
+                          color: isSelected ? currentBrandColor : '#FFFFFF'
                         }}
                       >
                         {opt.label}
@@ -719,7 +696,7 @@ function HomePage() {
                 type="button"
                 onClick={handleSearch}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold shadow-lg transition hover:shadow-xl"
-                style={{ color: TAB_COLORS[activeTab]?.bg || '#FF5124' }}
+                style={{ color: currentBrandColor }}
               >
                 <Search className="h-4 w-4" />
                 Search
@@ -727,35 +704,36 @@ function HomePage() {
               <button
                 type="button"
                 onClick={() => setShowFilters((p) => !p)}
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/30 bg-white/5 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/10"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold transition hover:bg-white/90"
+                style={{ color: currentBrandColor }}
               >
                 <SlidersHorizontal className="h-4 w-4" />
                 Filters
               </button>
             </div>
 
-            {/* Advanced filters panel (collapsed by default) */}
+            {/* Advanced filters panel */}
             {showFilters && (
-              <div className="mt-4 grid gap-4 rounded-2xl bg-white/10 p-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-4 grid gap-4 rounded-xl bg-white/20 p-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-white/70">Price range</label>
-                  <input type="text" placeholder="e.g. $50 – $200" className="w-full rounded-xl bg-white/15 px-3 py-2 text-sm text-white placeholder:text-white/50" />
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-white">Price range</label>
+                  <input type="text" placeholder="e.g. $50 – $200" className="w-full rounded-lg bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-500" />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-white/70">Dates</label>
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-white">Dates</label>
                   <button
                     type="button"
                     onClick={() => setShowCalendar((p) => !p)}
-                    className="flex w-full items-center justify-between rounded-xl bg-white/15 px-3 py-2 text-sm text-white"
+                    className="flex w-full items-center justify-between rounded-lg bg-white px-3 py-2 text-sm text-slate-800"
                   >
                     <span>{filters.startDate && filters.endDate ? `${filters.startDate} → ${filters.endDate}` : 'Select dates'}</span>
-                    <Calendar className="h-4 w-4 text-white/70" />
+                    <Calendar className="h-4 w-4 text-slate-500" />
                   </button>
                   {showCalendar && <SimpleDatePicker />}
                 </div>
                 <div>
-                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-white/70">Delivery</label>
-                  <select className="w-full rounded-xl bg-white/15 px-3 py-2 text-sm text-white">
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-widest text-white">Delivery</label>
+                  <select className="w-full rounded-lg bg-white px-3 py-2 text-sm text-slate-800">
                     <option value="">Any</option>
                     <option value="delivery">Delivery included</option>
                     <option value="pickup">Self pick-up</option>

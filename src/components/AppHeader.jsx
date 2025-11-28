@@ -106,24 +106,52 @@ function AppHeader({ className = '' }) {
           </div>
         </Link>
 
-        {/* Right side: Community + auth buttons */}
-        <div className="hidden items-center gap-3 xl:flex">
+        {/* Right side: Community, Sign in, Sign up – vertically aligned */}
+        <div className="hidden items-center gap-4 xl:flex">
           <button
             type="button"
             onClick={() => handleNavigate('/community')}
-            className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
-              activeLinkMap['Community'] ? 'bg-orange-50 text-orange-600' : 'text-slate-600 hover:text-slate-900'
-            }`}
+            className="text-sm font-semibold text-slate-700 transition hover:text-slate-900"
           >
             Community
           </button>
           {clerkEnabled ? (
             <>
               <SignedIn>{signedInButtons}</SignedIn>
-              <SignedOut>{signedOutButtons}</SignedOut>
+              <SignedOut>
+                <button
+                  type="button"
+                  onClick={() => handleNavigate('/signin')}
+                  className="text-sm font-semibold text-slate-700 transition hover:text-slate-900"
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleNavigate('/signup')}
+                  className="rounded-full bg-[#FF5124] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#E5491F]"
+                >
+                  Sign up
+                </button>
+              </SignedOut>
             </>
           ) : (
-            signedOutButtons
+            <>
+              <button
+                type="button"
+                onClick={() => handleNavigate('/signin')}
+                className="text-sm font-semibold text-slate-700 transition hover:text-slate-900"
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                onClick={() => handleNavigate('/signup')}
+                className="rounded-full bg-[#FF5124] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#E5491F]"
+              >
+                Sign up
+              </button>
+            </>
           )}
         </div>
 
