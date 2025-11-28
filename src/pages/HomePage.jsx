@@ -76,7 +76,7 @@ const injectStyles = () => {
         to { opacity: 1; transform: translateY(0); }
       }
       
-      /* Sparkle animation for Event Pro tab */
+      /* Sparkle animation for tabs - idle state */
       @keyframes sparkleOrbit {
         0% { 
           opacity: 0;
@@ -96,9 +96,58 @@ const injectStyles = () => {
         }
       }
       
+      /* Enhanced sparkle animation for selected tab */
+      @keyframes sparkleOrbitActive {
+        0% { 
+          opacity: 0;
+          transform: translate(0, 0) scale(0) rotate(0deg);
+        }
+        15% {
+          opacity: 1;
+          transform: translate(var(--tx1, 5px), var(--ty1, -12px)) scale(1.3) rotate(45deg);
+        }
+        40% {
+          opacity: 1;
+          transform: translate(var(--tx2, -8px), var(--ty2, -20px)) scale(1) rotate(90deg);
+        }
+        70% {
+          opacity: 0.6;
+          transform: translate(var(--tx3, 10px), var(--ty3, -28px)) scale(0.8) rotate(135deg);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(var(--tx3, 12px), var(--ty3, -35px)) scale(0) rotate(180deg);
+        }
+      }
+      
+      /* Pulse glow for selected tab */
+      @keyframes tabPulseGlow {
+        0%, 100% {
+          box-shadow: 0 0 8px 2px var(--glow-color, rgba(255, 255, 255, 0.3));
+        }
+        50% {
+          box-shadow: 0 0 20px 6px var(--glow-color, rgba(255, 255, 255, 0.5));
+        }
+      }
+      
+      /* Tab bounce animation on selection */
+      @keyframes tabSelectBounce {
+        0% { transform: scale(1); }
+        30% { transform: scale(1.08); }
+        60% { transform: scale(0.95); }
+        100% { transform: scale(1); }
+      }
+      
       .sparkle-container {
         position: absolute;
         inset: -8px;
+        pointer-events: none;
+        overflow: visible;
+      }
+      
+      .sparkle-container-active {
+        position: absolute;
+        inset: -12px;
         pointer-events: none;
         overflow: visible;
       }
@@ -111,6 +160,34 @@ const injectStyles = () => {
         border-radius: 50%;
         box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.5);
         animation: sparkleOrbit 3s ease-in-out infinite;
+      }
+      
+      .sparkle-particle-idle {
+        position: absolute;
+        width: 3px;
+        height: 3px;
+        background: var(--sparkle-color, rgba(255, 81, 36, 0.8));
+        border-radius: 50%;
+        box-shadow: 0 0 4px 1px var(--sparkle-color, rgba(255, 81, 36, 0.4));
+        animation: sparkleOrbit 4s ease-in-out infinite;
+      }
+      
+      .sparkle-particle-active {
+        position: absolute;
+        width: 5px;
+        height: 5px;
+        background: rgba(255, 255, 255, 1);
+        border-radius: 50%;
+        box-shadow: 0 0 10px 3px rgba(255, 255, 255, 0.7);
+        animation: sparkleOrbitActive 2s ease-in-out infinite;
+      }
+      
+      .tab-selected-glow {
+        animation: tabPulseGlow 2s ease-in-out infinite;
+      }
+      
+      .tab-select-bounce {
+        animation: tabSelectBounce 0.4s var(--vb-spring) forwards;
       }
       
       /* Card with premium hover */
@@ -201,40 +278,59 @@ const injectStyles = () => {
 };
 injectStyles();
 
-// Sparkle particles component for Event Pro tab border
-const TabSparkles = () => {
+// Sparkle particles component for tab borders
+// isActive: true for selected tab (enhanced animation), false for idle tabs
+// color: the tab's brand color for idle sparkles
+const TabSparkles = ({ isActive = false, color = '#FF5124' }) => {
   const sparkles = [];
-  const positions = [
-    { left: '10%', top: '0%' },
-    { left: '30%', top: '0%' },
+  
+  // More sparkles for active state, fewer for idle
+  const positions = isActive ? [
+    { left: '5%', top: '0%' },
+    { left: '20%', top: '0%' },
+    { left: '35%', top: '0%' },
     { left: '50%', top: '0%' },
-    { left: '70%', top: '0%' },
-    { left: '90%', top: '0%' },
-    { left: '100%', top: '25%' },
-    { left: '100%', top: '75%' },
-    { left: '90%', top: '100%' },
-    { left: '70%', top: '100%' },
+    { left: '65%', top: '0%' },
+    { left: '80%', top: '0%' },
+    { left: '95%', top: '0%' },
+    { left: '100%', top: '20%' },
+    { left: '100%', top: '50%' },
+    { left: '100%', top: '80%' },
+    { left: '95%', top: '100%' },
+    { left: '80%', top: '100%' },
+    { left: '65%', top: '100%' },
     { left: '50%', top: '100%' },
-    { left: '30%', top: '100%' },
-    { left: '10%', top: '100%' },
-    { left: '0%', top: '75%' },
-    { left: '0%', top: '25%' },
+    { left: '35%', top: '100%' },
+    { left: '20%', top: '100%' },
+    { left: '5%', top: '100%' },
+    { left: '0%', top: '80%' },
+    { left: '0%', top: '50%' },
+    { left: '0%', top: '20%' },
+  ] : [
+    { left: '15%', top: '0%' },
+    { left: '50%', top: '0%' },
+    { left: '85%', top: '0%' },
+    { left: '100%', top: '50%' },
+    { left: '85%', top: '100%' },
+    { left: '50%', top: '100%' },
+    { left: '15%', top: '100%' },
+    { left: '0%', top: '50%' },
   ];
   
   for (let i = 0; i < positions.length; i++) {
     const pos = positions[i];
-    const delay = i * 0.2;
-    const tx1 = (Math.random() - 0.5) * 10;
-    const ty1 = (Math.random() - 0.5) * 10;
-    const tx2 = (Math.random() - 0.5) * 15;
-    const ty2 = (Math.random() - 0.5) * 15;
-    const tx3 = (Math.random() - 0.5) * 20;
-    const ty3 = (Math.random() - 0.5) * 20;
+    const delay = i * (isActive ? 0.1 : 0.3);
+    const tx1 = (Math.random() - 0.5) * (isActive ? 15 : 8);
+    const ty1 = (Math.random() - 0.5) * (isActive ? 15 : 8);
+    const tx2 = (Math.random() - 0.5) * (isActive ? 20 : 12);
+    const ty2 = (Math.random() - 0.5) * (isActive ? 20 : 12);
+    const tx3 = (Math.random() - 0.5) * (isActive ? 28 : 16);
+    const ty3 = (Math.random() - 0.5) * (isActive ? 28 : 16);
     
     sparkles.push(
       <div
         key={i}
-        className="sparkle-particle"
+        className={isActive ? 'sparkle-particle-active' : 'sparkle-particle-idle'}
         style={{
           left: pos.left,
           top: pos.top,
@@ -245,12 +341,17 @@ const TabSparkles = () => {
           '--ty2': `${ty2}px`,
           '--tx3': `${tx3}px`,
           '--ty3': `${ty3}px`,
+          '--sparkle-color': isActive ? 'rgba(255, 255, 255, 0.9)' : color,
         }}
       />
     );
   }
   
-  return <div className="sparkle-container">{sparkles}</div>;
+  return (
+    <div className={isActive ? 'sparkle-container-active' : 'sparkle-container'}>
+      {sparkles}
+    </div>
+  );
 };
 
 const VendibookGridIcon = ({ className = 'h-5 w-5 text-charcoal', strokeWidth = 1.75 }) => (
@@ -424,7 +525,10 @@ function HomePage() {
         return 'rentals';
     }
   })();
-  const listingsAreaLabel = appliedLocationLabel ? `in ${appliedLocationLabel}` : 'across Arizona';
+  const listingsAreaLabel = (() => {
+    if (appliedLocationLabel) return `near ${appliedLocationLabel}`;
+    return 'near you';
+  })();
   const applyAndSyncFilters = (updater) => {
     setAppliedFilters((prev) => {
       const nextState = typeof updater === 'function' ? updater(prev) : updater;
@@ -617,9 +721,7 @@ function HomePage() {
     };
     setFilters(nextFilters);
     setAppliedFilters(nextFilters);
-    const params = buildSearchParamsFromFilters(nextFilters);
     setSearchModalOpen(false);
-    navigate(`/listings?${params.toString()}`);
   };
 
   const handleOpenQuickView = (listing) => {
@@ -825,23 +927,23 @@ function HomePage() {
               {modeOptions.map((option) => {
                 const isActive = activeTab === option.id;
                 const TabIcon = option.icon;
-                const isEventPro = option.id === SEARCH_MODE.EVENT_PRO;
                 
                 return (
                   <button
                     key={option.id}
                     type="button"
                     onClick={() => handleModeChange(option.id)}
-                    className="vb-chip vb-focus relative flex items-center gap-2 rounded-full px-6 py-3 text-[14px] font-semibold transition-all duration-300"
+                    className={`vb-chip vb-focus relative flex items-center gap-2 rounded-full px-6 py-3 text-[14px] font-semibold transition-all duration-300 ${isActive ? 'tab-select-bounce tab-selected-glow' : ''}`}
                     style={{
                       backgroundColor: isActive ? option.color : 'transparent',
                       color: isActive ? '#FFFFFF' : '#FF5124',
                       border: isActive ? 'none' : '1px solid #FF5124',
-                      boxShadow: isActive ? `0 8px 24px -4px ${option.color}40` : 'none'
+                      boxShadow: isActive ? `0 8px 24px -4px ${option.color}40` : 'none',
+                      '--glow-color': `${option.color}50`,
                     }}
                   >
-                    {/* Sparkle effect for Event Pro when active */}
-                    {isEventPro && isActive && <TabSparkles />}
+                    {/* Sparkles on ALL tabs - idle for non-selected, enhanced for selected */}
+                    <TabSparkles isActive={isActive} color={option.color} />
                     <TabIcon className="h-4 w-4" strokeWidth={2} />
                     <span>{option.label}</span>
                   </button>
@@ -859,7 +961,7 @@ function HomePage() {
             }}
           >
             <div className="p-8">
-              {/* WHERE section */}
+              {/* WHERE section - Mapbox location search */}
               <div className="mb-6">
                 <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.15em] text-white">Where</label>
                 <div className="[&_label]:hidden [&_input]:rounded-[12px] [&_input]:border-0 [&_input]:bg-white [&_input]:px-5 [&_input]:py-4 [&_input]:text-[15px] [&_input]:font-medium [&_input]:text-slate-800 [&_input]:placeholder:text-slate-500 [&>div>label>div]:rounded-[12px] [&>div>label>div]:border-0 [&>div>label>div]:bg-white">
@@ -868,7 +970,7 @@ function HomePage() {
                     onChange={handleLocationSelect}
                     onQueryChange={handleLocationQueryChange}
                     label=""
-                    placeholder="City, region, or address"
+                    placeholder="Search city, zip code, or address"
                     className="w-full"
                   />
                 </div>
@@ -1440,7 +1542,7 @@ function HomePage() {
         </div>
       )}
 
-      {/* Listings Grid – Premium card layout */}
+      {/* Listings Grid + Map – Premium layout */}
       <section className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 lg:px-12 lg:py-16">
         {/* Active filters */}
         {activeFilterChips.length > 0 && (
@@ -1467,18 +1569,25 @@ function HomePage() {
         )}
 
         {/* Section header */}
-        <div className="mb-10">
-          <h2 className="text-[28px] font-bold tracking-[-0.02em] text-slate-900 sm:text-[32px]">
-            {filteredListings.length} {listingResultsLabel} {listingsAreaLabel}
-          </h2>
-          <p className="mt-2 text-[15px] text-slate-500">
-            {appliedCategoryLabel}
+        <div className="mb-10 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="text-[28px] font-bold tracking-[-0.02em] text-slate-900 sm:text-[32px]">
+              {filteredListings.length} {listingResultsLabel} {listingsAreaLabel}
+            </h2>
+            <p className="mt-2 text-[15px] text-slate-500">
+              {appliedCategoryLabel}
+            </p>
+          </div>
+          <p className="text-sm text-slate-500">
+            Powered by Mapbox · Results approximate within your selected area.
           </p>
         </div>
 
-        {/* Cards grid */}
-        <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredListings.map((listing, index) => (
+        {/* Grid with map and cards */}
+        <div className="grid gap-7 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,3fr)_minmax(0,1.4fr)]">
+          {/* Cards grid */}
+          <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+            {filteredListings.map((listing, index) => (
             <div
               key={listing.id}
               className={`vb-card vb-focus group cursor-pointer overflow-hidden rounded-[20px] bg-white vb-shadow-md`}
@@ -1568,6 +1677,25 @@ function HomePage() {
               </div>
             </div>
           ))}
+          </div>
+
+          {/* Map column */}
+          <aside className="sticky top-[96px] hidden h-[520px] overflow-hidden rounded-3xl border border-slate-200/80 bg-slate-50/80 shadow-[0_18px_45px_rgba(15,23,42,0.08)] lg:block">
+            <div className="flex h-full flex-col">
+              <div className="border-b border-slate-200 bg-white/90 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Map preview</p>
+                <p className="text-sm text-slate-700">
+                  Centered {appliedLocationLabel ? `near ${appliedLocationLabel}` : 'near you'}
+                </p>
+              </div>
+              <div className="relative flex-1 bg-slate-200">
+                {/* Mapbox map can be wired here using lat/lng from locationSelection */}
+                <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-xs text-slate-600">
+                  Interactive map coming next: we'll center pins near your selected area using Mapbox.
+                </div>
+              </div>
+            </div>
+          </aside>
         </div>
 
         {/* Empty state */}
@@ -1751,6 +1879,25 @@ function HomePage() {
               </div>
             ))}
           </div>
+          </div>
+
+          {/* Map column */}
+          <aside className="sticky top-[96px] hidden h-[520px] overflow-hidden rounded-3xl border border-slate-200/80 bg-slate-50/80 shadow-[0_18px_45px_rgba(15,23,42,0.08)] lg:block">
+            <div className="flex h-full flex-col">
+              <div className="border-b border-slate-200 bg-white/90 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Map preview</p>
+                <p className="text-sm text-slate-700">
+                  Centered {appliedLocationLabel ? `near ${appliedLocationLabel}` : 'near you'}
+                </p>
+              </div>
+              <div className="relative flex-1 bg-slate-200">
+                {/* Mapbox map can be wired here using lat/lng from locationSelection */}
+                <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-xs text-slate-600">
+                  Interactive map coming next: well center pins near your selected area using Mapbox.
+                </div>
+              </div>
+            </div>
+          </aside>
         </div>
       </section>
 
