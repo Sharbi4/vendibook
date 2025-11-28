@@ -106,16 +106,17 @@ function AppHeader({ className = '' }) {
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-1 xl:flex">
-          {NAV_LINKS_PUBLIC.map(navButton)}
-          {clerkEnabled && (
-            <SignedIn>
-              {NAV_LINKS_AUTH.filter(l => l.label !== 'Community').map(navButton)}
-            </SignedIn>
-          )}
-        </nav>
-
-        <div className="hidden xl:flex">
+        {/* Right side: Community + auth buttons */}
+        <div className="hidden items-center gap-3 xl:flex">
+          <button
+            type="button"
+            onClick={() => handleNavigate('/community')}
+            className={`rounded-full px-3 py-2 text-sm font-semibold transition ${
+              activeLinkMap['Community'] ? 'bg-orange-50 text-orange-600' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Community
+          </button>
           {clerkEnabled ? (
             <>
               <SignedIn>{signedInButtons}</SignedIn>
