@@ -170,7 +170,7 @@ textarea {
     opacity: 0.8;
   }
   100% {
-    transform: translateY(-100px) translateX(20px);
+    transform: translateY(-700px) translateX(30px);
     opacity: 0;
   }
 }

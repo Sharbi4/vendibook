@@ -1,7 +1,8 @@
 export const SEARCH_MODE = {
   RENT: 'rent',
-  FOR_SALE: 'for_sale',
-  EVENT_PRO: 'event_pro'
+  BUY: 'buy',
+  EVENT_PRO: 'event_pro',
+  VENDOR_MARKET: 'vendor_market'
 };
 
 // TODO: Align LISTING_TYPES values exactly with Neon listings.listing_type column before launch.
@@ -16,34 +17,34 @@ export const LISTING_TYPES = {
 };
 
 export const MODE_LABELS = {
-  [SEARCH_MODE.RENT]: 'Rent',
-  [SEARCH_MODE.FOR_SALE]: 'For Sale',
-  [SEARCH_MODE.EVENT_PRO]: 'Event Pro'
+  [SEARCH_MODE.RENT]: 'Rent equipment',
+  [SEARCH_MODE.BUY]: 'Buy equipment',
+  [SEARCH_MODE.EVENT_PRO]: 'Book event pros',
+  [SEARCH_MODE.VENDOR_MARKET]: 'Vendor markets'
 };
 
 export const MODE_CTA_COPY = {
-  [SEARCH_MODE.RENT]: 'Search Rentals',
-  [SEARCH_MODE.FOR_SALE]: 'Search For Sale',
-  [SEARCH_MODE.EVENT_PRO]: 'Search Event Pros'
+  [SEARCH_MODE.RENT]: 'Search rentals',
+  [SEARCH_MODE.BUY]: 'Search for sale listings',
+  [SEARCH_MODE.EVENT_PRO]: 'Find event pros',
+  [SEARCH_MODE.VENDOR_MARKET]: 'Find vendor markets'
 };
 
 export const CATEGORY_OPTIONS = {
   [SEARCH_MODE.RENT]: [
-    { value: LISTING_TYPES.FOOD_TRUCK, label: 'Food Trucks' },
-    { value: LISTING_TYPES.TRAILER, label: 'Trailers' },
-    { value: LISTING_TYPES.GHOST_KITCHEN, label: 'Ghost Kitchens' },
-    { value: LISTING_TYPES.VENDING_LOT, label: 'Vending Lots' },
-    { value: 'equipment', label: 'Equipment' }
+    { value: LISTING_TYPES.FOOD_TRUCK, label: 'Food trucks' },
+    { value: LISTING_TYPES.TRAILER, label: 'Food trailers' },
+    { value: LISTING_TYPES.GHOST_KITCHEN, label: 'Ghost kitchens' },
+    { value: LISTING_TYPES.VENDING_LOT, label: 'Vending lots' }
   ],
-  [SEARCH_MODE.FOR_SALE]: [
-    { value: LISTING_TYPES.FOOD_TRUCK, label: 'Food Trucks' },
-    { value: LISTING_TYPES.TRAILER, label: 'Trailers' },
-    { value: 'ghost-kitchen-equipment', label: 'Ghost Kitchen Equipment' },
-    { value: 'vending-machines', label: 'Vending Machines' },
-    { value: 'commercial-equipment', label: 'Commercial Equipment' }
+  [SEARCH_MODE.BUY]: [
+    { value: LISTING_TYPES.FOR_SALE, label: 'Trucks & trailers for sale' }
   ],
   [SEARCH_MODE.EVENT_PRO]: [
-    { value: LISTING_TYPES.EVENT_PRO, label: 'Event Pros' }
+    { value: LISTING_TYPES.EVENT_PRO, label: 'Event pros' }
+  ],
+  [SEARCH_MODE.VENDOR_MARKET]: [
+    { value: LISTING_TYPES.VENDOR_SPACE, label: 'Vendor markets & vendor spaces' }
   ]
 };
 
@@ -86,38 +87,36 @@ export const DISTANCE_FILTER_OPTIONS = [
 
 // Event Pro specific filter options
 export const EVENT_TYPES = [
-  { value: 'wedding', label: '💒 Wedding', icon: '💒' },
-  { value: 'corporate', label: '🏢 Corporate', icon: '🏢' },
-  { value: 'festival', label: '🎪 Festival', icon: '🎪' },
-  { value: 'private-party', label: '🎉 Private Party', icon: '🎉' },
-  { value: 'nonprofit', label: '❤️ Nonprofit', icon: '❤️' },
-  { value: 'school', label: '🎓 School Event', icon: '🎓' },
-  { value: 'community', label: '🏘️ Community Event', icon: '🏘️' }
+  { value: 'wedding', label: 'Wedding' },
+  { value: 'corporate', label: 'Corporate Event' },
+  { value: 'festival', label: 'Festival' },
+  { value: 'private-party', label: 'Private Party' },
+  { value: 'nonprofit', label: 'Nonprofit Event' },
+  { value: 'school', label: 'School Event' },
+  { value: 'community', label: 'Community Event' }
 ];
 
 export const SERVICE_CATEGORIES = [
-  { value: 'caterers', label: '🍽️ Caterers', icon: '🍽️' },
-  { value: 'djs', label: '🎵 DJs', icon: '🎵' },
-  { value: 'bartenders', label: '🍹 Bartenders', icon: '🍹' },
-  { value: 'chefs', label: '👨‍🍳 Chefs', icon: '👨‍🍳' },
-  { value: 'photographers', label: '📸 Photographers', icon: '📸' },
-  { value: 'videographers', label: '🎥 Videographers', icon: '🎥' },
-  { value: 'bounce-houses', label: '🎈 Bounce Houses', icon: '🎈' },
-  { value: 'entertainers', label: '🎭 Entertainers', icon: '🎭' },
-  { value: 'decor', label: '💐 Décor', icon: '💐' },
-  { value: 'generators', label: '⚡ Generators', icon: '⚡' },
-  { value: 'staging', label: '🎪 Staging', icon: '🎪' },
-  { value: 'lighting', label: '💡 Lighting', icon: '💡' }
+  { value: 'caterers', label: 'Caterers' },
+  { value: 'djs', label: 'DJs' },
+  { value: 'bartenders', label: 'Bartenders' },
+  { value: 'chefs', label: 'Chefs' },
+  { value: 'photographers', label: 'Photographers' },
+  { value: 'videographers', label: 'Videographers' },
+  { value: 'bounce-houses', label: 'Bounce Houses' },
+  { value: 'entertainers', label: 'Entertainers' },
+  { value: 'decor', label: 'Décor' },
+  { value: 'generators', label: 'Generators' },
+  { value: 'staging', label: 'Staging' },
+  { value: 'lighting', label: 'Lighting' }
 ];
 
-// Legacy filter placeholders (for backward compatibility with original HomePage)
 export const ADVANCED_FILTER_PLACEHOLDERS = [
   { key: 'priceRange', label: 'Price range', description: 'Set min / max budget' },
   { key: 'amenities', label: 'Amenities', description: 'Power, water, delivery, indoor/outdoor' },
   { key: 'radius', label: 'Service radius', description: 'Filter by delivery distance' }
 ];
 
-// Legacy secondary filters (for backward compatibility)
 export const EVENT_PRO_SECONDARY_FILTERS = [
   { key: 'capacity', label: 'Capacity/Crowd Size', description: 'Expected number of guests' },
   { key: 'travel', label: 'Travel/Delivery Included', description: 'Provider travels to your location' },
@@ -126,43 +125,6 @@ export const EVENT_PRO_SECONDARY_FILTERS = [
   { key: 'instantBooking', label: 'Instant Booking', description: 'Book immediately without approval' },
   { key: 'reviews', label: 'Reviews & Ratings', description: 'Minimum rating filter' },
   { key: 'insurance', label: 'Insurance Provided/Required', description: 'Coverage details' }
-];
-
-// Rent-specific advanced filters
-export const RENT_ADVANCED_FILTERS = [
-  { key: 'dailyRate', label: '💰 Daily Rate Range', type: 'range', description: 'Min/max daily rate' },
-  { key: 'delivery', label: '🚚 Delivery Available', type: 'toggle', description: 'Yes/No/Either' },
-  { key: 'duration', label: '⏰ Rental Duration', type: 'dropdown', options: ['Daily', 'Weekly', 'Monthly'] },
-  { key: 'size', label: '📏 Size/Capacity', type: 'dropdown', options: ['Small', 'Medium', 'Large', 'XL'] },
-  { key: 'minRating', label: '⭐ Minimum Rating', type: 'dropdown', options: ['4.0+', '4.5+', '5.0'] },
-  { key: 'verifiedOnly', label: '✓ Verified Hosts Only', type: 'checkbox' },
-  { key: 'insurance', label: '🛡️ Insurance Included', type: 'checkbox' },
-  { key: 'permits', label: '📜 Permits Included', type: 'checkbox' }
-];
-
-// For Sale-specific advanced filters
-export const FOR_SALE_ADVANCED_FILTERS = [
-  { key: 'year', label: '📅 Year', type: 'dropdown', options: ['2024', '2023', '2022', '2021', 'Older'] },
-  { key: 'size', label: '📏 Size/Type', type: 'dropdown', description: 'Varies by category' },
-  { key: 'condition', label: '⚙️ Condition', type: 'multi', options: ['New', 'Like New', 'Good', 'Fair'] },
-  { key: 'equipment', label: '🔧 Equipment Included', type: 'checkboxList' },
-  { key: 'title', label: '📜 Title Status', type: 'dropdown', options: ['Clean', 'Salvage', 'Rebuilt'] },
-  { key: 'serviceHistory', label: '🛠️ Service History Available', type: 'checkbox' },
-  { key: 'photoVerification', label: '📸 Photo Verification', type: 'checkbox' },
-  { key: 'financing', label: '💳 Financing Available', type: 'checkbox' },
-  { key: 'delivery', label: '🚛 Delivery Available', type: 'checkbox' }
-];
-
-// Event Pro-specific advanced filters
-export const EVENT_PRO_ADVANCED_FILTERS = [
-  { key: 'travel', label: '🚗 Travel Included', type: 'checkbox' },
-  { key: 'instantBooking', label: '⚡ Instant Booking', type: 'checkbox' },
-  { key: 'insurance', label: '🛡️ Insurance Provided', type: 'checkbox' },
-  { key: 'minRating', label: '⭐ Minimum Rating', type: 'dropdown', options: ['Any', '4.0+', '4.5+', '5.0'] },
-  { key: 'responseTime', label: '⏱️ Response Time', type: 'dropdown', options: ['<1hr', '<4hr', '<24hr', 'Any'] },
-  { key: 'experience', label: '👔 Experience Level', type: 'dropdown', options: ['Any', '1-3yrs', '3-5yrs', '5+yrs'] },
-  { key: 'packages', label: '📦 Package Deals Available', type: 'checkbox' },
-  { key: 'addons', label: '➕ Add-ons Available', type: 'checkbox' }
 ];
 
 export function getCategoryOptionsForMode(mode = SEARCH_MODE.RENT) {
@@ -266,3 +228,5 @@ export function formatDateRange(startDate, endDate) {
   if (!startDate && endDate) return `Before ${endDate}`;
   return `${startDate} → ${endDate}`;
 }
+
+.setMode(SessionCreateParams.Mode.PAYMENT)

@@ -1,104 +1,88 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useListings } from '../hooks/useListings.js';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Search,
   MapPin,
   Calendar,
-  X,
-  ChevronDown,
-  ChevronUp,
   Star,
-  Zap,
-  Store,
-  Truck,
-  Users,
-  ShoppingCart,
-  UtensilsCrossed,
   CheckCircle,
   Shield,
-  Clock
+  Truck,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal
 } from 'lucide-react';
 import AppLayout from '../layouts/AppLayout.jsx';
-import LocationAutocomplete from '../components/LocationAutocomplete.jsx';
 import {
-  ADVANCED_FILTER_PLACEHOLDERS,
-  EVENT_PRO_SECONDARY_FILTERS,
   EVENT_TYPES,
+  LISTING_TYPES,
   SERVICE_CATEGORIES,
   SEARCH_MODE,
   buildSearchParamsFromFilters,
   deriveCityState,
-  formatDateRange,
-  getCategoryIcon,
-  getCategoryLabel,
-  getCategoryOptionsForMode,
-  getModeCtaCopy,
   parseFiltersFromSearchParams
 } from '../constants/filters';
 
-// Sparkle Particle Component for Event Pro Mode
-const SparkleParticle = ({ delay, left, size }) => (
+const SPARKLE_COUNT = 50;
+
+const RENT_CATEGORIES = [
+  { label: '🚚 Food Trucks', value: LISTING_TYPES.FOOD_TRUCK },
+  { label: '🎪 Trailers', value: LISTING_TYPES.TRAILER },
+  { label: '🍴 Ghost Kitchens', value: LISTING_TYPES.GHOST_KITCHEN },
+  { label: '📍 Vending Lots', value: LISTING_TYPES.VENDING_LOT },
+  { label: '⚙️ Equipment', value: '' }
+];
+
+const SALE_CATEGORIES = [
+  { label: '🚚 Food Trucks', value: 'food-trucks-sale' },
+  { label: '🎪 Trailers', value: 'trailers-sale' },
+  { label: '🍴 Ghost Kitchen Equipment', value: 'ghost-kitchen-sale' },
+  { label: '📍 Vending Machines', value: 'vending-sale' },
+  { label: '⚙️ Commercial Equipment', value: 'equipment-sale' }
+];
+
+const RENT_DURATION_OPTIONS = ['Daily', 'Weekly', 'Monthly'];
+const RENT_SIZE_OPTIONS = ['Small', 'Medium', 'Large', 'XL'];
+const RENT_RATING_OPTIONS = ['4.0+', '4.5+', '5.0'];
+
+const SALE_YEAR_OPTIONS = ['2024', '2023', '2022', '2021', 'Older'];
+const SALE_SIZE_OPTIONS = ['Compact', 'Standard', 'Extended', 'XL'];
+const SALE_CONDITIONS = ['New', 'Like New', 'Good', 'Fair'];
+const SALE_TITLE_OPTIONS = ['Clean', 'Salvage', 'Rebuilt'];
+const SALE_EQUIPMENT_OPTIONS = ['Generator', 'POS System', 'Kitchen Package', 'Exterior Wrap', 'Permits Included'];
+
+const EVENT_MIN_RATINGS = ['Any', '4.0+', '4.5+', '5.0'];
+const EVENT_RESPONSE_TIMES = ['Any', '<1hr', '<4hr', '<24hr'];
+const EVENT_EXPERIENCE_LEVELS = ['Any', '1-3yrs', '3-5yrs', '5+yrs'];
+
+const SparkleParticle = ({ delay, left }) => (
   <div
     style={{
       position: 'absolute',
       left: `${left}%`,
-      bottom: '0',
-      width: `${size}px`,
-      height: `${size}px`,
-      background: '#FFB42C',
-      borderRadius: '50%',
+      bottom: 0,
+      width: '6px',
+      height: '6px',
+      borderRadius: '999px',
       opacity: 0,
+      backgroundImage: 'radial-gradient(circle, #FFB42C 0%, #FF8C00 60%, rgba(255,140,0,0) 100%)',
+      boxShadow: '0 0 15px rgba(255, 180, 44, 0.9), 0 0 25px rgba(255, 140, 0, 0.5)',
       animation: `sparkleFloat 4s ${delay}s ease-in-out infinite`,
-      boxShadow: `0 0 ${size * 2}px rgba(255, 180, 44, 0.6)`,
       pointerEvents: 'none'
     }}
   />
 );
 
-// Generate sparkle particles
-const generateSparkles = () => {
-  const sparkles = [];
-  for (let i = 0; i < 30; i++) {
-    sparkles.push({
-      id: i,
-      delay: Math.random() * 3,
-      left: Math.random() * 100,
-      size: 2 + Math.random() * 3
-    });
-  }
-  return sparkles;
-};
-
-const SPARKLES = generateSparkles();
-
-const VendibookGridIcon = ({ className = 'h-5 w-5 text-charcoal', strokeWidth = 1.75 }) => (
-  <svg
-    viewBox="0 0 24 24"
-    className={className}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="4" y="4" width="6" height="6" rx="1.25" />
-    <rect x="14" y="4" width="6" height="6" rx="1.25" />
-    <rect x="4" y="14" width="6" height="6" rx="1.25" />
-    <rect x="14" y="14" width="6" height="6" rx="1.25" />
-  </svg>
+const generateSparkles = (count = SPARKLE_COUNT) => (
+  Array.from({ length: count }).map((_, index) => ({
+    id: index,
+    delay: Math.random() * 4,
+    left: Math.random() * 100
+  }))
 );
 
-const CATEGORY_ICON_COMPONENTS = {
-  truck: Truck,
-  trailer: Truck,
-  kitchen: UtensilsCrossed,
-  map_pin: MapPin,
-  users: Users,
-  cart: ShoppingCart,
-  store: Store,
-  grid: VendibookGridIcon
-};
+const SPARKLES = generateSparkles();
 
 function HomePageEnhanced() {
   const navigate = useNavigate();

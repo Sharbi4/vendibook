@@ -23,7 +23,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-map-gl": "^8.1.0",
-    "react-router-dom": "^7.9.6"
+    "react-router-dom": "^7.9.6",
+    "stripe": "^20.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
