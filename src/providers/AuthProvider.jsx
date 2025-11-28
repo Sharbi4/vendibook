@@ -20,21 +20,17 @@ function AuthProvider({ children }) {
           return;
         }
         
-        // FRONTEND ONLY: Skip API call for now, just use stored user
-        // TODO: Uncomment when backend /api/auth/me is ready
-        // const current = await getCurrentUser();
-        // if (cancelled) return;
-        // setUser(current);
-        
-        // For now, trust the stored user if we have a token
+        // Fetch current user from backend to validate token
+        const current = await getCurrentUser();
         if (cancelled) return;
-        const storedUser = getStoredUser();
-        if (storedUser) {
-          setUser(storedUser);
+
+        if (current) {
+          setUser(current);
         } else {
-          // Token exists but no user - clear everything
+          // Token is invalid or expired - clear everything
           clearAuthToken();
           setToken(null);
+          setUser(null);
         }
       } catch (err) {
         if (cancelled) return;
