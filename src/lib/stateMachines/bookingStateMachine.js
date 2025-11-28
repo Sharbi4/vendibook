@@ -7,7 +7,8 @@
  *
  * Critical Rules:
  * - Address masking remains active until state = 'Paid'
- * - Messaging only available in: Requested, HostApproved, Paid, InProgress, ReturnedPendingConfirmation
+ * - Messaging opens ONLY at state = 'Paid' (after payment confirmed)
+ * - Messaging closes at state = 'Completed' or 'Canceled'
  * - Calendar locks immediately when state = 'Paid'
  * - Payout releases only when state = 'Completed'
  */
@@ -96,11 +97,13 @@ export function shouldMaskAddress(state) {
  * Checks if messaging is allowed for given state
  * @param {string} state - Booking state
  * @returns {boolean} - True if messaging is allowed
+ * 
+ * CRITICAL: Messaging only opens at Paid state (after payment confirmed)
+ * Messaging closes at Completed or Canceled
  */
 export function canSendMessages(state) {
+  // Messaging opens ONLY after payment is confirmed
   const messagingStates = [
-    BOOKING_STATES.REQUESTED,
-    BOOKING_STATES.HOST_APPROVED,
     BOOKING_STATES.PAID,
     BOOKING_STATES.IN_PROGRESS,
     BOOKING_STATES.RETURNED_PENDING_CONFIRMATION,

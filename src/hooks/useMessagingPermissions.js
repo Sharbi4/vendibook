@@ -6,8 +6,9 @@ import { canSendMessages as salesCanSendMessages, SALES_STATES } from '../lib/st
  * Hook to enforce messaging rules based on booking/sale state
  * 
  * Vendibook Messaging Rules:
- * - Messaging is ENABLED in: Requested, HostApproved, Paid, InProgress, ReturnedPendingConfirmation
- * - Messaging is DISABLED in: Completed, Canceled
+ * - Messaging OPENS at: Paid (after payment confirmed)
+ * - Messaging ENABLED in: Paid, InProgress, ReturnedPendingConfirmation
+ * - Messaging CLOSED in: Requested, HostApproved, Completed, Canceled
  * - Once a booking reaches Completed or Canceled, messaging thread is locked
  * 
  * @returns {Object} Messaging permission utilities
@@ -189,6 +190,10 @@ function normalizeSaleState(state) {
  */
 function getMessagingDisabledReason(state) {
   switch (state) {
+    case BOOKING_STATES.REQUESTED:
+      return 'Messaging opens after payment is confirmed. Waiting for host approval.';
+    case BOOKING_STATES.HOST_APPROVED:
+      return 'Messaging opens after payment is confirmed. Complete payment to message the host.';
     case BOOKING_STATES.COMPLETED:
       return 'This booking is complete. Messaging is no longer available.';
     case BOOKING_STATES.CANCELED:
