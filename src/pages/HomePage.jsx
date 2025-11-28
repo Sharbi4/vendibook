@@ -1281,34 +1281,30 @@ function HomePage() {
 
         {/* Search module container */}
         <div className="relative z-10 mx-auto w-full max-w-[680px] px-5 sm:px-6 vb-enter-fade-up">
-          {/* Mode tabs – centered with equal spacing, directly above search card */}
+          {/* Mode tabs – top pills with safe-area spacing */}
           <div className="mb-6 flex justify-center">
-            <div className="inline-flex items-center gap-3">
+            <div
+              className="flex w-full max-w-[720px] gap-3"
+              style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + 0.75rem)` }}
+            >
               {modeOptions.map((option) => {
                 const isActive = activeTab === option.id;
                 const TabIcon = option.icon;
-                // For dark hero backgrounds, inactive tabs use white outline/text
-                // For light hero backgrounds, inactive tabs use black outline/text
-                const inactiveColor = HERO_BRIGHTNESS === 'dark' ? '#FFFFFF' : '#000000';
-                
+
                 return (
                   <button
                     key={option.id}
                     type="button"
                     onClick={() => handleModeChange(option.id)}
-                    className={`vb-chip vb-focus relative flex items-center gap-2 rounded-full px-6 py-3 text-[14px] font-semibold transition-all duration-300 ${isActive ? 'tab-select-bounce tab-selected-glow' : ''}`}
-                    style={{
-                      backgroundColor: isActive ? option.color : 'transparent',
-                      color: isActive ? '#FFFFFF' : inactiveColor,
-                      border: isActive ? 'none' : `1px solid ${inactiveColor}`,
-                      boxShadow: isActive ? `0 8px 24px -4px ${option.color}40` : 'none',
-                      '--glow-color': `${option.color}50`,
-                    }}
+                    className={`vb-focus relative flex-1 items-center justify-center gap-2 rounded-full border bg-white px-3 py-2 text-sm font-medium text-slate-400 shadow-sm transition-all duration-200 hover:bg-slate-50 ${
+                      isActive
+                        ? 'border-[#F97316] text-[#F97316] shadow-md -translate-y-px'
+                        : 'border-slate-200'
+                    } flex`}
                   >
-                    {/* Sparkles on ALL tabs - idle for non-selected, enhanced for selected */}
-                    <TabSparkles isActive={isActive} color={isActive ? '#FFFFFF' : inactiveColor} />
-                    <TabIcon className="h-4 w-4" strokeWidth={2} />
-                    <span>{option.label}</span>
+                    <TabSparkles isActive={isActive} color={isActive ? '#F97316' : '#9CA3AF'} />
+                    <TabIcon className="h-4 w-4" />
+                    <span className="truncate">{option.label}</span>
                   </button>
                 );
               })}
@@ -1324,7 +1320,7 @@ function HomePage() {
             }}
           >
             <div className="p-8">
-              {/* WHERE section - Mapbox location search */}
+              {/* WHERE section - Mapbox location search + manual input */}
               <div className="mb-6">
                 <label className="mb-3 block text-[11px] font-bold uppercase tracking-[0.15em] text-white">Where</label>
                 <div className="[&_label]:hidden [&_input]:rounded-[12px] [&_input]:border-0 [&_input]:bg-white [&_input]:px-5 [&_input]:py-4 [&_input]:text-[15px] [&_input]:font-medium [&_input]:text-slate-800 [&_input]:placeholder:text-slate-500 [&>div>label>div]:rounded-[12px] [&>div>label>div]:border-0 [&>div>label>div]:bg-white">
@@ -1336,6 +1332,28 @@ function HomePage() {
                     placeholder="Search city, zip code, or address"
                     className="w-full"
                   />
+                </div>
+
+                {/* Explicit location field under Mapbox, mirrors filters.locationText */}
+                <div className="mt-4">
+                  <label
+                    htmlFor="hero-location-input"
+                    className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.15em] text-rose-100"
+                  >
+                    Location
+                  </label>
+                  <div className="flex items-center rounded-full bg-white px-3 py-2.5">
+                    <MapPin className="mr-2 h-4 w-4 text-slate-400" />
+                    <input
+                      id="hero-location-input"
+                      type="text"
+                      value={filters.locationText || ''}
+                      onChange={(e) => setFilters((prev) => ({ ...prev, locationText: e.target.value }))}
+                      placeholder="Enter city or ZIP"
+                      autoComplete="off"
+                      className="w-full border-none bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                    />
+                  </div>
                 </div>
               </div>
 
