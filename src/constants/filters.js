@@ -228,5 +228,3 @@ export function formatDateRange(startDate, endDate) {
   if (!startDate && endDate) return `Before ${endDate}`;
   return `${startDate} → ${endDate}`;
 }
-
-.setMode(SessionCreateParams.Mode.PAYMENT)

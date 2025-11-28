@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "env:pull": "npx vercel env pull .env.development.local"
+    "env:pull": "npx vercel env pull .env.development.local",
+    "test:stripe": "node scripts/test-stripe.js"
   },
   "dependencies": {
     "@clerk/clerk-js": "^5.111.0",
