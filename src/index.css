@@ -166,11 +166,11 @@ textarea {
   10% {
     opacity: 0.8;
   }
-  90% {
+  70% {
     opacity: 0.8;
   }
   100% {
-    transform: translateY(-700px) translateX(30px);
+    transform: translateY(-100px) translateX(20px);
     opacity: 0;
   }
 }

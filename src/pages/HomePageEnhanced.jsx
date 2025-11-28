@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useListings } from '../hooks/useListings.js';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -65,8 +65,8 @@ const SparkleParticle = ({ delay, left }) => (
       width: '6px',
       height: '6px',
       borderRadius: '999px',
-      opacity: 0,
-      backgroundImage: 'radial-gradient(circle, #FFB42C 0%, #FF8C00 60%, rgba(255,140,0,0) 100%)',
+      opacity: 0.8,
+      backgroundImage: 'radial-gradient(circle, #FFB42C 0%, #FF8C00 50%, transparent 80%)',
       boxShadow: '0 0 15px rgba(255, 180, 44, 0.9), 0 0 25px rgba(255, 140, 0, 0.5)',
       animation: `sparkleFloat 4s ${delay}s ease-in-out infinite`,
       pointerEvents: 'none'
@@ -95,42 +95,226 @@ function HomePageEnhanced() {
 
   const [filters, setFilters] = useState(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState(initialFilters);
-  const [activeTab, setActiveTab] = useState('rent'); // 'rent' or 'event-pro'
+  const [activeTab, setActiveTab] = useState('rent'); // 'rent' | 'forsale' | 'eventpro'
   const [showCalendar, setShowCalendar] = useState(false);
-  const [eventFilters, setEventFilters] = useState({
+  const [rentForm, setRentForm] = useState({
+    location: initialFilters.locationLabel || initialFilters.locationText || '',
+    startDate: initialFilters.startDate || '',
+    endDate: initialFilters.endDate || '',
+    category: initialFilters.listingType || '',
+    rateMin: '',
+    rateMax: '',
+    delivery: 'either',
+    duration: 'Daily',
+    size: '',
+    rating: '',
+    verified: false,
+    insurance: false,
+    permits: false
+  });
+  const [saleForm, setSaleForm] = useState({
+    location: initialFilters.locationLabel || initialFilters.locationText || '',
+    minPrice: '',
+    maxPrice: '',
+    category: SALE_CATEGORIES[0].value,
+    year: '',
+    size: '',
+    condition: '',
+    equipment: [],
+    titleStatus: '',
+    serviceHistory: false,
+    photoVerified: false,
+    financing: false,
+    delivery: false
+  });
+  const [eventForm, setEventForm] = useState({
     eventType: '',
-    eventLocation: '',
+    eventLocation: initialFilters.locationLabel || initialFilters.locationText || '',
     eventDateTime: '',
     serviceCategory: '',
-    priceRange: '',
-    crowdSize: ''
+    budgetRange: '',
+    guests: '',
+    travelIncluded: false,
+    instantBooking: false,
+    insuranceProvided: false,
+    minRating: 'Any',
+    responseTime: 'Any',
+    experienceLevel: 'Any',
+    packages: false,
+    addOns: false
+  });
+  const [advancedOpen, setAdvancedOpen] = useState({
+    rent: false,
+    forsale: false,
+    eventpro: false
   });
 
-  // Determine if Event Pro mode is active
-  const isEventProMode = activeTab === 'event-pro' || appliedFilters.mode === SEARCH_MODE.EVENT_PRO;
+  const isEventProMode = activeTab === 'eventpro';
 
   const handleTabSwitch = (tab) => {
     setActiveTab(tab);
-    if (tab === 'event-pro') {
-      setFilters(prev => ({ ...prev, mode: SEARCH_MODE.EVENT_PRO }));
-    } else {
-      setFilters(prev => ({ ...prev, mode: SEARCH_MODE.RENT }));
-    }
+    setFilters((prev) => ({
+      ...prev,
+      mode:
+        tab === 'eventpro'
+          ? SEARCH_MODE.EVENT_PRO
+          : tab === 'forsale'
+            ? SEARCH_MODE.BUY
+            : SEARCH_MODE.RENT
+    }));
   };
 
-  const handleSearch = () => {
-    const derived = deriveCityState(filters.locationLabel || filters.locationText);
+  const handleSearch = (override = {}) => {
+    const fallbackLocation = filters.locationLabel || filters.locationText || '';
+    const locationValue = override.locationText ?? override.location ?? fallbackLocation;
+    const derived = deriveCityState(locationValue || '');
     const nextFilters = {
       ...filters,
-      city: filters.city || derived.city,
-      state: filters.state || derived.state,
-      locationLabel: filters.locationLabel || filters.locationText || [derived.city, derived.state].filter(Boolean).join(', '),
+      ...override,
+      mode: override.mode || filters.mode,
+      locationText: locationValue,
+      locationLabel: override.locationLabel ?? (locationValue || filters.locationLabel || ''),
+      city: override.city ?? derived.city ?? filters.city,
+      state: override.state ?? derived.state ?? filters.state,
+      startDate: override.startDate !== undefined ? override.startDate : filters.startDate,
+      endDate: override.endDate !== undefined ? override.endDate : filters.endDate,
+      listingType: override.listingType !== undefined ? override.listingType : filters.listingType,
       page: 1
     };
     setFilters(nextFilters);
     setAppliedFilters(nextFilters);
     const params = buildSearchParamsFromFilters(nextFilters);
     navigate(`/listings?${params.toString()}`);
+  };
+
+  useEffect(() => {
+    const baseLocation = initialFilters.locationLabel || initialFilters.locationText || '';
+    setRentForm((prev) => ({
+      ...prev,
+      location: baseLocation,
+      startDate: initialFilters.startDate || '',
+      endDate: initialFilters.endDate || '',
+      category: initialFilters.listingType || prev.category
+    }));
+    setSaleForm((prev) => ({
+      ...prev,
+      location: baseLocation
+    }));
+    setEventForm((prev) => ({
+      ...prev,
+      eventLocation: baseLocation
+    }));
+  }, [
+    initialFilters.locationLabel,
+    initialFilters.locationText,
+    initialFilters.startDate,
+    initialFilters.endDate,
+    initialFilters.listingType
+  ]);
+
+  const toggleAdvanced = (tabKey) => {
+    setAdvancedOpen((prev) => ({
+      ...prev,
+      [tabKey]: !prev[tabKey]
+    }));
+  };
+
+  const setRentField = (field, value) => {
+    setRentForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const setSaleField = (field, value) => {
+    setSaleForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const toggleSaleEquipment = (option) => {
+    setSaleForm((prev) => {
+      const exists = prev.equipment.includes(option);
+      const equipment = exists
+        ? prev.equipment.filter((item) => item !== option)
+        : [...prev.equipment, option];
+      return { ...prev, equipment };
+    });
+  };
+
+  const setEventField = (field, value) => {
+    setEventForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleRentSearch = () => {
+    handleSearch({
+      mode: SEARCH_MODE.RENT,
+      locationText: rentForm.location,
+      startDate: rentForm.startDate,
+      endDate: rentForm.endDate,
+      listingType: rentForm.category
+    });
+  };
+
+  const handleSaleSearch = () => {
+    handleSearch({
+      mode: SEARCH_MODE.BUY,
+      locationText: saleForm.location,
+      listingType: saleForm.category
+    });
+  };
+
+  const handleEventSearch = () => {
+    handleSearch({
+      mode: SEARCH_MODE.EVENT_PRO,
+      locationText: eventForm.eventLocation,
+      startDate: eventForm.eventDateTime ? eventForm.eventDateTime.split('T')[0] : '',
+      listingType: eventForm.serviceCategory
+    });
+  };
+
+  const tabButtons = [
+    {
+      id: 'rent',
+      label: '📅 Rent',
+      gradient: 'linear-gradient(135deg, #FF5124 0%, #FF7524 100%)',
+      textColor: '#fff',
+      shadow: '0 4px 12px rgba(255, 81, 36, 0.3)'
+    },
+    {
+      id: 'forsale',
+      label: '💰 For Sale',
+      gradient: 'linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)',
+      textColor: '#fff',
+      shadow: '0 4px 12px rgba(76, 175, 80, 0.3)'
+    },
+    {
+      id: 'eventpro',
+      label: '✨ Event Pro',
+      gradient: 'linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(40,20,0,0.85) 100%)',
+      textColor: '#FFB42C',
+      shadow: '0 4px 12px rgba(0, 0, 0, 0.5), 0 0 25px rgba(255, 180, 44, 0.3)'
+    }
+  ];
+
+  const searchCardStyles = isEventProMode
+    ? {
+        background: 'linear-gradient(135deg, rgba(20,10,0,0.95) 0%, rgba(0,0,0,0.9) 100%)',
+        border: '2px solid rgba(255, 180, 44, 0.2)',
+        boxShadow: '0 12px 48px rgba(255, 180, 44, 0.3), 0 0 60px rgba(255, 180, 44, 0.2)'
+      }
+    : {
+        background: '#fff',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)'
+      };
+
+  const heroOverlay = isEventProMode
+    ? 'linear-gradient(135deg, rgba(0, 0, 0, 0.92) 0%, rgba(40, 20, 0, 0.88) 100%)'
+    : 'linear-gradient(to bottom, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.6))';
+
+  const heroBackdrop = isEventProMode
+    ? 'url(https://images.unsplash.com/photo-1464047736614-af63643285bf?w=1600&q=80)'
+    : 'url(https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?w=1600&q=80)';
+
+  const eventInputBaseStyles = {
+    backgroundColor: '#fff',
+    border: '2px solid #e0e0e0',
+    color: '#343434'
   };
 
   const { listings: dynamicListings } = useListings(appliedFilters);
@@ -186,216 +370,679 @@ function HomePageEnhanced() {
         }
       `}</style>
 
-      {/* Hero Section with Video Background */}
+      {/* Hero Section */}
       <section
         className="hero-section relative overflow-hidden"
-        style={{
-          height: '700px',
-          background: isEventProMode
-            ? 'linear-gradient(135deg, #000000 0%, #191970 50%, #4B0082 100%)'
-            : 'linear-gradient(135deg, rgba(3,7,18,0.95), rgba(15,23,42,0.75))',
-          transition: 'background 0.8s ease'
-        }}
+        style={{ minHeight: '720px', backgroundColor: '#050505' }}
       >
-        {/* Video Background Placeholder */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 0
-        }}>
-          {/* Replace this with your video element */}
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            background: isEventProMode
-              ? 'url(https://images.unsplash.com/photo-1464047736614-af63643285bf?w=1600&q=80) center/cover'
-              : 'url(https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?w=1600&q=80) center/cover',
-            opacity: 0.3,
-            transition: 'opacity 0.8s ease'
-          }} />
+        <div className="absolute inset-0">
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: heroBackdrop,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              filter: isEventProMode ? 'saturate(1.1) brightness(0.5)' : 'brightness(0.55)'
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: heroOverlay,
+              mixBlendMode: 'multiply'
+            }}
+          />
         </div>
 
-        {/* Sparkle Particles for Event Pro Mode */}
-        {isEventProMode && SPARKLES.map(sparkle => (
-          <SparkleParticle
-            key={sparkle.id}
-            delay={sparkle.delay}
-            left={sparkle.left}
-            size={sparkle.size}
-          />
+        {isEventProMode && SPARKLES.map((sparkle) => (
+          <SparkleParticle key={sparkle.id} delay={sparkle.delay} left={sparkle.left} />
         ))}
 
-        <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col items-center justify-center px-4 text-center text-white sm:px-6 lg:px-8">
-          <h1 className="mb-4 text-5xl font-bold leading-tight tracking-tight sm:text-6xl lg:text-7xl">
-            Rent, Sell, or Book—
-          </h1>
-          <p className="mb-8 text-xl sm:text-2xl" style={{ color: 'rgba(255,255,255,0.9)' }}>
-            Vendibook, the mobile business marketplace
-          </p>
-          <p className="mb-12 max-w-2xl text-base sm:text-lg" style={{ color: 'rgba(255,255,255,0.8)' }}>
-            Connect with food trucks, trailers, ghost kitchens, event pros, and vendor markets. Your next activation starts here.
-          </p>
+        <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-center gap-10 px-4 py-16 text-center text-white sm:px-6 lg:px-8 lg:py-24">
+          <div className="space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-orange-200">Three ways to launch</p>
+            <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+              Flexible flows for rent, sale, and ✨ event pros
+            </h1>
+            <p className="mx-auto max-w-2xl text-base text-white/80 sm:text-lg">
+              Switch tabs to match the mission: date-based rentals, purchase-ready listings, or sparkling Event Pro services with neutral inputs on a dark stage.
+            </p>
+          </div>
 
-          {/* Tabbed Search Card */}
-          <div className="search-card w-full max-w-4xl rounded-3xl bg-white p-6 shadow-2xl backdrop-blur">
-            {/* Tabs */}
-            <div className="mb-6 flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleTabSwitch('rent')}
-                className="tab-button flex-1 rounded-2xl px-6 py-3 text-sm font-semibold transition"
-                style={{
-                  background: activeTab === 'rent' ? '#FF5124' : 'transparent',
-                  color: activeTab === 'rent' ? 'white' : '#343434',
-                  border: activeTab === 'rent' ? 'none' : '1px solid #E5E7EB'
-                }}
-              >
-                Rent or For Sale
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTabSwitch('event-pro')}
-                className="tab-button flex-1 rounded-2xl px-6 py-3 text-sm font-semibold transition"
-                style={{
-                  background: activeTab === 'event-pro' ? '#191970' : 'transparent',
-                  color: activeTab === 'event-pro' ? 'white' : '#343434',
-                  border: activeTab === 'event-pro' ? 'none' : '1px solid #E5E7EB'
-                }}
-              >
-                Book an Event Pro
-              </button>
+          <div className="w-full max-w-5xl rounded-[32px] p-6 sm:p-8" style={searchCardStyles}>
+            <div className="flex flex-col gap-2 text-sm font-semibold sm:flex-row sm:items-center">
+              {tabButtons.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => handleTabSwitch(tab.id)}
+                    className="tab-button flex-1 rounded-2xl px-5 py-3 transition"
+                    style={{
+                      background: isActive ? tab.gradient : 'transparent',
+                      color: isActive ? tab.textColor : '#666',
+                      boxShadow: isActive ? tab.shadow : 'none',
+                      transform: isActive ? 'translateY(-2px)' : 'translateY(0)',
+                      border: isActive ? 'none' : '1px solid rgba(255,255,255,0.2)'
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Search Fields */}
-            {activeTab === 'rent' ? (
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 rounded-2xl border border-gray-200 px-4 py-3">
-                    <MapPin className="h-5 w-5 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Where to?"
-                      className="flex-1 border-none bg-transparent text-sm outline-none"
-                      value={filters.locationText || ''}
-                      onChange={(e) => setFilters(prev => ({ ...prev, locationText: e.target.value }))}
-                    />
+            <div className="mt-6 space-y-6 text-left">
+              {activeTab === 'rent' && (
+                <div className="space-y-6 text-[#343434]">
+                  <div className="grid gap-4 md:grid-cols-5">
+                    <div className="md:col-span-2">
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-[#FF6A1F]">📍 Location</label>
+                      <div className="flex items-center gap-3 rounded-2xl border-2 border-[#e0e0e0] bg-white px-4 py-3">
+                        <MapPin className="h-5 w-5 text-[#FF5124]" />
+                        <input
+                          type="text"
+                          placeholder="City or region"
+                          className="flex-1 bg-transparent text-sm text-[#343434] placeholder:text-[#9b9b9b] focus:outline-none"
+                          value={rentForm.location}
+                          onChange={(e) => setRentField('location', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-[#FF6A1F]">📅 Start Date</label>
+                      <div className="flex items-center gap-3 rounded-2xl border-2 border-[#e0e0e0] bg-white px-4 py-3">
+                        <Calendar className="h-5 w-5 text-[#FF5124]" />
+                        <input
+                          type="date"
+                          className="flex-1 bg-transparent text-sm text-[#343434] focus:outline-none"
+                          value={rentForm.startDate}
+                          onChange={(e) => setRentField('startDate', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-[#FF6A1F]">📅 End Date</label>
+                      <div className="flex items-center gap-3 rounded-2xl border-2 border-[#e0e0e0] bg-white px-4 py-3">
+                        <Calendar className="h-5 w-5 text-[#FF5124]" />
+                        <input
+                          type="date"
+                          className="flex-1 bg-transparent text-sm text-[#343434] focus:outline-none"
+                          value={rentForm.endDate}
+                          onChange={(e) => setRentField('endDate', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={handleRentSearch}
+                        className="flex w-full items-center justify-center rounded-2xl px-5 py-3 font-semibold text-white transition hover:-translate-y-0.5"
+                        style={{
+                          background: 'linear-gradient(135deg, #FF5124 0%, #FF7524 100%)',
+                          boxShadow: '0 4px 16px rgba(255, 81, 36, 0.3)'
+                        }}
+                      >
+                        <Search className="mr-2 h-4 w-4" />
+                        Search Rentals
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 rounded-2xl border border-gray-200 px-4 py-3">
-                    <Calendar className="h-5 w-5 text-gray-400" />
-                    <input
-                      type="date"
-                      placeholder="When?"
-                      className="flex-1 border-none bg-transparent text-sm outline-none"
-                      value={filters.startDate || ''}
-                      onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                    />
+
+                  <div>
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-[#FF6A1F]">Category Quick-Select</p>
+                    <div className="flex flex-wrap gap-2">
+                      {RENT_CATEGORIES.map((category) => {
+                        const isActive = rentForm.category === category.value;
+                        return (
+                          <button
+                            type="button"
+                            key={category.value}
+                            onClick={() => setRentField('category', category.value)}
+                            className="rounded-full px-4 py-2 text-sm font-semibold transition"
+                            style={{
+                              background: isActive ? 'linear-gradient(135deg, #FF5124 0%, #FF7524 100%)' : 'rgba(255,255,255,0.7)',
+                              color: isActive ? '#fff' : '#343434',
+                              boxShadow: isActive ? '0 4px 12px rgba(255, 81, 36, 0.25)' : 'none'
+                            }}
+                          >
+                            {category.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleSearch}
-                  className="rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 px-8 py-3 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl"
-                >
-                  <Search className="inline-block mr-2 h-4 w-4" />
-                  Search
-                </button>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    ⚡ Event Type
-                  </label>
-                  <select
-                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none"
-                    value={eventFilters.eventType}
-                    onChange={(e) => setEventFilters(prev => ({ ...prev, eventType: e.target.value }))}
-                  >
-                    <option value="">Select event type</option>
-                    {EVENT_TYPES.map(type => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    📍 Event Location
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter event location"
-                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none"
-                    value={eventFilters.eventLocation}
-                    onChange={(e) => setEventFilters(prev => ({ ...prev, eventLocation: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    📅 Event Date & Time
-                  </label>
-                  <input
-                    type="datetime-local"
-                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none"
-                    value={eventFilters.eventDateTime}
-                    onChange={(e) => setEventFilters(prev => ({ ...prev, eventDateTime: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    🍴 Service Category
-                  </label>
-                  <select
-                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none"
-                    value={eventFilters.serviceCategory}
-                    onChange={(e) => setEventFilters(prev => ({ ...prev, serviceCategory: e.target.value }))}
-                  >
-                    <option value="">Select service</option>
-                    {SERVICE_CATEGORIES.map(cat => (
-                      <option key={cat.value} value={cat.value}>{cat.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    💵 Price Range
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g., $500 - $2000"
-                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none"
-                    value={eventFilters.priceRange}
-                    onChange={(e) => setEventFilters(prev => ({ ...prev, priceRange: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    👥 Expected Crowd Size
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="Number of guests"
-                    className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none"
-                    value={eventFilters.crowdSize}
-                    onChange={(e) => setEventFilters(prev => ({ ...prev, crowdSize: e.target.value }))}
-                  />
-                </div>
-                <div className="md:col-span-2">
+
                   <button
                     type="button"
-                    onClick={handleSearch}
-                    className="w-full rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 px-8 py-4 text-base font-semibold text-white shadow-lg transition hover:shadow-xl"
+                    onClick={() => toggleAdvanced('rent')}
+                    className="flex w-full items-center justify-between rounded-2xl border-2 border-[#FFE0D3] bg-[#FFF5EF] px-5 py-3 text-sm font-semibold text-[#FF5124]"
                   >
-                    <Search className="inline-block mr-2 h-5 w-5" />
-                    Search Event Pros
+                    <span className="flex items-center gap-2">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Advanced Filters
+                    </span>
+                    {advancedOpen.rent ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   </button>
+
+                  {advancedOpen.rent && (
+                    <div className="space-y-4 rounded-2xl border-2 border-[#FFE0D3] bg-white/95 p-4 text-sm text-[#343434]">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[#FF6A1F]">💰 Daily Rate Range</p>
+                          <div className="mt-2 flex gap-3">
+                            <input
+                              type="number"
+                              placeholder="Min $"
+                              className="w-full rounded-xl border-2 border-[#e0e0e0] px-3 py-2 focus:border-[#FF6A1F] focus:outline-none"
+                              value={rentForm.rateMin}
+                              onChange={(e) => setRentField('rateMin', e.target.value)}
+                            />
+                            <input
+                              type="number"
+                              placeholder="Max $"
+                              className="w-full rounded-xl border-2 border-[#e0e0e0] px-3 py-2 focus:border-[#FF6A1F] focus:outline-none"
+                              value={rentForm.rateMax}
+                              onChange={(e) => setRentField('rateMax', e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[#FF6A1F]">🚚 Delivery Available</p>
+                          <div className="mt-2 flex gap-2">
+                            {['yes', 'no', 'either'].map((option) => {
+                              const label = option === 'yes' ? 'Yes' : option === 'no' ? 'No' : 'Either';
+                              const active = rentForm.delivery === option;
+                              return (
+                                <button
+                                  key={option}
+                                  type="button"
+                                  onClick={() => setRentField('delivery', option)}
+                                  className="flex-1 rounded-xl px-3 py-2 text-sm font-semibold"
+                                  style={{
+                                    background: active ? 'rgba(255,81,36,0.12)' : 'transparent',
+                                    border: `2px solid ${active ? '#FF6A1F' : '#e0e0e0'}`,
+                                    color: active ? '#FF6A1F' : '#5c5c5c'
+                                  }}
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[#FF6A1F]">⏰ Rental Duration</p>
+                          <select
+                            className="mt-2 w-full rounded-xl border-2 border-[#e0e0e0] px-3 py-2 focus:border-[#FF6A1F] focus:outline-none"
+                            value={rentForm.duration}
+                            onChange={(e) => setRentField('duration', e.target.value)}
+                          >
+                            {RENT_DURATION_OPTIONS.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[#FF6A1F]">📏 Size / Capacity</p>
+                          <select
+                            className="mt-2 w-full rounded-xl border-2 border-[#e0e0e0] px-3 py-2 focus:border-[#FF6A1F] focus:outline-none"
+                            value={rentForm.size}
+                            onChange={(e) => setRentField('size', e.target.value)}
+                          >
+                            <option value="">Any size</option>
+                            {RENT_SIZE_OPTIONS.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[#FF6A1F]">⭐ Minimum Rating</p>
+                          <select
+                            className="mt-2 w-full rounded-xl border-2 border-[#e0e0e0] px-3 py-2 focus:border-[#FF6A1F] focus:outline-none"
+                            value={rentForm.rating}
+                            onChange={(e) => setRentField('rating', e.target.value)}
+                          >
+                            <option value="">Any</option>
+                            {RENT_RATING_OPTIONS.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <label className="flex items-center gap-2 text-sm font-semibold text-[#343434]">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-[#FF6A1F] text-[#FF6A1F]"
+                            checked={rentForm.verified}
+                            onChange={(e) => setRentField('verified', e.target.checked)}
+                          />
+                          ✓ Verified hosts only
+                        </label>
+                        <label className="flex items-center gap-2 text-sm font-semibold text-[#343434]">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-[#FF6A1F] text-[#FF6A1F]"
+                            checked={rentForm.insurance}
+                            onChange={(e) => setRentField('insurance', e.target.checked)}
+                          />
+                          🛡️ Insurance included
+                        </label>
+                        <label className="flex items-center gap-2 text-sm font-semibold text-[#343434]">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-[#FF6A1F] text-[#FF6A1F]"
+                            checked={rentForm.permits}
+                            onChange={(e) => setRentField('permits', e.target.checked)}
+                          />
+                          📜 Permits included
+                        </label>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              )}
+
+              {activeTab === 'forsale' && (
+                <div className="space-y-6 text-[#343434]">
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <div className="md:col-span-2">
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-[#2F9E44]">📍 Location</label>
+                      <div className="flex items-center gap-3 rounded-2xl border-2 border-[#e0e0e0] bg-white px-4 py-3">
+                        <MapPin className="h-5 w-5 text-[#4CAF50]" />
+                        <input
+                          type="text"
+                          placeholder="City or region"
+                          className="flex-1 bg-transparent text-sm text-[#343434] placeholder:text-[#9b9b9b] focus:outline-none"
+                          value={saleForm.location}
+                          onChange={(e) => setSaleField('location', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-[#2F9E44]">💰 Min Price</label>
+                      <input
+                        type="number"
+                        placeholder="$"
+                        className="w-full rounded-2xl border-2 border-[#e0e0e0] bg-white px-4 py-3 text-sm text-[#343434] focus:border-[#4CAF50] focus:outline-none"
+                        value={saleForm.minPrice}
+                        onChange={(e) => setSaleField('minPrice', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-[#2F9E44]">💰 Max Price</label>
+                      <input
+                        type="number"
+                        placeholder="$"
+                        className="w-full rounded-2xl border-2 border-[#e0e0e0] bg-white px-4 py-3 text-sm text-[#343434] focus:border-[#4CAF50] focus:outline-none"
+                        value={saleForm.maxPrice}
+                        onChange={(e) => setSaleField('maxPrice', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {SALE_CATEGORIES.map((category) => {
+                      const isActive = saleForm.category === category.value;
+                      return (
+                        <button
+                          type="button"
+                          key={category.value}
+                          onClick={() => setSaleField('category', category.value)}
+                          className="rounded-full px-4 py-2 text-sm font-semibold transition"
+                          style={{
+                            background: isActive ? 'linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)' : 'rgba(255,255,255,0.85)',
+                            color: isActive ? '#fff' : '#343434',
+                            boxShadow: isActive ? '0 4px 12px rgba(76, 175, 80, 0.25)' : 'none'
+                          }}
+                        >
+                          {category.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <div className="md:col-span-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleAdvanced('forsale')}
+                        className="flex w-full items-center justify-between rounded-2xl border-2 border-[#D1F2D3] bg-[#F3FFF4] px-5 py-3 text-sm font-semibold text-[#2F9E44]"
+                      >
+                        <span className="flex items-center gap-2">
+                          <SlidersHorizontal className="h-4 w-4" />
+                          Advanced Filters
+                        </span>
+                        {advancedOpen.forsale ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={handleSaleSearch}
+                        className="flex w-full items-center justify-center rounded-2xl px-5 py-3 font-semibold text-white transition hover:-translate-y-0.5"
+                        style={{
+                          background: 'linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)',
+                          boxShadow: '0 4px 16px rgba(76, 175, 80, 0.3)'
+                        }}
+                      >
+                        <Search className="mr-2 h-4 w-4" />
+                        Search Listings
+                      </button>
+                    </div>
+                  </div>
+                  {advancedOpen.forsale && (
+                    <div className="space-y-4 rounded-2xl border-2 border-[#D1F2D3] bg-white/95 p-4 text-sm text-[#343434]">
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[#2F9E44]">📅 Year</p>
+                          <select
+                            className="mt-2 w-full rounded-xl border-2 border-[#e0e0e0] px-3 py-2 focus:border-[#2F9E44] focus:outline-none"
+                            value={saleForm.year}
+                            onChange={(e) => setSaleField('year', e.target.value)}
+                          >
+                            <option value="">Any year</option>
+                            {SALE_YEAR_OPTIONS.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[#2F9E44]">📏 Size / Type</p>
+                          <select
+                            className="mt-2 w-full rounded-xl border-2 border-[#e0e0e0] px-3 py-2 focus:border-[#2F9E44] focus:outline-none"
+                            value={saleForm.size}
+                            onChange={(e) => setSaleField('size', e.target.value)}
+                          >
+                            <option value="">Any type</option>
+                            {SALE_SIZE_OPTIONS.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[#2F9E44]">⚙️ Condition</p>
+                          <select
+                            className="mt-2 w-full rounded-xl border-2 border-[#e0e0e0] px-3 py-2 focus:border-[#2F9E44] focus:outline-none"
+                            value={saleForm.condition}
+                            onChange={(e) => setSaleField('condition', e.target.value)}
+                          >
+                            <option value="">Any condition</option>
+                            {SALE_CONDITIONS.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[#2F9E44]">🔧 Equipment Included</p>
+                        <div className="mt-2 grid gap-2 md:grid-cols-2">
+                          {SALE_EQUIPMENT_OPTIONS.map((option) => (
+                            <label key={option} className="flex items-center gap-2 text-sm font-semibold text-[#343434]">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-[#2F9E44] text-[#2F9E44]"
+                                checked={saleForm.equipment.includes(option)}
+                                onChange={() => toggleSaleEquipment(option)}
+                              />
+                              {option}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[#2F9E44]">📜 Title Status</p>
+                          <select
+                            className="mt-2 w-full rounded-xl border-2 border-[#e0e0e0] px-3 py-2 focus:border-[#2F9E44] focus:outline-none"
+                            value={saleForm.titleStatus}
+                            onChange={(e) => setSaleField('titleStatus', e.target.value)}
+                          >
+                            <option value="">Any</option>
+                            {SALE_TITLE_OPTIONS.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="grid gap-2">
+                          <label className="flex items-center gap-2 text-sm font-semibold text-[#343434]">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-[#2F9E44] text-[#2F9E44]"
+                              checked={saleForm.serviceHistory}
+                              onChange={(e) => setSaleField('serviceHistory', e.target.checked)}
+                            />
+                            🛠️ Service history available
+                          </label>
+                          <label className="flex items-center gap-2 text-sm font-semibold text-[#343434]">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-[#2F9E44] text-[#2F9E44]"
+                              checked={saleForm.photoVerified}
+                              onChange={(e) => setSaleField('photoVerified', e.target.checked)}
+                            />
+                            📸 Photo verification
+                          </label>
+                          <label className="flex items-center gap-2 text-sm font-semibold text-[#343434]">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-[#2F9E44] text-[#2F9E44]"
+                              checked={saleForm.financing}
+                              onChange={(e) => setSaleField('financing', e.target.checked)}
+                            />
+                            💳 Financing available
+                          </label>
+                          <label className="flex items-center gap-2 text-sm font-semibold text-[#343434]">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-[#2F9E44] text-[#2F9E44]"
+                              checked={saleForm.delivery}
+                              onChange={(e) => setSaleField('delivery', e.target.checked)}
+                            />
+                            🚛 Delivery available
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'eventpro' && (
+                <div className="space-y-6 text-white">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-[#FFB42C]">⚡ Event Type</label>
+                      <select
+                        className="w-full rounded-2xl px-4 py-3 text-sm focus:border-[#FFB42C] focus:outline-none"
+                        style={eventInputBaseStyles}
+                        value={eventForm.eventType}
+                        onChange={(e) => setEventField('eventType', e.target.value)}
+                      >
+                        <option value="">Select event type</option>
+                        {EVENT_TYPES.map((type) => (
+                          <option key={type.value} value={type.value}>{type.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-[#FFB42C]">📍 Event Location</label>
+                      <input
+                        type="text"
+                        placeholder="City, venue, or coordinates"
+                        className="w-full rounded-2xl px-4 py-3 text-sm focus:border-[#FFB42C] focus:outline-none"
+                        style={eventInputBaseStyles}
+                        value={eventForm.eventLocation}
+                        onChange={(e) => setEventField('eventLocation', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-[#FFB42C]">📅 Event Date & Time</label>
+                      <input
+                        type="datetime-local"
+                        className="w-full rounded-2xl px-4 py-3 text-sm focus:border-[#FFB42C] focus:outline-none"
+                        style={eventInputBaseStyles}
+                        value={eventForm.eventDateTime}
+                        onChange={(e) => setEventField('eventDateTime', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-[#FFB42C]">🍽️ Service Category</label>
+                      <select
+                        className="w-full rounded-2xl px-4 py-3 text-sm focus:border-[#FFB42C] focus:outline-none"
+                        style={eventInputBaseStyles}
+                        value={eventForm.serviceCategory}
+                        onChange={(e) => setEventField('serviceCategory', e.target.value)}
+                      >
+                        <option value="">Select service</option>
+                        {SERVICE_CATEGORIES.map((cat) => (
+                          <option key={cat.value} value={cat.value}>{cat.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-[#FFB42C]">💰 Budget Range</label>
+                      <input
+                        type="text"
+                        placeholder="$1,500 - $5,000"
+                        className="w-full rounded-2xl px-4 py-3 text-sm focus:border-[#FFB42C] focus:outline-none"
+                        style={eventInputBaseStyles}
+                        value={eventForm.budgetRange}
+                        onChange={(e) => setEventField('budgetRange', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.25em] text-[#FFB42C]">👥 Expected Guests</label>
+                      <input
+                        type="number"
+                        placeholder="e.g., 150"
+                        className="w-full rounded-2xl px-4 py-3 text-sm focus:border-[#FFB42C] focus:outline-none"
+                        style={eventInputBaseStyles}
+                        value={eventForm.guests}
+                        onChange={(e) => setEventField('guests', e.target.value)}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <button
+                        type="button"
+                        onClick={handleEventSearch}
+                        className="flex w-full items-center justify-center rounded-2xl px-6 py-4 text-base font-bold text-black transition hover:-translate-y-1"
+                        style={{
+                          background: 'linear-gradient(135deg, #FFB42C 0%, #FF8C00 100%)',
+                          boxShadow: '0 6px 24px rgba(255, 180, 44, 0.5), 0 0 40px rgba(255, 180, 44, 0.3)'
+                        }}
+                      >
+                        <Search className="mr-2 h-5 w-5" />
+                        Search Event Pros
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleAdvanced('eventpro')}
+                    className="flex w-full items-center justify-between rounded-2xl border border-[#FFB42C]/40 bg-black/30 px-5 py-3 text-sm font-semibold text-[#FFB42C]"
+                  >
+                    <span className="flex items-center gap-2">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Advanced Filters
+                    </span>
+                    {advancedOpen.eventpro ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </button>
+                  {advancedOpen.eventpro && (
+                    <div className="grid gap-4 rounded-2xl border border-[#FFB42C]/30 bg-black/50 p-4 text-sm text-white md:grid-cols-2">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-white">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-[#FFB42C] text-[#FFB42C]"
+                          checked={eventForm.travelIncluded}
+                          onChange={(e) => setEventField('travelIncluded', e.target.checked)}
+                        />
+                        🚗 Travel included
+                      </label>
+                      <label className="flex items-center gap-2 text-sm font-semibold text-white">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-[#FFB42C] text-[#FFB42C]"
+                          checked={eventForm.instantBooking}
+                          onChange={(e) => setEventField('instantBooking', e.target.checked)}
+                        />
+                        ⚡ Instant booking
+                      </label>
+                      <label className="flex items-center gap-2 text-sm font-semibold text-white">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-[#FFB42C] text-[#FFB42C]"
+                          checked={eventForm.insuranceProvided}
+                          onChange={(e) => setEventField('insuranceProvided', e.target.checked)}
+                        />
+                        🛡️ Insurance provided
+                      </label>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[#FFB42C]">⭐ Minimum rating</p>
+                        <select
+                          className="mt-2 w-full rounded-xl px-3 py-2 text-sm text-[#343434] focus:border-[#FFB42C] focus:outline-none"
+                          style={eventInputBaseStyles}
+                          value={eventForm.minRating}
+                          onChange={(e) => setEventField('minRating', e.target.value)}
+                        >
+                          {EVENT_MIN_RATINGS.map((option) => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[#FFB42C]">⏱️ Response time</p>
+                        <select
+                          className="mt-2 w-full rounded-xl px-3 py-2 text-sm text-[#343434] focus:border-[#FFB42C] focus:outline-none"
+                          style={eventInputBaseStyles}
+                          value={eventForm.responseTime}
+                          onChange={(e) => setEventField('responseTime', e.target.value)}
+                        >
+                          {EVENT_RESPONSE_TIMES.map((option) => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[#FFB42C]">👔 Experience level</p>
+                        <select
+                          className="mt-2 w-full rounded-xl px-3 py-2 text-sm text-[#343434] focus:border-[#FFB42C] focus:outline-none"
+                          style={eventInputBaseStyles}
+                          value={eventForm.experienceLevel}
+                          onChange={(e) => setEventField('experienceLevel', e.target.value)}
+                        >
+                          {EVENT_EXPERIENCE_LEVELS.map((option) => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <label className="flex items-center gap-2 text-sm font-semibold text-white">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-[#FFB42C] text-[#FFB42C]"
+                          checked={eventForm.packages}
+                          onChange={(e) => setEventField('packages', e.target.checked)}
+                        />
+                        📦 Package deals available
+                      </label>
+                      <label className="flex items-center gap-2 text-sm font-semibold text-white">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-[#FFB42C] text-[#FFB42C]"
+                          checked={eventForm.addOns}
+                          onChange={(e) => setEventField('addOns', e.target.checked)}
+                        />
+                        ➕ Add-ons available
+                      </label>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
