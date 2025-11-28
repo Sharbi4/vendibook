@@ -4,9 +4,28 @@ import { validateAuth } from '../../_auth';
 const prisma = new PrismaClient();
 
 /**
- * GET /bookings/{id}/location - Get precise address for approved booking
- * Only shows exact location to approved bookers and host
- * Implements address masking security
+ * Booking states where address should be revealed (payment confirmed or later)
+ * Aligns with src/lib/stateMachines/bookingStateMachine.js shouldMaskAddress()
+ * 
+ * State Flow: Requested → HostApproved → Paid → InProgress → ReturnedPendingConfirmation → Completed
+ * Address is MASKED in: Requested, HostApproved, Canceled
+ * Address is REVEALED in: Paid, InProgress, ReturnedPendingConfirmation, Completed
+ */
+const ADDRESS_REVEAL_STATES = [
+  'Paid',
+  'PAID',
+  'InProgress', 
+  'IN_PROGRESS',
+  'ReturnedPendingConfirmation',
+  'RETURNED_PENDING_CONFIRMATION',
+  'Completed',
+  'COMPLETED'
+];
+
+/**
+ * GET /bookings/{id}/location - Get precise address for PAID booking
+ * Only shows exact location after payment is confirmed
+ * Implements Vendibook's core trust rule: address masking until payment
  */
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -58,13 +77,17 @@ export default async function handler(req, res) {
       });
     }
 
-    // Status check: Only approved or completed bookings show location
-    const allowedStatuses = ['APPROVED', 'COMPLETED'];
-    if (!allowedStatuses.includes(booking.status)) {
+    // Check booking state - use 'state' field (new) or 'status' field (legacy)
+    const bookingState = booking.state || booking.status;
+    
+    // Status check: Only PAID or later states reveal location
+    // This is Vendibook's core trust rule - address stays masked until payment
+    if (!ADDRESS_REVEAL_STATES.includes(bookingState)) {
       return res.status(400).json({
         success: false,
-        error: 'BOOKING_NOT_APPROVED',
-        message: 'Location is only revealed for approved bookings',
+        error: 'PAYMENT_NOT_CONFIRMED',
+        message: 'Location is only revealed after payment is confirmed. Complete payment to see the exact address.',
+        currentState: bookingState,
         code: 400
       });
     }
@@ -79,7 +102,9 @@ export default async function handler(req, res) {
         listingId: booking.listingId,
         changes: {
           revealedAt: new Date().toISOString(),
-          revealedToRole: isRenter ? 'RENTER' : 'HOST'
+          revealedToRole: isRenter ? 'RENTER' : isHost ? 'HOST' : 'ADMIN',
+          bookingState: bookingState,
+          paymentConfirmed: true
         }
       }
     });
@@ -94,15 +119,18 @@ export default async function handler(req, res) {
         coordinates: booking.listing.coordinates,
         // Additional helpful info
         bookingId: booking.id,
+        bookingState: bookingState,
         startDate: booking.startDate,
         endDate: booking.endDate,
         // Host contact (if renter is viewing)
         hostContact: isRenter ? {
           hostId: booking.listing.ownerId,
-          message: 'Contact the host if you need assistance'
-        } : undefined
+          message: 'Contact the host if you need assistance with pickup or delivery'
+        } : undefined,
+        // Access instructions (if available)
+        accessInstructions: booking.listing.accessInstructions || null
       },
-      message: 'Precise location revealed for approved booking',
+      message: 'Precise location revealed - payment confirmed',
       revealedAt: new Date().toISOString()
     });
   } catch (error) {

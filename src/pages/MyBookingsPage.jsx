@@ -1,16 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Calendar, Clock, MapPin } from 'lucide-react';
+import { Calendar, Clock, MapPin, Lock } from 'lucide-react';
 import EmptyState from '../components/EmptyState';
 import PageShell from '../components/layout/PageShell';
 import ListSkeleton from '../components/ListSkeleton';
+import { BookingAddress, AddressMaskBadge } from '../components/BookingAddress';
 import { useAuth } from '../hooks/useAuth';
 import { useAppStatus } from '../hooks/useAppStatus';
+import { useBookingLocation } from '../hooks/useBookingLocation';
 
 const STATUS_FILTERS = [
   { value: 'ALL', label: 'All' },
   { value: 'PENDING', label: 'Pending' },
   { value: 'APPROVED', label: 'Approved' },
+  { value: 'PAID', label: 'Paid' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
   { value: 'COMPLETED', label: 'Completed' },
   { value: 'CANCELLED', label: 'Cancelled' }
 ];
@@ -23,11 +27,46 @@ const BOOKING_MODE_LABELS = {
 };
 
 const STATUS_COLORS = {
+  // New state names (PascalCase)
+  Requested: 'bg-yellow-100 text-yellow-800',
+  HostApproved: 'bg-amber-100 text-amber-700',
+  Paid: 'bg-emerald-100 text-emerald-700',
+  InProgress: 'bg-blue-100 text-blue-700',
+  ReturnedPendingConfirmation: 'bg-indigo-100 text-indigo-700',
+  Completed: 'bg-slate-100 text-slate-700',
+  Canceled: 'bg-rose-100 text-rose-700',
+  // Legacy status names (UPPERCASE)
   PENDING: 'bg-yellow-100 text-yellow-800',
-  APPROVED: 'bg-emerald-100 text-emerald-700',
-  COMPLETED: 'bg-blue-100 text-blue-800',
+  APPROVED: 'bg-amber-100 text-amber-700',
+  PAID: 'bg-emerald-100 text-emerald-700',
+  IN_PROGRESS: 'bg-blue-100 text-blue-700',
+  COMPLETED: 'bg-slate-100 text-slate-700',
   CANCELLED: 'bg-rose-100 text-rose-700',
   DECLINED: 'bg-rose-100 text-rose-700'
+};
+
+/**
+ * Get human-readable status label
+ */
+const getStatusLabel = (status) => {
+  const labels = {
+    Requested: 'Pending Approval',
+    HostApproved: 'Awaiting Payment',
+    Paid: 'Confirmed',
+    InProgress: 'In Progress',
+    ReturnedPendingConfirmation: 'Pending Return Confirmation',
+    Completed: 'Completed',
+    Canceled: 'Cancelled',
+    // Legacy
+    PENDING: 'Pending Approval',
+    APPROVED: 'Awaiting Payment',
+    PAID: 'Confirmed',
+    IN_PROGRESS: 'In Progress',
+    COMPLETED: 'Completed',
+    CANCELLED: 'Cancelled',
+    DECLINED: 'Declined'
+  };
+  return labels[status] || status || 'Pending';
 };
 
 const formatDate = (value) => {
@@ -228,52 +267,60 @@ export function MyBookingsPage() {
 
     return (
       <ul className="space-y-4" aria-label="Bookings list">
-        {bookings.map((booking) => (
-          <li
-            key={booking.id}
-            className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md focus-within:ring-2 focus-within:ring-orange-400"
-            onClick={() => handleRowClick(booking)}
-          >
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-                    {BOOKING_MODE_LABELS[booking.bookingMode] || 'Booking'}
-                  </p>
-                  <h3 className="text-lg font-semibold text-slate-900">
-                    {booking.listing?.title || 'Listing removed'}
-                  </h3>
-                  <p className="mt-1 flex items-center gap-2 text-sm text-slate-600">
-                    <MapPin className="h-4 w-4" />
-                    {buildLocationLabel(booking.listing)}
-                  </p>
-                </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(booking.status)}`}>
-                  {booking.status || 'PENDING'}
-                </span>
-              </div>
-
-              <div className="grid gap-4 text-sm text-slate-600 sm:grid-cols-2">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-slate-500" />
-                  <span>{buildRangeLabel(booking)}</span>
-                </div>
-                {booking.bookingMode === 'hourly' && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-slate-500" />
-                    <span>
-                      {formatTime(booking.startDateTime)}
-                      {booking.endDateTime ? ` - ${formatTime(booking.endDateTime)}` : ''}
-                    </span>
+        {bookings.map((booking) => {
+          const bookingState = booking.state || booking.status;
+          return (
+            <li
+              key={booking.id}
+              className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md focus-within:ring-2 focus-within:ring-orange-400"
+              onClick={() => handleRowClick(booking)}
+            >
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+                        {BOOKING_MODE_LABELS[booking.bookingMode] || 'Booking'}
+                      </p>
+                      <AddressMaskBadge booking={booking} size="xs" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900 mt-1">
+                      {booking.listing?.title || 'Listing removed'}
+                    </h3>
+                    <div className="mt-2">
+                      <BookingAddress 
+                        booking={booking} 
+                        showRevealButton={false}
+                      />
+                    </div>
                   </div>
-                )}
-                <div className="flex items-center gap-2 text-base font-semibold text-slate-900 sm:col-span-2">
-                  Total {formatAmount(booking.totalPrice, booking.currency)}
+                  <span className={`flex-shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(bookingState)}`}>
+                    {getStatusLabel(bookingState)}
+                  </span>
+                </div>
+
+                <div className="grid gap-4 text-sm text-slate-600 sm:grid-cols-2">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-slate-500" />
+                    <span>{buildRangeLabel(booking)}</span>
+                  </div>
+                  {booking.bookingMode === 'hourly' && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-slate-500" />
+                      <span>
+                        {formatTime(booking.startDateTime)}
+                        {booking.endDateTime ? ` - ${formatTime(booking.endDateTime)}` : ''}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 text-base font-semibold text-slate-900 sm:col-span-2">
+                    Total {formatAmount(booking.totalPrice, booking.currency)}
+                  </div>
                 </div>
               </div>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     );
   };

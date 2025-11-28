@@ -1,13 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import { Lock, Ban } from 'lucide-react';
 import { apiClient } from '../api/client';
 import AppLayout from '../layouts/AppLayout.jsx';
 import { MessageThread } from '../components/MessageBubble';
+import { useMessagingPermissions } from '../hooks/useMessagingPermissions';
 
 export function MessagesInboxPage() {
   const navigate = useNavigate();
   const { threadId } = useParams();
+  const { getThreadMessagingStatus } = useMessagingPermissions();
   const [threads, setThreads] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedThreadId, setSelectedThreadId] = useState(null);
@@ -96,6 +99,13 @@ export function MessagesInboxPage() {
 
   const selectedThread = useMemo(() => threads.find((thread) => thread.id === selectedThreadId), [threads, selectedThreadId]);
   const otherParticipant = selectedThread?.participants?.find((p) => p.id !== currentUser?.id);
+  
+  // Check messaging permissions for the selected thread
+  const messagingStatus = useMemo(() => {
+    return getThreadMessagingStatus(selectedThread);
+  }, [selectedThread, getThreadMessagingStatus]);
+  
+  const canSendMessage = messagingStatus.allowed;
 
   const handleSelectThread = (id) => {
     setSelectedThreadId(id);
@@ -105,6 +115,12 @@ export function MessagesInboxPage() {
   const handleSendMessage = async (event) => {
     event.preventDefault();
     if (!composerValue.trim() || !selectedThreadId || !currentUser) return;
+    
+    // Enforce messaging permissions
+    if (!canSendMessage) {
+      alert(messagingStatus.reason || 'Messaging is not available for this conversation.');
+      return;
+    }
 
     try {
       setIsSending(true);
@@ -202,28 +218,48 @@ export function MessagesInboxPage() {
         <div className="border-b border-slate-200 px-5 py-4">
           <p className="text-sm font-semibold text-slate-900">{otherParticipant?.name || 'Conversation'}</p>
           <p className="text-xs text-slate-500">{selectedThread.listingTitle || selectedThread.subject || 'Direct message'}</p>
+          {!canSendMessage && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600">
+              <Lock className="h-3 w-3" />
+              <span>Thread locked</span>
+            </div>
+          )}
         </div>
         <MessageThread messages={messages} currentUserId={currentUser?.id} isLoading={isLoadingMessages} />
-        <form onSubmit={handleSendMessage} className="border-t border-slate-200 p-4">
-          <div className="flex gap-3">
-            <textarea
-              value={composerValue}
-              onChange={(event) => setComposerValue(event.target.value)}
-              rows={2}
-              placeholder="Type your message…"
-              className="min-h-[56px] flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100"
-            />
-            <button
-              type="submit"
-              disabled={isSending || !composerValue.trim()}
-              className={`rounded-2xl px-4 py-3 text-sm font-semibold text-white transition ${
-                isSending || !composerValue.trim() ? 'bg-slate-300' : 'bg-orange-500 hover:bg-orange-600'
-              }`}
-            >
-              {isSending ? 'Sending…' : 'Send'}
-            </button>
+        
+        {/* Messaging form - shows locked state when messaging is disabled */}
+        {canSendMessage ? (
+          <form onSubmit={handleSendMessage} className="border-t border-slate-200 p-4">
+            <div className="flex gap-3">
+              <textarea
+                value={composerValue}
+                onChange={(event) => setComposerValue(event.target.value)}
+                rows={2}
+                placeholder="Type your message…"
+                className="min-h-[56px] flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-100"
+              />
+              <button
+                type="submit"
+                disabled={isSending || !composerValue.trim()}
+                className={`rounded-2xl px-4 py-3 text-sm font-semibold text-white transition ${
+                  isSending || !composerValue.trim() ? 'bg-slate-300' : 'bg-orange-500 hover:bg-orange-600'
+                }`}
+              >
+                {isSending ? 'Sending…' : 'Send'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="border-t border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-center gap-3 text-slate-500">
+              <Ban className="h-5 w-5 text-slate-400" />
+              <div>
+                <p className="text-sm font-medium text-slate-700">Messaging closed</p>
+                <p className="text-xs text-slate-500">{messagingStatus.reason}</p>
+              </div>
+            </div>
           </div>
-        </form>
+        )}
       </div>
     );
   };
