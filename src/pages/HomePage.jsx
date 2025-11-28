@@ -1291,7 +1291,7 @@ function HomePage() {
                 const isActive = activeTab === option.id;
                 const TabIcon = option.icon;
                 const subcopyByMode = {
-                  [SEARCH_MODE.RENT]: 'Rent a kitchen to start a food business.',
+                  [SEARCH_MODE.RENT]: 'Rent a kitchen to start a food...',
                   [SEARCH_MODE.BUY]: 'Buy trucks & trailers.',
                   [SEARCH_MODE.EVENT_PRO]: 'Hire a food truck for a party.'
                 };
@@ -1302,7 +1302,7 @@ function HomePage() {
                     key={option.id}
                     type="button"
                     onClick={() => handleModeChange(option.id)}
-                    className={`vb-focus relative w-[31%] sm:flex-1 min-h-[100px] sm:min-h-0 rounded-[16px] sm:rounded-full border bg-white px-3 py-3 sm:px-3 sm:py-2 text-xs font-medium text-slate-400 shadow-[0_2px_4px_rgba(0,0,0,0.1)] sm:shadow-sm transition-all duration-200 hover:bg-slate-50 ${
+                    className={`vb-focus relative flex-1 min-h-[100px] sm:min-h-0 rounded-[16px] sm:rounded-full border bg-white px-2 py-3 sm:px-3 sm:py-2 text-xs font-medium text-slate-400 shadow-[0_2px_4px_rgba(0,0,0,0.1)] sm:shadow-sm transition-all duration-200 hover:bg-slate-50 ${
                       isActive
                         ? 'border-[#F97316] text-[#F97316] shadow-[0_4px_8px_rgba(249,115,22,0.2)] sm:shadow-md -translate-y-px'
                         : 'border-slate-200'
@@ -1310,13 +1310,13 @@ function HomePage() {
                   >
                     <TabSparkles isActive={isActive} color={isActive ? '#F97316' : '#9CA3AF'} />
                     <div className="flex items-center gap-1">
-                      <TabIcon className="h-3.5 w-3.5" />
-                      <span className="pill-label text-[0.8rem] font-semibold truncate">
+                      <TabIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="pill-label text-[0.7rem] sm:text-[0.8rem] font-semibold leading-tight">
                         {option.label}
                       </span>
                     </div>
                     {subcopy && (
-                      <span className={`pill-sub mt-1 text-[10px] sm:text-[0.7rem] leading-[13px] line-clamp-2 px-1 ${
+                      <span className={`pill-sub mt-1 text-[9px] sm:text-[0.65rem] leading-[12px] line-clamp-2 px-0.5 ${
                         isActive ? 'text-[#FB923C]' : 'text-slate-400'
                       }`}>
                         {subcopy}

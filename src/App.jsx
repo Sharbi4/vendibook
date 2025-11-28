@@ -8,6 +8,7 @@ import HostListings from './pages/HostListings';
 import HostEditListing from './pages/HostEditListing';
 import HostDashboardPage from './pages/HostDashboardPage';
 import { MessagesInboxPage } from './pages/MessagesInboxPage';
+import MessagesInfoPage from './pages/MessagesInfoPage';
 import { MyBookingsPage } from './pages/MyBookingsPage';
 import { HostBookingsPage } from './pages/HostBookingsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
@@ -62,22 +63,8 @@ function App() {
         
         {/* Host Pages */}
         <Route path="/become-host" element={<BecomeHostLanding />} />
-        <Route
-          path="/host/onboarding"
-          element={(
-            <RequireAuth>
-              <HostOnboardingWizard />
-            </RequireAuth>
-          )}
-        />
-        <Route
-          path="/host/listings"
-          element={(
-            <RequireAuth>
-              <HostListings />
-            </RequireAuth>
-          )}
-        />
+        <Route path="/host/onboarding" element={<HostOnboardingWizard />} />
+        <Route path="/host/listings" element={<HostListings />} />
         <Route
           path="/host/listings/:id/edit"
           element={(
@@ -86,14 +73,7 @@ function App() {
             </RequireAuth>
           )}
         />
-        <Route
-          path="/host/dashboard"
-          element={(
-            <RequireAuth>
-              <HostDashboardPage />
-            </RequireAuth>
-          )}
-        />
+        <Route path="/host/dashboard" element={<HostDashboardPage />} />
         <Route
           path="/host/bookings"
           element={(
@@ -122,6 +102,7 @@ function App() {
         />
         
         {/* Messaging */}
+        <Route path="/messages/info" element={<MessagesInfoPage />} />
         <Route
           path="/messages"
           element={(

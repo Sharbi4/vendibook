@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle, Calendar, CreditCard, ArrowRight, Loader2, MapPin } from 'lucide-react';
+import { CheckCircle, Calendar, CreditCard, ArrowRight, Loader2, MapPin, MessageCircle } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 /**
  * Checkout Success Page
@@ -11,10 +12,12 @@ import { CheckCircle, Calendar, CreditCard, ArrowRight, Loader2, MapPin } from '
 function CheckoutSuccess() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const sessionId = searchParams.get('session_id');
   
   const [isLoading, setIsLoading] = useState(true);
   const [bookingDetails, setBookingDetails] = useState(null);
+  const [threadId, setThreadId] = useState(null);
 
   useEffect(() => {
     if (!sessionId) {
@@ -40,6 +43,28 @@ function CheckoutSuccess() {
     // Small delay to let webhook process
     setTimeout(fetchSession, 1000);
   }, [sessionId]);
+
+  // Check for message thread once we have booking details
+  useEffect(() => {
+    const listingId = bookingDetails?.metadata?.listingId;
+    if (!listingId || !user?.id) return;
+
+    const checkThread = async () => {
+      try {
+        const response = await fetch(
+          `/api/messages/canStartThread?listingId=${listingId}&userId=${user.id}`
+        );
+        const data = await response.json();
+        if (data.allowed && data.threadId) {
+          setThreadId(data.threadId);
+        }
+      } catch (err) {
+        console.warn('Could not check message thread:', err);
+      }
+    };
+
+    checkThread();
+  }, [bookingDetails, user?.id]);
 
   // Format currency
   const formatCurrency = (amount) => {
@@ -166,6 +191,15 @@ function CheckoutSuccess() {
 
           {/* Actions */}
           <div className="px-6 pb-6 space-y-3">
+            {threadId && (
+              <button
+                onClick={() => navigate(`/messages/${threadId}`)}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition"
+              >
+                <MessageCircle className="w-5 h-5" />
+                Message Your Host
+              </button>
+            )}
             <button
               onClick={() => navigate('/bookings')}
               className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition"

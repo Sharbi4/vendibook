@@ -305,9 +305,37 @@ function ListingDetails() {
     setShowCheckoutModal(true);
   };
 
-  const handleMessageHost = () => {
+  const handleMessageHost = async () => {
     setBookingFeedback(null);
-    alert('Messaging coming soon! For now, contact the host directly.');
+
+    // If not logged in, redirect to sign in with return URL
+    if (!isAuthenticated || !user?.id) {
+      const returnUrl = `/messages/info?listingId=${listing?.id}`;
+      navigate(`/signin?redirect=${encodeURIComponent(returnUrl)}`);
+      return;
+    }
+
+    // Check if user can start a thread (has confirmed booking)
+    try {
+      const response = await fetch(
+        `/api/messages/canStartThread?listingId=${listing?.id}&userId=${user.id}`
+      );
+      const data = await response.json();
+
+      if (data.allowed && data.threadId) {
+        // User has a confirmed booking and thread exists/created
+        navigate(`/messages/${data.threadId}`);
+      } else {
+        // No confirmed booking - redirect to info page
+        navigate(`/messages/info?listingId=${listing?.id}`);
+      }
+    } catch (error) {
+      console.error('Failed to check messaging eligibility:', error);
+      setBookingFeedback({
+        type: 'error',
+        message: 'Unable to check messaging eligibility. Please try again.'
+      });
+    }
   };
 
   const imageUrl = listing?.imageUrl || listing?.image_url;
