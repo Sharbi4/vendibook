@@ -39,30 +39,13 @@ const MODE_TABS = [
   { id: SEARCH_MODE.VENDOR_MARKET, label: 'Vendor Markets', icon: '🏪' }
 ];
 
-// Conditional price ranges based on mode (rent vs sale)
-const RENTAL_PRICE_RANGES = [
+const PRICE_RANGES = [
   { value: '', label: 'Any price' },
-  { value: '0-100', label: 'Under $100/day' },
-  { value: '100-250', label: '$100 – $250/day' },
-  { value: '250-500', label: '$250 – $500/day' },
-  { value: '500+', label: '$500+/day' }
+  { value: '0-100', label: 'Under $100' },
+  { value: '100-250', label: '$100 - $250' },
+  { value: '250-500', label: '$250 - $500' },
+  { value: '500+', label: '$500+' }
 ];
-
-const SALE_PRICE_RANGES = [
-  { value: '', label: 'Any price' },
-  { value: '0-20000', label: 'Under $20,000' },
-  { value: '20000-50000', label: '$20,000 – $50,000' },
-  { value: '50000-100000', label: '$50,000 – $100,000' },
-  { value: '100000+', label: '$100,000+' }
-];
-
-// Function to get appropriate price ranges based on search mode
-const getPriceRangesForMode = (mode) => {
-  if (mode === SEARCH_MODE.BUY) {
-    return SALE_PRICE_RANGES;
-  }
-  return RENTAL_PRICE_RANGES;
-};
 
 function parseCoordinate(value) {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
@@ -640,7 +623,7 @@ function ListingsPageRedesigned() {
                   <select
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
                   >
-                    {getPriceRangesForMode(formFilters.mode).map((range) => (
+                    {PRICE_RANGES.map((range) => (
                       <option key={range.value || 'any'} value={range.value}>
                         {range.label}
                       </option>

@@ -128,10 +128,10 @@ const CATEGORY_OPTIONS = [
 
 const PRICE_OPTIONS = [
   { value: '', label: 'Any Price' },
-  { value: '0-20000', label: 'Under $20,000' },
-  { value: '20000-50000', label: '$20,000 – $50,000' },
-  { value: '50000-100000', label: '$50,000 – $100,000' },
-  { value: '100000+', label: '$100,000+' }
+  { value: '0-10000', label: 'Under $10,000' },
+  { value: '10000-30000', label: '$10,000 - $30,000' },
+  { value: '30000-50000', label: '$30,000 - $50,000' },
+  { value: '50000+', label: '$50,000+' }
 ];
 
 const CONDITION_OPTIONS = [
