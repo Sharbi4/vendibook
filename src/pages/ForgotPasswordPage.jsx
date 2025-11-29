@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSignIn } from '@clerk/clerk-react';
-import { ArrowLeft, Mail, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Mail, CheckCircle, Shield, Lock, Users } from 'lucide-react';
 import { clerkPublishableKey } from '../config/clerkConfig';
+import Header from '../components/Header';
+import SidebarMenu from '../components/SidebarMenu';
 
 const clerkEnabled = Boolean(clerkPublishableKey);
 
@@ -151,66 +153,146 @@ function ForgotPasswordDisabled() {
 }
 
 export default function ForgotPasswordPage() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
-    <div className="relative min-h-screen">
-      {/* Full-screen background image */}
-      <div className="absolute inset-0">
-        <img
-          src={heroImage}
-          alt="Cozy cabin in autumn forest"
-          className="h-full w-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black/40" />
-      </div>
+    <>
+      {/* Sidebar Menu */}
+      <SidebarMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
 
-      {/* Header */}
-      <header className="relative z-20">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-coral-500">
-              <span className="text-lg font-bold text-white">V</span>
+      {/* Main Content - shifts when menu is open */}
+      <div
+        className={`min-h-screen transition-all duration-300 ease-in-out ${
+          menuOpen ? '-mr-[380px] max-[768px]:-mr-[85vw]' : 'mr-0'
+        }`}
+      >
+        {/* Full-screen background image */}
+        <div className="fixed inset-0">
+          <img
+            src={heroImage}
+            alt="Cozy cabin in autumn forest"
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/40" />
+        </div>
+
+        {/* Header */}
+        <div className="relative z-20">
+          <Header onMenuOpen={() => setMenuOpen(true)} variant="transparent" />
+        </div>
+
+        {/* Centered card and content */}
+        <div className="relative z-10 flex min-h-[calc(100vh-72px)] flex-col items-center justify-center px-4 py-12">
+          {/* Forgot Password Card */}
+          <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+            {clerkEnabled ? <ForgotPasswordForm /> : <ForgotPasswordDisabled />}
+          </div>
+
+          {/* Trust & Security Section */}
+          <div className="mt-12 w-full max-w-2xl rounded-2xl bg-white/95 p-8 shadow-xl backdrop-blur-sm">
+            <h2 className="mb-6 text-center text-2xl font-bold text-gray-900">
+              How Vendibook Keeps Your Account Secure
+            </h2>
+
+            <div className="space-y-6">
+              {/* Security Feature 1 */}
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-coral-100">
+                  <Lock className="h-6 w-6 text-coral-500" />
+                </div>
+                <div>
+                  <h3 className="mb-1 text-lg font-semibold text-gray-900">
+                    Secure Password Reset
+                  </h3>
+                  <p className="text-gray-600">
+                    Password reset links are time-limited and can only be used once. Each link
+                    expires after 24 hours for your protection.
+                  </p>
+                </div>
+              </div>
+
+              {/* Security Feature 2 */}
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-coral-100">
+                  <Shield className="h-6 w-6 text-coral-500" />
+                </div>
+                <div>
+                  <h3 className="mb-1 text-lg font-semibold text-gray-900">
+                    Identity Verification
+                  </h3>
+                  <p className="text-gray-600">
+                    Hosts and high-value renters go through extra identity checks powered by Stripe
+                    to protect the community and ensure trust.
+                  </p>
+                </div>
+              </div>
+
+              {/* Security Feature 3 */}
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-coral-100">
+                  <Users className="h-6 w-6 text-coral-500" />
+                </div>
+                <div>
+                  <h3 className="mb-1 text-lg font-semibold text-gray-900">
+                    Trust & Support
+                  </h3>
+                  <p className="text-gray-600">
+                    Our team monitors activity 24/7, and you can contact support anytime if
+                    something doesn't look right. Your safety is our priority.
+                  </p>
+                </div>
+              </div>
             </div>
-            <span className="text-xl font-semibold text-white">Vendibook</span>
-          </Link>
-          <nav className="hidden items-center gap-6 md:flex">
-            <Link to="/" className="text-sm font-medium text-white/90 transition hover:text-white">
-              Home
-            </Link>
-            <Link to="/about" className="text-sm font-medium text-white/90 transition hover:text-white">
-              About
-            </Link>
-            <Link to="/blog" className="text-sm font-medium text-white/90 transition hover:text-white">
-              Blog
-            </Link>
-            <Link to="/contact" className="text-sm font-medium text-white/90 transition hover:text-white">
-              Contact
-            </Link>
-          </nav>
-        </div>
-      </header>
 
-      {/* Centered card */}
-      <div className="relative z-10 flex min-h-[calc(100vh-80px)] items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
-          {clerkEnabled ? <ForgotPasswordForm /> : <ForgotPasswordDisabled />}
+            {/* How It Works Steps */}
+            <div className="mt-10 border-t border-gray-200 pt-8">
+              <h3 className="mb-6 text-center text-xl font-bold text-gray-900">How It Works</h3>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-coral-500 text-sm font-bold text-white">
+                    1
+                  </div>
+                  <p className="pt-1 text-gray-700">
+                    Enter your email address and request a secure reset link
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-coral-500 text-sm font-bold text-white">
+                    2
+                  </div>
+                  <p className="pt-1 text-gray-700">
+                    Open the email and click the secure, time-limited link
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-coral-500 text-sm font-bold text-white">
+                    3
+                  </div>
+                  <p className="pt-1 text-gray-700">
+                    Choose a new strong password and sign back in to your account
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Custom styles for coral color */}
+        <style>{`
+          .bg-coral-100 { background-color: #fff1f0; }
+          .bg-coral-500 { background-color: #ff6b6b; }
+          .hover\\:bg-coral-600:hover { background-color: #ee5a5a; }
+          .text-coral-500 { color: #ff6b6b; }
+          .hover\\:text-coral-600:hover { color: #ee5a5a; }
+          .border-coral-400 { border-color: #ff8585; }
+          .ring-coral-400 { --tw-ring-color: #ff8585; }
+          .ring-coral-400\\/40 { --tw-ring-color: rgb(255 133 133 / 0.4); }
+          .shadow-coral-500\\/30 { --tw-shadow-color: rgb(255 107 107 / 0.3); }
+          .focus\\:border-coral-400:focus { border-color: #ff8585; }
+          .focus\\:ring-coral-400:focus { --tw-ring-color: #ff8585; }
+          .focus\\:ring-coral-400\\/40:focus { --tw-ring-color: rgb(255 133 133 / 0.4); }
+        `}</style>
       </div>
-
-      {/* Custom styles for coral color */}
-      <style>{`
-        .bg-coral-100 { background-color: #fff1f0; }
-        .bg-coral-500 { background-color: #ff6b6b; }
-        .hover\\:bg-coral-600:hover { background-color: #ee5a5a; }
-        .text-coral-500 { color: #ff6b6b; }
-        .hover\\:text-coral-600:hover { color: #ee5a5a; }
-        .border-coral-400 { border-color: #ff8585; }
-        .ring-coral-400 { --tw-ring-color: #ff8585; }
-        .ring-coral-400\\/40 { --tw-ring-color: rgb(255 133 133 / 0.4); }
-        .shadow-coral-500\\/30 { --tw-shadow-color: rgb(255 107 107 / 0.3); }
-        .focus\\:border-coral-400:focus { border-color: #ff8585; }
-        .focus\\:ring-coral-400:focus { --tw-ring-color: #ff8585; }
-        .focus\\:ring-coral-400\\/40:focus { --tw-ring-color: rgb(255 133 133 / 0.4); }
-      `}</style>
-    </div>
+    </>
   );
 }
