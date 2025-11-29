@@ -369,43 +369,106 @@ function HomePageRedesigned() {
               </div>
 
               {/* Search Fields */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                {/* Location */}
-                <div className="flex-1 relative">
-                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="City, state, or zip code"
-                    value={searchLocation}
-                    onChange={(e) => setSearchLocation(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                  />
+              <div className="space-y-4">
+                {/* Row 1: Location */}
+                <div className="relative">
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Location</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="City, state, or zip code"
+                      value={searchLocation}
+                      onChange={(e) => setSearchLocation(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                    />
+                  </div>
                 </div>
 
-                {/* Category */}
-                <div className="flex-1 relative">
-                  <Store className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <select
-                    value={searchCategory}
-                    onChange={(e) => setSearchCategory(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                  >
-                    <option value="">All Categories</option>
-                    <option value="food-trucks">Food Trucks</option>
-                    <option value="trailers">Food Trailers</option>
-                    <option value="carts">Carts & Kiosks</option>
-                    <option value="other">Other Equipment</option>
-                  </select>
-                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                {/* Row 2: Category + Distance */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Category */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Category</label>
+                    <div className="relative">
+                      <Store className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <select
+                        value={searchCategory}
+                        onChange={(e) => setSearchCategory(e.target.value)}
+                        className="w-full pl-12 pr-10 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                      >
+                        <option value="">All Categories</option>
+                        <option value="food-trucks">Food Trucks</option>
+                        <option value="trailers">Food Trailers</option>
+                        <option value="carts">Carts & Kiosks</option>
+                        <option value="ghost-kitchen">Ghost Kitchens</option>
+                        <option value="equipment">Equipment</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* Distance */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Distance</label>
+                    <div className="relative">
+                      <SlidersHorizontal className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <select
+                        className="w-full pl-12 pr-10 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                      >
+                        <option value="">Any distance</option>
+                        <option value="5">Within 5 miles</option>
+                        <option value="10">Within 10 miles</option>
+                        <option value="25">Within 25 miles</option>
+                        <option value="50">Within 50 miles</option>
+                        <option value="100">Within 100 miles</option>
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Row 3: Price Range + Date (Optional filters) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Price Range */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Price Range</label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <select
+                        className="w-full pl-12 pr-10 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 appearance-none focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                      >
+                        <option value="">Any price</option>
+                        <option value="0-100">Under $100/day</option>
+                        <option value="100-250">$100 - $250/day</option>
+                        <option value="250-500">$250 - $500/day</option>
+                        <option value="500+">$500+/day</option>
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* Date */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">When</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <input
+                        type="date"
+                        className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Search Button */}
                 <button
                   onClick={handleSearch}
-                  className="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold px-8 py-3.5 rounded-xl transition-all shadow-lg shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-0.5"
+                  className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold px-8 py-4 rounded-xl transition-all shadow-lg shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-0.5"
                 >
                   <Search className="w-5 h-5" />
-                  <span className="hidden sm:inline">Search</span>
+                  Search listings
                 </button>
               </div>
 
@@ -480,7 +543,9 @@ function HomePageRedesigned() {
                     alt={category.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                  {/* 30% overlay tint for text readability */}
+                  <div className="absolute inset-0 bg-black/30" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
                 </div>
 
                 {/* Content Overlay */}
@@ -539,6 +604,8 @@ function HomePageRedesigned() {
                     alt={listing.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
+                  {/* 30% overlay tint for text readability */}
+                  <div className="absolute inset-0 bg-black/30" />
                   
                   {/* Badges */}
                   <div className="absolute top-3 left-3 flex flex-col gap-2">
