@@ -1,7 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import HomePageRedesigned from './pages/HomePageRedesigned';
-import ListingsPage from './pages/ListingsPage';
-import ListingDetails from './pages/ListingDetails';
+import ListingsPageRedesigned from './pages/ListingsPageRedesigned';
+import ListingDetailRedesigned from './pages/ListingDetailRedesigned';
 import RentPage from './pages/RentPage';
 import ForSalePage from './pages/ForSalePage';
 import EventProPage from './pages/EventProPage';
@@ -46,8 +46,8 @@ function App() {
     <Routes>
         {/* Main Pages */}
         <Route path="/" element={<HomePageRedesigned />} />
-        <Route path="/listings" element={<ListingsPage />} />
-        <Route path="/listing/:id" element={<ListingDetails />} />
+        <Route path="/listings" element={<ListingsPageRedesigned />} />
+        <Route path="/listing/:id" element={<ListingDetailRedesigned />} />
         <Route path="/rent" element={<RentPage />} />
         <Route path="/for-sale" element={<ForSalePage />} />
         <Route path="/event-pro" element={<EventProPage />} />
