@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
-import HomePage from './pages/HomePage';
+import HomePageRedesigned from './pages/HomePageRedesigned';
 import ListingsPage from './pages/ListingsPage';
 import ListingDetails from './pages/ListingDetails';
 import RentPage from './pages/RentPage';
@@ -45,7 +45,7 @@ function App() {
   return (
     <Routes>
         {/* Main Pages */}
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HomePageRedesigned />} />
         <Route path="/listings" element={<ListingsPage />} />
         <Route path="/listing/:id" element={<ListingDetails />} />
         <Route path="/rent" element={<RentPage />} />
