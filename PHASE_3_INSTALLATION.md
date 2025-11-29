@@ -6,6 +6,31 @@
 - PostgreSQL 14+ (local or managed service like AWS RDS, Railway, Supabase)
 - AWS Account (for S3 file storage) or similar cloud storage service
 - Git
+- Homebrew (macOS/Linux package manager, required for local PostgreSQL installation)
+
+### Installing Homebrew (macOS/Linux)
+
+If you're on macOS or Linux and don't have Homebrew installed, run:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+After installation, add Homebrew to your PATH. For macOS with Apple Silicon (M1/M2/M3):
+
+```bash
+# Add to ~/.zprofile (or ~/.bash_profile for Bash)
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+eval "$(/opt/homebrew/bin/brew shellenv)"
+```
+
+For Intel Macs and Linux, Homebrew is typically at `/usr/local` and should work automatically.
+
+Verify the installation with:
+
+```bash
+brew --version
+```
 
 ## Environment Setup
 
@@ -94,6 +119,9 @@ npx prisma studio
 #### Option A: Local PostgreSQL
 
 ```bash
+# Install Homebrew if not already installed (macOS/Linux)
+# See Prerequisites section above for installation command
+
 # Install PostgreSQL (macOS)
 brew install postgresql@14
 
