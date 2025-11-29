@@ -23,7 +23,20 @@ import {
   Music,
   Camera,
   Tent,
-  TreePine
+  TreePine,
+  Edit3,
+  Trash2,
+  Eye,
+  MoreHorizontal,
+  FileText,
+  CreditCard,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Wallet,
+  BarChart3,
+  ArrowUpRight,
+  Star
 } from 'lucide-react';
 import { useHostDashboardData } from '../hooks/useHostDashboardData';
 import { USER_ROLE_LABELS, USER_ROLES } from '../constants/roles';
@@ -112,28 +125,37 @@ function HostDashboardPage() {
 
   const kpis = useMemo(() => ([
     {
-      label: 'Total listings',
+      label: 'Active Listings',
       value: summary.totalListings ?? 0,
-      accent: 'bg-[#FF5124]/10 text-[#FF5124]',
-      icon: <ClipboardList className="h-5 w-5" />
+      change: '+2 this month',
+      accent: 'bg-emerald-500/10 text-emerald-600',
+      bgGradient: 'from-emerald-50 to-emerald-100/50',
+      icon: <CheckCircle className="h-5 w-5" />
     },
     {
-      label: 'Active bookings',
-      value: summary.activeBookings ?? 0,
-      accent: 'bg-emerald-500/10 text-emerald-600',
+      label: 'Draft Listings',
+      value: summary.draftListings ?? 0,
+      change: 'Finish to publish',
+      accent: 'bg-amber-500/10 text-amber-600',
+      bgGradient: 'from-amber-50 to-amber-100/50',
+      icon: <FileText className="h-5 w-5" />
+    },
+    {
+      label: 'Upcoming Bookings',
+      value: summary.upcomingBookings ?? 0,
+      change: 'Next 30 days',
+      accent: 'bg-sky-500/10 text-sky-600',
+      bgGradient: 'from-sky-50 to-sky-100/50',
       icon: <CalendarDays className="h-5 w-5" />
     },
     {
-      label: 'Upcoming bookings',
-      value: summary.upcomingBookings ?? 0,
-      accent: 'bg-sky-500/10 text-sky-600',
-      icon: <TrendingUp className="h-5 w-5" />
-    },
-    {
-      label: 'Unread messages',
-      value: summary.unreadMessages ?? 0,
-      accent: 'bg-purple-500/10 text-purple-600',
-      icon: <MessageSquare className="h-5 w-5" />
+      label: 'Payout Balance',
+      value: formatPrice(summary.payoutBalance ?? 0),
+      change: summary.pendingPayout ? `${formatPrice(summary.pendingPayout)} pending` : 'Available now',
+      accent: 'bg-[#FF5124]/10 text-[#FF5124]',
+      bgGradient: 'from-orange-50 to-orange-100/50',
+      icon: <Wallet className="h-5 w-5" />,
+      isAmount: true
     }
   ]), [summary]);
 
@@ -325,12 +347,16 @@ function HostDashboardPage() {
         {isLoading ? renderKpiSkeleton() : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {kpis.map((kpi) => (
-              <div key={kpi.label} className="group rounded-2xl bg-white p-5 shadow-sm border border-slate-100 transition-all hover:shadow-md hover:border-slate-200">
-                <div className={`inline-flex items-center justify-center rounded-xl ${kpi.accent} p-3`}>
-                  {kpi.icon}
+              <div key={kpi.label} className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${kpi.bgGradient} p-5 shadow-sm border border-white/60 transition-all hover:shadow-lg hover:-translate-y-0.5`}>
+                <div className="flex items-start justify-between">
+                  <div className={`inline-flex items-center justify-center rounded-xl ${kpi.accent} p-3`}>
+                    {kpi.icon}
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-slate-400 opacity-0 transition-all group-hover:opacity-100 group-hover:text-slate-600" />
                 </div>
-                <p className="mt-4 text-sm font-medium text-slate-500">{kpi.label}</p>
-                <p className="text-3xl font-bold tracking-tight text-slate-900">{kpi.value}</p>
+                <p className="mt-4 text-sm font-medium text-slate-600">{kpi.label}</p>
+                <p className={`text-3xl font-bold tracking-tight text-slate-900 ${kpi.isAmount ? 'text-2xl' : ''}`}>{kpi.value}</p>
+                <p className="mt-1 text-xs text-slate-500">{kpi.change}</p>
               </div>
             ))}
           </div>
@@ -403,53 +429,107 @@ function HostDashboardPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="divide-y divide-slate-100">
-                    {safeListings.map((listing) => (
-                      <div key={listing.id} className="group flex items-center gap-4 py-4 first:pt-0 last:pb-0">
-                        {/* Thumbnail */}
-                        <div className="h-16 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100">
-                          {listing.imageUrl ? (
-                            <img src={listing.imageUrl} alt={listing.title} className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center">
-                              <Store className="h-6 w-6 text-slate-300" />
-                            </div>
-                          )}
-                        </div>
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-base font-semibold text-slate-900 truncate">{listing.title}</p>
-                          <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
-                            <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                              {listing.listingType?.replace(/_/g, ' ') || 'Listing'}
-                            </span>
-                            {listing.city && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {listing.city}{listing.state ? `, ${listing.state}` : ''}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {/* Price */}
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-slate-900">
-                            {listing.price != null ? formatPrice(Number(listing.price)) : '—'}
-                          </p>
-                          {listing.priceUnit && (
-                            <p className="text-xs text-slate-500">/ {listing.priceUnit}</p>
-                          )}
-                        </div>
-                        {/* Actions */}
-                        <button
-                          type="button"
-                          onClick={() => handleViewListing(listing.id)}
-                          className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 opacity-0 transition-all group-hover:opacity-100 hover:border-[#FF5124] hover:text-[#FF5124]"
-                        >
-                          View
-                        </button>
-                      </div>
-                    ))}
+                  <div className="overflow-hidden rounded-xl border border-slate-200">
+                    <table className="w-full">
+                      <thead className="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Listing</th>
+                          <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                          <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Price</th>
+                          <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Views</th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {safeListings.map((listing) => {
+                          const statusColors = {
+                            active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                            draft: 'bg-amber-50 text-amber-700 border-amber-200',
+                            paused: 'bg-slate-100 text-slate-600 border-slate-200',
+                            pending: 'bg-sky-50 text-sky-700 border-sky-200'
+                          };
+                          const status = listing.status || 'active';
+                          const statusColor = statusColors[status.toLowerCase()] || statusColors.active;
+                          
+                          return (
+                            <tr key={listing.id} className="group hover:bg-slate-50/50 transition-colors">
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="h-12 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                                    {listing.imageUrl ? (
+                                      <img src={listing.imageUrl} alt={listing.title} className="h-full w-full object-cover" />
+                                    ) : (
+                                      <div className="flex h-full w-full items-center justify-center">
+                                        <Store className="h-5 w-5 text-slate-300" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-slate-900 truncate max-w-[200px]">{listing.title}</p>
+                                    <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                                      <MapPin className="h-3 w-3" />
+                                      {listing.city || 'Location TBD'}{listing.state ? `, ${listing.state}` : ''}
+                                    </p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="hidden sm:table-cell px-4 py-3">
+                                <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${statusColor}`}>
+                                  {status}
+                                </span>
+                              </td>
+                              <td className="hidden md:table-cell px-4 py-3">
+                                <p className="text-sm font-semibold text-slate-900">
+                                  {listing.price != null ? formatPrice(Number(listing.price)) : '—'}
+                                </p>
+                                {listing.priceUnit && (
+                                  <p className="text-xs text-slate-500">/ {listing.priceUnit}</p>
+                                )}
+                              </td>
+                              <td className="hidden lg:table-cell px-4 py-3">
+                                <div className="flex items-center gap-1 text-sm text-slate-600">
+                                  <Eye className="h-4 w-4 text-slate-400" />
+                                  {listing.views ?? 0}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleViewListing(listing.id)}
+                                    className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                                    title="View listing"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => navigate(`/host/listings/${listing.id}/edit`)}
+                                    className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-sky-50 hover:text-sky-600"
+                                    title="Edit listing"
+                                  >
+                                    <Edit3 className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (confirm('Are you sure you want to delete this listing?')) {
+                                        // TODO: Implement delete
+                                        console.log('Delete listing:', listing.id);
+                                      }
+                                    }}
+                                    className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                                    title="Delete listing"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 )
               )}

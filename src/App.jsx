@@ -2,6 +2,10 @@ import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ListingsPage from './pages/ListingsPage';
 import ListingDetails from './pages/ListingDetails';
+import RentPage from './pages/RentPage';
+import ForSalePage from './pages/ForSalePage';
+import EventProPage from './pages/EventProPage';
+import RenterDashboardPage from './pages/RenterDashboardPage';
 import BecomeHostLanding from './pages/BecomeHostLanding';
 import HostOnboardingWizard from './pages/HostOnboardingWizard';
 import HostListings from './pages/HostListings';
@@ -39,6 +43,9 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/listings" element={<ListingsPage />} />
         <Route path="/listing/:id" element={<ListingDetails />} />
+        <Route path="/rent" element={<RentPage />} />
+        <Route path="/for-sale" element={<ForSalePage />} />
+        <Route path="/event-pro" element={<EventProPage />} />
         <Route path="/community" element={<CommunityPage />} />
         <Route
           path="/profile"
@@ -102,6 +109,14 @@ function App() {
         />
         
         {/* Renter Pages */}
+        <Route
+          path="/dashboard"
+          element={(
+            <RequireAuth>
+              <RenterDashboardPage />
+            </RequireAuth>
+          )}
+        />
         <Route
           path="/bookings"
           element={(
