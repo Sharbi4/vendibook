@@ -182,7 +182,7 @@ const SAMPLE_LISTINGS = [
   }
 ];
 
-// Category cards for browsing
+// Category cards for browsing - with icons matching Webflow Rental X style
 const BROWSE_CATEGORIES = [
   {
     id: 'food-trucks',
@@ -190,7 +190,8 @@ const BROWSE_CATEGORIES = [
     description: 'Fully equipped mobile kitchens',
     image: 'https://images.unsplash.com/photo-1565123409695-7b5ef63a2efb?auto=format&fit=crop&w=600&q=80',
     count: '120+ listings',
-    link: '/rent?listingType=food-trucks'
+    link: '/rent?listingType=food-trucks',
+    icon: Truck
   },
   {
     id: 'trailers',
@@ -198,7 +199,17 @@ const BROWSE_CATEGORIES = [
     description: 'Towable commercial kitchens',
     image: 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=600&q=80',
     count: '85+ listings',
-    link: '/rent?listingType=trailers'
+    link: '/rent?listingType=trailers',
+    icon: Truck
+  },
+  {
+    id: 'ghost-kitchen',
+    title: 'Ghost Kitchens',
+    description: 'Commercial kitchen spaces',
+    image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=600&q=80',
+    count: '25+ spaces',
+    link: '/rent?listingType=ghost-kitchen',
+    icon: Store
   },
   {
     id: 'event-pros',
@@ -206,7 +217,17 @@ const BROWSE_CATEGORIES = [
     description: 'Chefs, DJs, photographers & more',
     image: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&w=600&q=80',
     count: '50+ pros',
-    link: '/event-pro'
+    link: '/event-pro',
+    icon: Sparkles
+  },
+  {
+    id: 'lots-parking',
+    title: 'Lots & Parking',
+    description: 'Prime vending locations',
+    image: 'https://images.unsplash.com/photo-1590674899484-13d6c3f4d53c?auto=format&fit=crop&w=600&q=80',
+    count: '30+ spots',
+    link: '/rent?listingType=vending-lot',
+    icon: MapPin
   },
   {
     id: 'for-sale',
@@ -214,7 +235,8 @@ const BROWSE_CATEGORIES = [
     description: 'Buy your own equipment',
     image: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=600&q=80',
     count: '40+ listings',
-    link: '/for-sale'
+    link: '/for-sale',
+    icon: DollarSign
   }
 ];
 
@@ -528,41 +550,48 @@ function HomePageRedesigned() {
             </Link>
           </div>
 
-          {/* Category Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {BROWSE_CATEGORIES.map((category) => (
-              <Link
-                key={category.id}
-                to={category.link}
-                className="group relative overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-xl transition-all duration-300"
-              >
-                {/* Image */}
-                <div className="aspect-[4/3] overflow-hidden">
-                  <img
-                    src={category.image}
-                    alt={category.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  {/* 30% overlay tint for text readability */}
-                  <div className="absolute inset-0 bg-black/30" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-                </div>
+          {/* Category Grid - 3 columns matching Webflow Rental X */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {BROWSE_CATEGORIES.map((category) => {
+              const IconComponent = category.icon;
+              return (
+                <Link
+                  key={category.id}
+                  to={category.link}
+                  className="group relative overflow-hidden rounded-2xl bg-white shadow-sm hover:shadow-xl transition-all duration-300"
+                >
+                  {/* Image */}
+                  <div className="aspect-[4/3] overflow-hidden">
+                    <img
+                      src={category.image}
+                      alt={category.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    {/* Overlay gradient for text readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" />
+                  </div>
 
-                {/* Content Overlay */}
-                <div className="absolute bottom-0 left-0 right-0 p-5">
-                  <span className="inline-block bg-white/90 backdrop-blur-sm text-slate-700 text-xs font-medium px-3 py-1 rounded-full mb-3">
-                    {category.count}
-                  </span>
-                  <h3 className="text-xl font-bold text-white mb-1">{category.title}</h3>
-                  <p className="text-white/80 text-sm">{category.description}</p>
-                </div>
+                  {/* Category Icon Badge - top left */}
+                  <div className="absolute top-4 left-4 w-12 h-12 bg-white/95 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg">
+                    <IconComponent className="w-6 h-6 text-orange-500" />
+                  </div>
 
-                {/* Arrow indicator */}
-                <div className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ArrowRight className="w-5 h-5 text-slate-700" />
-                </div>
-              </Link>
-            ))}
+                  {/* Content Overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-5">
+                    <span className="inline-block bg-white/90 backdrop-blur-sm text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-3 shadow-sm">
+                      {category.count}
+                    </span>
+                    <h3 className="text-xl font-bold text-white mb-1">{category.title}</h3>
+                    <p className="text-white/80 text-sm">{category.description}</p>
+                  </div>
+
+                  {/* Arrow indicator */}
+                  <div className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all group-hover:scale-110">
+                    <ArrowRight className="w-5 h-5 text-slate-700" />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -856,79 +885,121 @@ function HomePageRedesigned() {
       </section>
 
       {/* ============================================ */}
-      {/* FOOTER */}
+      {/* FOOTER - Multi-column Webflow style */}
       {/* ============================================ */}
-      <footer className="bg-slate-900 text-white py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 lg:gap-12 mb-12">
+      <footer className="bg-slate-900 text-white">
+        {/* Newsletter Section */}
+        <div className="border-b border-slate-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-2">Stay in the loop</h3>
+                <p className="text-slate-400">Get the latest listings, tips, and mobile food news delivered to your inbox.</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="flex-1 lg:w-72 px-5 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500"
+                />
+                <button className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-orange-500/20">
+                  Subscribe
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Footer Content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 lg:gap-12 mb-12">
             {/* Brand */}
-            <div className="col-span-2 lg:col-span-1">
-              <Link to="/" className="text-2xl font-bold text-white mb-4 inline-block">
-                Vendibook
+            <div className="col-span-2 md:col-span-3 lg:col-span-2">
+              <Link to="/" className="inline-block mb-4">
+                <img 
+                  src="https://k6dbqk6vsjuxeqeq.public.blob.vercel-storage.com/vendibook%20%20logo%20transparent.png" 
+                  alt="Vendibook" 
+                  className="h-10 brightness-0 invert"
+                />
               </Link>
-              <p className="text-slate-400 text-sm mb-6">
-                The marketplace for mobile food entrepreneurs. Find, book, and launch your business.
+              <p className="text-slate-400 text-sm mb-6 max-w-xs">
+                Arizona's #1 marketplace for mobile food entrepreneurs. Find, book, and launch your business today.
               </p>
               <div className="flex gap-4">
-                <a href="#" className="text-slate-400 hover:text-white transition-colors">
+                <a href="https://instagram.com/vendibook" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-all">
                   <Instagram className="w-5 h-5" />
                 </a>
-                <a href="#" className="text-slate-400 hover:text-white transition-colors">
+                <a href="https://twitter.com/vendibook" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-all">
                   <Twitter className="w-5 h-5" />
                 </a>
-                <a href="#" className="text-slate-400 hover:text-white transition-colors">
+                <a href="https://facebook.com/vendibook" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-all">
                   <Facebook className="w-5 h-5" />
                 </a>
               </div>
             </div>
 
-            {/* Rent */}
+            {/* Column 1 - Explore */}
             <div>
-              <h4 className="font-semibold text-white mb-4">Rent</h4>
+              <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Explore</h4>
               <ul className="space-y-3">
                 <li><Link to="/rent?listingType=food-trucks" className="text-slate-400 hover:text-white text-sm transition-colors">Food Trucks</Link></li>
                 <li><Link to="/rent?listingType=trailers" className="text-slate-400 hover:text-white text-sm transition-colors">Food Trailers</Link></li>
-                <li><Link to="/rent" className="text-slate-400 hover:text-white text-sm transition-colors">All Rentals</Link></li>
-              </ul>
-            </div>
-
-            {/* Buy */}
-            <div>
-              <h4 className="font-semibold text-white mb-4">Buy</h4>
-              <ul className="space-y-3">
+                <li><Link to="/event-pro" className="text-slate-400 hover:text-white text-sm transition-colors">Event Pros</Link></li>
                 <li><Link to="/for-sale" className="text-slate-400 hover:text-white text-sm transition-colors">For Sale</Link></li>
-                <li><Link to="/for-sale" className="text-slate-400 hover:text-white text-sm transition-colors">Financing</Link></li>
+                <li><Link to="/rent?listingType=ghost-kitchen" className="text-slate-400 hover:text-white text-sm transition-colors">Ghost Kitchens</Link></li>
+                <li><Link to="/rent?listingType=vending-lot" className="text-slate-400 hover:text-white text-sm transition-colors">Lots & Parking</Link></li>
               </ul>
             </div>
 
-            {/* Host */}
+            {/* Column 2 - Guides */}
             <div>
-              <h4 className="font-semibold text-white mb-4">Host</h4>
+              <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Guides</h4>
+              <ul className="space-y-3">
+                <li><Link to="/how-it-works/renter" className="text-slate-400 hover:text-white text-sm transition-colors">Renter Guide</Link></li>
+                <li><Link to="/how-it-works/host" className="text-slate-400 hover:text-white text-sm transition-colors">Host Guide</Link></li>
+                <li><Link to="/how-it-works/seller" className="text-slate-400 hover:text-white text-sm transition-colors">Seller Guide</Link></li>
+                <li><Link to="/blog" className="text-slate-400 hover:text-white text-sm transition-colors">Blog</Link></li>
+                <li><Link to="/help" className="text-slate-400 hover:text-white text-sm transition-colors">Licensing & Permits</Link></li>
+                <li><a href="https://flipinsurance.com" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white text-sm transition-colors">Insurance (FLIP)</a></li>
+              </ul>
+            </div>
+
+            {/* Column 3 - Company */}
+            <div>
+              <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Company</h4>
+              <ul className="space-y-3">
+                <li><Link to="/about" className="text-slate-400 hover:text-white text-sm transition-colors">About</Link></li>
+                <li><Link to="/contact" className="text-slate-400 hover:text-white text-sm transition-colors">Contact</Link></li>
+                <li><Link to="/help" className="text-slate-400 hover:text-white text-sm transition-colors">Help Center</Link></li>
+                <li><Link to="/terms" className="text-slate-400 hover:text-white text-sm transition-colors">Terms of Service</Link></li>
+                <li><Link to="/privacy" className="text-slate-400 hover:text-white text-sm transition-colors">Privacy Policy</Link></li>
+              </ul>
+            </div>
+
+            {/* Column 4 - Host */}
+            <div>
+              <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Host</h4>
               <ul className="space-y-3">
                 <li><Link to="/host" className="text-slate-400 hover:text-white text-sm transition-colors">Become a Host</Link></li>
                 <li><Link to="/host/dashboard" className="text-slate-400 hover:text-white text-sm transition-colors">Host Dashboard</Link></li>
-              </ul>
-            </div>
-
-            {/* Support */}
-            <div>
-              <h4 className="font-semibold text-white mb-4">Support</h4>
-              <ul className="space-y-3">
-                <li><Link to="/help" className="text-slate-400 hover:text-white text-sm transition-colors">Help Center</Link></li>
-                <li><Link to="/contact" className="text-slate-400 hover:text-white text-sm transition-colors">Contact Us</Link></li>
-                <li><Link to="/how-it-works" className="text-slate-400 hover:text-white text-sm transition-colors">How It Works</Link></li>
+                <li><Link to="/host/onboarding" className="text-slate-400 hover:text-white text-sm transition-colors">List Equipment</Link></li>
+                <li><Link to="/community" className="text-slate-400 hover:text-white text-sm transition-colors">Community</Link></li>
+                <li><a href="#" className="text-slate-400 hover:text-white text-sm transition-colors">Affiliate Program</a></li>
               </ul>
             </div>
           </div>
 
-          {/* Bottom */}
-          <div className="border-t border-slate-800 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-slate-500 text-sm">
-              © 2025 Vendibook LLC. All rights reserved.
-            </p>
-            <div className="flex gap-6">
-              <Link to="/privacy" className="text-slate-500 hover:text-white text-sm transition-colors">Privacy</Link>
-              <Link to="/terms" className="text-slate-500 hover:text-white text-sm transition-colors">Terms</Link>
+          {/* Bottom Bar */}
+          <div className="border-t border-slate-800 pt-8">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-slate-500 text-sm">
+                © 2025 Vendibook LLC. All rights reserved.
+              </p>
+              <div className="flex flex-wrap justify-center gap-6">
+                <Link to="/privacy" className="text-slate-500 hover:text-white text-sm transition-colors">Privacy Policy</Link>
+                <Link to="/terms" className="text-slate-500 hover:text-white text-sm transition-colors">Terms of Service</Link>
+                <Link to="/contact" className="text-slate-500 hover:text-white text-sm transition-colors">Contact</Link>
+              </div>
             </div>
           </div>
         </div>

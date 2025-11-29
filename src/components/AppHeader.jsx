@@ -1,8 +1,54 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { 
+  Menu, X, ChevronRight, Truck, Users, MapPin, Store, 
+  BookOpen, HelpCircle, User, MessageSquare, Heart, 
+  LayoutDashboard, Info, Mail, Shield, FileText 
+} from 'lucide-react';
 import { SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
 import { clerkPublishableKey } from '../config/clerkConfig';
+
+// Mobile menu sections matching Webflow Rental X structure
+const MOBILE_MENU_SECTIONS = [
+  {
+    title: 'Explore',
+    items: [
+      { label: 'Food Trucks', path: '/rent?listingType=food-trucks', icon: Truck },
+      { label: 'Food Trailers', path: '/rent?listingType=trailers', icon: Truck },
+      { label: 'Event Pros', path: '/event-pro', icon: Users },
+      { label: 'Ghost Kitchens', path: '/rent?listingType=ghost-kitchen', icon: Store },
+      { label: 'Lots & Parking', path: '/rent?listingType=vending-lot', icon: MapPin },
+      { label: 'For Sale', path: '/for-sale', icon: Store }
+    ]
+  },
+  {
+    title: 'Learn',
+    items: [
+      { label: 'Blog', path: '/blog', icon: BookOpen },
+      { label: 'Renter Guide', path: '/how-it-works/renter', icon: BookOpen },
+      { label: 'Host Guide', path: '/how-it-works/host', icon: BookOpen },
+      { label: 'Buying Guide', path: '/how-it-works/buyer', icon: BookOpen },
+      { label: 'FAQ', path: '/help', icon: HelpCircle }
+    ]
+  },
+  {
+    title: 'Company',
+    items: [
+      { label: 'About', path: '/about', icon: Info },
+      { label: 'Contact', path: '/contact', icon: Mail },
+      { label: 'Terms & Policies', path: '/terms', icon: FileText },
+      { label: 'Privacy', path: '/privacy', icon: Shield }
+    ]
+  }
+];
+
+const ACCOUNT_MENU_ITEMS = [
+  { label: 'Dashboard', path: '/host/dashboard', icon: LayoutDashboard },
+  { label: 'Messages', path: '/messages', icon: MessageSquare },
+  { label: 'My Bookings', path: '/bookings', icon: BookOpen },
+  { label: 'Saved Listings', path: '/wishlist', icon: Heart },
+  { label: 'Profile', path: '/profile', icon: User }
+];
 
 function AppHeader({ className = '' }) {
   const navigate = useNavigate();
@@ -110,11 +156,12 @@ function AppHeader({ className = '' }) {
         </button>
       </div>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer - Enhanced Webflow-style navigation */}
       {mobileOpen && (
         <div className="xl:hidden">
           <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-xs flex-col border-l border-slate-200 bg-white shadow-2xl">
+          <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-slate-200 bg-white shadow-2xl">
+            {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
               <Link to="/" onClick={() => setMobileOpen(false)} className="flex items-center">
                 <img 
@@ -126,84 +173,126 @@ function AppHeader({ className = '' }) {
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-full border border-slate-200 p-2 text-slate-600"
+                className="rounded-full border border-slate-200 p-2 text-slate-600 hover:bg-slate-50 transition-colors"
                 aria-label="Close menu"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-5 py-6">
-              <button
-                type="button"
-                onClick={() => handleNavigate('/community')}
-                className="rounded-2xl px-4 py-3 text-left text-base font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Community
-              </button>
+
+            {/* Scrollable Navigation */}
+            <nav className="flex-1 overflow-y-auto px-5 py-6">
+              {/* Account Section - Shown when signed in */}
               {clerkEnabled && (
                 <SignedIn>
-                  <button
-                    type="button"
-                    onClick={() => handleNavigate('/host/dashboard')}
-                    className="rounded-2xl px-4 py-3 text-left text-base font-semibold text-slate-700 hover:bg-slate-50"
-                  >
-                    Dashboard
-                  </button>
+                  <div className="mb-6">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Account</p>
+                    <div className="space-y-1">
+                      {ACCOUNT_MENU_ITEMS.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <button
+                            key={item.path}
+                            type="button"
+                            onClick={() => handleNavigate(item.path)}
+                            className="flex items-center gap-3 w-full rounded-xl px-4 py-3 text-left text-base font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                          >
+                            <Icon className="h-5 w-5 text-slate-400" />
+                            {item.label}
+                            <ChevronRight className="h-4 w-4 text-slate-300 ml-auto" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="border-t border-slate-100 mb-6" />
                 </SignedIn>
               )}
+
+              {/* Menu Sections */}
+              {MOBILE_MENU_SECTIONS.map((section, sectionIndex) => (
+                <div key={section.title} className="mb-6">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">{section.title}</p>
+                  <div className="space-y-1">
+                    {section.items.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.path}
+                          type="button"
+                          onClick={() => handleNavigate(item.path)}
+                          className="flex items-center gap-3 w-full rounded-xl px-4 py-3 text-left text-base font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          <Icon className="h-5 w-5 text-slate-400" />
+                          {item.label}
+                          <ChevronRight className="h-4 w-4 text-slate-300 ml-auto" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {sectionIndex < MOBILE_MENU_SECTIONS.length - 1 && (
+                    <div className="border-t border-slate-100 mt-6" />
+                  )}
+                </div>
+              ))}
             </nav>
-            <div className="border-t border-slate-200 px-5 py-4">
+
+            {/* Footer with Auth */}
+            <div className="border-t border-slate-200 px-5 py-4 bg-slate-50">
               {clerkEnabled ? (
                 <>
                   <SignedIn>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <UserButton
+                          afterSignOutUrl="/"
+                          appearance={{ elements: { avatarBox: 'h-10 w-10' } }}
+                        />
+                        <span className="text-sm font-medium text-slate-700">My Account</span>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => handleNavigate('/messages')}
-                        className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
+                        onClick={() => handleNavigate('/host/onboarding')}
+                        className="rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600"
                       >
-                        Inbox
+                        List Equipment
                       </button>
-                      <UserButton
-                        afterSignOutUrl="/"
-                        appearance={{ elements: { avatarBox: 'h-9 w-9' } }}
-                      />
                     </div>
                   </SignedIn>
                   <SignedOut>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleNavigate('/signin')}
-                        className="text-sm font-semibold text-slate-700 transition hover:text-slate-900"
-                      >
-                        Sign in
-                      </button>
+                    <div className="flex flex-col gap-3">
                       <button
                         type="button"
                         onClick={() => handleNavigate('/signup')}
-                        className="rounded-full bg-[#FF5124] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#E94A1F]"
+                        className="w-full rounded-full bg-[#FF5124] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#E94A1F]"
                       >
                         Sign up
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleNavigate('/signin')}
+                        className="w-full rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white"
+                      >
+                        Sign in
                       </button>
                     </div>
                   </SignedOut>
                 </>
               ) : (
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleNavigate('/signin')}
-                    className="text-sm font-semibold text-slate-700 transition hover:text-slate-900"
-                  >
-                    Sign in
-                  </button>
+                <div className="flex flex-col gap-3">
                   <button
                     type="button"
                     onClick={() => handleNavigate('/signup')}
-                    className="rounded-full bg-[#FF5124] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#E94A1F]"
+                    className="w-full rounded-full bg-[#FF5124] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#E94A1F]"
                   >
                     Sign up
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleNavigate('/signin')}
+                    className="w-full rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white"
+                  >
+                    Sign in
                   </button>
                 </div>
               )}
