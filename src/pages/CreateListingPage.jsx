@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import CreateListingWizard from '../components/CreateListingWizard';
+import IdentityVerificationGate from '../components/IdentityVerificationGate';
 
 /**
  * Create Listing Page
@@ -44,7 +45,9 @@ export default function CreateListingPage() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <CreateListingWizard onSuccess={handleSuccess} />
+        <IdentityVerificationGate requireVerification={true}>
+          <CreateListingWizard onSuccess={handleSuccess} />
+        </IdentityVerificationGate>
       </main>
 
       {/* Exit Confirmation Modal */}

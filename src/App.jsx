@@ -40,6 +40,7 @@ import ContactPage from './pages/ContactPage';
 import HowItWorksPage from './pages/HowItWorksPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import VerifySuccessPage from './pages/VerifySuccessPage';
 
 function App() {
   return (
@@ -72,7 +73,17 @@ function App() {
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/checkout/success" element={<CheckoutSuccess />} />
         <Route path="/checkout/cancel" element={<CheckoutCancel />} />
-        
+
+        {/* Identity Verification */}
+        <Route
+          path="/verify-success"
+          element={(
+            <RequireAuth>
+              <VerifySuccessPage />
+            </RequireAuth>
+          )}
+        />
+
         {/* How It Works Pages */}
         <Route path="/how-it-works/sellers" element={<HowItWorksSellerPage />} />
         <Route path="/how-it-works/hosts" element={<HowItWorksHostPage />} />

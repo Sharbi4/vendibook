@@ -336,18 +336,56 @@ const tokenToUser = new Map();
 // ============================================================================
 const userDB = {
   addUser(user) {
-    users.push(user);
-    return user;
+    const newUser = {
+      ...user,
+      // Stripe Identity verification fields
+      identityVerified: false,
+      stripeVerificationStatus: 'none', // none, pending, verified, failed, canceled
+      stripeVerificationSessionID: null,
+      stripeVerifiedAt: null,
+      createdAt: user.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    users.push(newUser);
+    return newUser;
   },
-  
+
   getUserByEmail(email) {
     return users.find(u => u.email === email);
   },
-  
+
   getUserById(id) {
     return users.find(u => u.id === id);
   },
-  
+
+  getUserByClerkId(clerkId) {
+    return users.find(u => u.clerkId === clerkId);
+  },
+
+  updateUser(id, updates) {
+    const user = users.find(u => u.id === id);
+    if (user) {
+      Object.assign(user, updates, { updatedAt: new Date().toISOString() });
+    }
+    return user;
+  },
+
+  updateVerificationStatus(id, status, sessionId = null) {
+    const user = users.find(u => u.id === id);
+    if (user) {
+      user.stripeVerificationStatus = status;
+      if (sessionId) {
+        user.stripeVerificationSessionID = sessionId;
+      }
+      if (status === 'verified') {
+        user.identityVerified = true;
+        user.stripeVerifiedAt = new Date().toISOString();
+      }
+      user.updatedAt = new Date().toISOString();
+    }
+    return user;
+  },
+
   getAllUsers() {
     return users;
   }

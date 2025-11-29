@@ -6,6 +6,7 @@ import EmptyState from '../components/EmptyState';
 import PageShell from '../components/layout/PageShell';
 import MetricCard from '../components/MetricCard';
 import { useAppStatus } from '../hooks/useAppStatus';
+import IdentityVerificationGate from '../components/IdentityVerificationGate';
 
 function HostDashboard() {
   const navigate = useNavigate();
@@ -91,7 +92,8 @@ function HostDashboard() {
       subtitle="Manage your listings and monitor performance"
       action={{ label: 'Create Listing', onClick: () => navigate('/host/onboarding'), icon: Plus }}
     >
-      <section className="space-y-10">
+      <IdentityVerificationGate requireVerification={true}>
+        <section className="space-y-10">
         {/* Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard label="Total Listings" value={metrics.total} />
@@ -202,7 +204,8 @@ function HostDashboard() {
             )}
           </>
         )}
-      </section>
+        </section>
+      </IdentityVerificationGate>
     </PageShell>
   );
 }
