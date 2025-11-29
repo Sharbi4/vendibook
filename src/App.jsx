@@ -31,6 +31,10 @@ import HowItWorksRenterPage from './pages/HowItWorksRenterPage';
 import HowItWorksMarketPage from './pages/HowItWorksMarketPage';
 import HowItWorksBuyerPage from './pages/HowItWorksBuyerPage';
 import CreateListingPage from './pages/CreateListingPage';
+import HelpCenterPage from './pages/HelpCenterPage';
+import ContactPage from './pages/ContactPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
 
 function App() {
   return (
@@ -55,6 +59,12 @@ function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/checkout/success" element={<CheckoutSuccess />} />
         <Route path="/checkout/cancel" element={<CheckoutCancel />} />
+        
+        {/* Help & Legal Pages */}
+        <Route path="/help" element={<HelpCenterPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         
         {/* How It Works Pages */}
         <Route path="/how-it-works/sellers" element={<HowItWorksSellerPage />} />
