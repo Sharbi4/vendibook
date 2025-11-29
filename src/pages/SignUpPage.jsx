@@ -248,7 +248,7 @@ function ClerkSignUpForm() {
               ? 'border-rose-400/60 bg-rose-500/5 focus:border-rose-400 focus:ring-rose-400/30'
               : 'border-white/15 bg-white/5 focus:border-orange-400 focus:ring-orange-400/40'
               }`}
-            placeholder="shubham.raghav"
+            placeholder="Username"
             value={formValues.username}
             onChange={updateField}
           />
